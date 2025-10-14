@@ -21,6 +21,7 @@ pub struct Milestone {
     pub evidence: String,
     pub amount: i128,
     pub flags: Flags,
+    pub receiver: Address,
 }
 
 #[contracttype]
@@ -31,7 +32,6 @@ pub struct Roles {
     pub platform_address: Address,
     pub release_signer: Address,
     pub dispute_resolver: Address,
-    pub receiver: Address,
 }
 
 #[contracttype]
