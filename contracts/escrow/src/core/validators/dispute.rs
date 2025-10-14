@@ -1,8 +1,7 @@
 use soroban_sdk::Address;
 
 use crate::{
-    error::ContractError,
-    storage::types::{Escrow, Milestone, Roles},
+    error::ContractError, storage::types::{Escrow, Milestone, Roles}
 };
 
 #[inline]
@@ -106,7 +105,6 @@ pub fn validate_dispute_flag_change_conditions(
         platform_address,
         release_signer,
         dispute_resolver,
-        receiver,
     } = &escrow.roles;
 
     let is_authorized = signer == approver
@@ -114,7 +112,7 @@ pub fn validate_dispute_flag_change_conditions(
         || signer == platform_address
         || signer == release_signer
         || signer == dispute_resolver
-        || signer == receiver;
+        || signer == &milestone.receiver;
 
     if !is_authorized {
         return Err(ContractError::UnauthorizedToChangeDisputeFlag);
