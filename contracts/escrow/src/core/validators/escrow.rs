@@ -106,7 +106,7 @@ pub fn validate_escrow_property_change_conditions(
             return Err(ContractError::AmountCannotBeZero);
         }
 
-        if new_len > 10 {
+        if new_len > 50 {
             return Err(ContractError::TooManyMilestones);
         }
 
@@ -118,7 +118,7 @@ pub fn validate_escrow_property_change_conditions(
             return Err(ContractError::AmountCannotBeZero);
         }
 
-        if new_escrow.milestones.len() > 10 {
+        if new_escrow.milestones.len() > 50 {
             return Err(ContractError::TooManyMilestones);
         }
 
@@ -160,7 +160,7 @@ pub fn validate_initialize_escrow_conditions(
         return Err(ContractError::AmountCannotBeZero);
     }
 
-    if escrow_properties.milestones.len() > 10 {
+    if escrow_properties.milestones.len() > 50 {
         return Err(ContractError::TooManyMilestones);
     }
 
