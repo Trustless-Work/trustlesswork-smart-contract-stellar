@@ -25,6 +25,7 @@ pub struct DisEsc {
 pub struct ChgEsc {
     pub platform: soroban_sdk::Address,
     pub engagement_id: String,
+    pub new_escrow_properties: Escrow,
 }
 
 #[contractevent(topics = ["tw_ms_change"], data_format = "vec")]
