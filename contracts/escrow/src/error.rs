@@ -119,7 +119,7 @@ impl fmt::Display for ContractError {
                 write!(f, "You are not authorized to change the dispute flag")
             }
             ContractError::TooManyMilestones => {
-                write!(f, "Cannot define more than 10 milestones in an escrow")
+                write!(f, "Cannot define more than 50 milestones in an escrow")
             }
             ContractError::CantReleaseAMilestoneInDispute => {
                 write!(f, "You cannot launch a milestone in dispute")
