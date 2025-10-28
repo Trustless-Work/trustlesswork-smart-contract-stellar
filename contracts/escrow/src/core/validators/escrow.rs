@@ -44,12 +44,12 @@ pub fn validate_escrow_property_change_conditions(
     platform_address: &Address,
     contract_balance: i128,
 ) -> Result<(), ContractError> {
-    if existing_escrow.flags.disputed {
-        return Err(ContractError::EscrowOpenedForDisputeResolution);
-    }
-
     if existing_escrow.roles.platform_address != new_escrow.roles.platform_address {
         return Err(ContractError::PlatformAddressCannotBeChanged);
+    }
+
+    if existing_escrow.flags.disputed {
+        return Err(ContractError::EscrowOpenedForDisputeResolution);
     }
 
     for milestone in existing_escrow.milestones.iter() {
@@ -70,20 +70,61 @@ pub fn validate_escrow_property_change_conditions(
         return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
     }
 
+    // If the contract has funds, updates must be append-only.
+    // If there are no funds, allow modifying properties (with standard validations).
     if contract_balance > 0 {
-        return Err(ContractError::EscrowHasFunds);
-    }
+        // Append-only policy when funds exist: All other escrow properties and the existing milestones must remain identical.
+        if existing_escrow.engagement_id != new_escrow.engagement_id
+            || existing_escrow.title != new_escrow.title
+            || existing_escrow.description != new_escrow.description
+            || existing_escrow.roles != new_escrow.roles
+            || existing_escrow.amount != new_escrow.amount
+            || existing_escrow.platform_fee != new_escrow.platform_fee
+            || existing_escrow.flags != new_escrow.flags
+            || existing_escrow.trustline != new_escrow.trustline
+            || existing_escrow.receiver_memo != new_escrow.receiver_memo
+        {
+            return Err(ContractError::EscrowPropertiesMismatch);
+        }
 
-    if new_escrow.amount == 0 {
-        return Err(ContractError::AmountCannotBeZero);
-    }
+        let old_len = existing_escrow.milestones.len();
+        let new_len = new_escrow.milestones.len();
 
-    if new_escrow.milestones.len() > 10 {
-        return Err(ContractError::TooManyMilestones);
-    }
+        if new_len < old_len {
+            return Err(ContractError::EscrowPropertiesMismatch);
+        }
 
-    if new_escrow.milestones.is_empty() {
-        return Err(ContractError::NoMilestoneDefined);
+        for i in 0..old_len {
+            if existing_escrow.milestones.get(i).unwrap()
+                != new_escrow.milestones.get(i).unwrap()
+            {
+                return Err(ContractError::EscrowPropertiesMismatch);
+            }
+        }
+
+        if new_escrow.amount == 0 {
+            return Err(ContractError::AmountCannotBeZero);
+        }
+
+        if new_len > 10 {
+            return Err(ContractError::TooManyMilestones);
+        }
+
+        if new_len == 0 {
+            return Err(ContractError::NoMilestoneDefined);
+        }
+    } else {
+        if new_escrow.amount == 0 {
+            return Err(ContractError::AmountCannotBeZero);
+        }
+
+        if new_escrow.milestones.len() > 10 {
+            return Err(ContractError::TooManyMilestones);
+        }
+
+        if new_escrow.milestones.is_empty() {
+            return Err(ContractError::NoMilestoneDefined);
+        }
     }
 
     Ok(())
