@@ -45,7 +45,7 @@ pub fn validate_escrow_conditions(
     contract_balance: Option<i128>,
     is_init: bool,
 ) -> Result<(), ContractError> {
-    let max_bps_percentage: u32 = 99 * 100; // 99%
+    let max_bps_percentage: u32 = 99 * 100;
     if new_escrow.platform_fee > max_bps_percentage {
         return Err(ContractError::PlatformFeeTooHigh);
     }
@@ -57,7 +57,7 @@ pub fn validate_escrow_conditions(
         return Err(ContractError::PlatformFeeTooHigh);
     }
 
-    if new_escrow.amount <= 0 {
+    if new_escrow.amount < 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
 
