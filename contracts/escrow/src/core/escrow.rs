@@ -7,14 +7,14 @@ use super::validators::escrow::{
 };
 use crate::error::ContractError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone};
 
 pub struct EscrowManager;
 
 impl EscrowManager {
     #[inline]
-    pub fn get_receiver(escrow: &Escrow) -> Address {
-        escrow.roles.receiver.clone()
+    pub fn get_receiver(milestone: &Milestone) -> Address {
+        milestone.receiver.clone()
     }
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
@@ -84,7 +84,7 @@ impl EscrowManager {
                 &fee_result.platform_fee,
             );
 
-            let receiver = Self::get_receiver(&escrow);
+            let receiver = Self::get_receiver(&milestone);
             token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
         } else {
             return Err(ContractError::MilestoneNotFound);

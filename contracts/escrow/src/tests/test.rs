@@ -50,7 +50,6 @@ fn test_initialize_escrow() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -72,6 +71,7 @@ fn test_initialize_escrow() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -79,6 +79,7 @@ fn test_initialize_escrow() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -148,7 +149,6 @@ fn test_update_escrow() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -170,6 +170,7 @@ fn test_update_escrow() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -177,6 +178,7 @@ fn test_update_escrow() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -197,7 +199,7 @@ fn test_update_escrow() {
 
     escrow_approver.initialize_escrow(&initial_escrow_properties);
 
-    // Create a new updated escrow properties
+    // Create a new updated escrow properties (no funds: can modify any field)
     let new_milestones = vec![
         &env,
         Milestone {
@@ -206,6 +208,7 @@ fn test_update_escrow() {
             evidence: String::from_str(&env, "Initial evidence"),
             amount: amount * 2,
             flags: flags.clone(),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
@@ -213,6 +216,7 @@ fn test_update_escrow() {
             evidence: String::from_str(&env, "Initial evidence"),
             amount: amount * 2,
             flags: flags.clone(),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
@@ -220,6 +224,7 @@ fn test_update_escrow() {
             evidence: String::from_str(&env, "Initial evidence"),
             amount: amount * 2,
             flags: flags.clone(),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -227,10 +232,10 @@ fn test_update_escrow() {
         engagement_id: engagement_id.clone(),
         title: String::from_str(&env, "Test Escrow Updated"),
         description: String::from_str(&env, "Test Escrow Description Updated"),
-        roles,
+        roles: roles.clone(),
         platform_fee: platform_fee * 2,
         milestones: new_milestones.clone(),
-        trustline,
+        trustline: trustline.clone(),
         receiver_memo: 0,
     };
 
@@ -252,10 +257,12 @@ fn test_update_escrow() {
         escrow.roles.dispute_resolver,
         updated_escrow_properties.roles.dispute_resolver
     );
-    assert_eq!(
-        escrow.roles.receiver,
-        updated_escrow_properties.roles.receiver
-    );
+    for (i, _) in escrow.milestones.iter().enumerate() {
+        assert_eq!(
+            escrow.milestones.get(i as u32).unwrap().receiver,
+            updated_escrow_properties.milestones.get(i as u32).unwrap().receiver
+        );
+    }
     assert_eq!(
         escrow.receiver_memo,
         updated_escrow_properties.receiver_memo
@@ -266,6 +273,117 @@ fn test_update_escrow() {
     let result =
         escrow_approver.try_update_escrow(&non_platform_address, &updated_escrow_properties);
     assert!(result.is_err());
+}
+
+#[test]
+fn test_append_milestones_with_funds() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let platform_fee = 3 * 100;
+    let amount: i128 = 100_000_000;
+
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+    };
+
+    let flags: Flags = Flags { disputed: false, released: false, resolved: false, approved: false };
+
+    let trustline: Trustline = Trustline { address: token_client.address.clone() };
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            flags: flags.clone(),
+            amount: 100_000,
+            evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Second milestone"),
+            status: String::from_str(&env, "Pending"),
+            flags: flags.clone(),
+            amount: 100_000,
+            evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
+        },
+    ];
+
+    let engagement_id = String::from_str(&env, "append_with_funds");
+    let initial_escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Escrow"),
+        description: String::from_str(&env, "Test Escrow Description"),
+        roles: roles.clone(),
+        platform_fee: platform_fee,
+        milestones: initial_milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_approver = test_data.client;
+
+    escrow_approver.initialize_escrow(&initial_escrow_properties);
+
+    // Fund the escrow (contract will hold funds)
+    token_admin.mint(&release_signer_address, &amount);
+    escrow_approver.fund_escrow(&release_signer_address, &initial_escrow_properties, &amount);
+
+    // Now attempt to append new milestones while funds exist
+    let updated_milestones = vec![
+        &env,
+        initial_escrow_properties.milestones.get(0).unwrap(),
+        initial_escrow_properties.milestones.get(1).unwrap(),
+        Milestone {
+            description: String::from_str(&env, "Third milestone new"),
+            status: String::from_str(&env, "Pending"),
+            flags: flags.clone(),
+            amount: 200_000,
+            evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
+        },
+    ];
+
+    let updated_escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Escrow"),
+        description: String::from_str(&env, "Test Escrow Description"),
+        roles: roles.clone(),
+        platform_fee: platform_fee,
+        milestones: updated_milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    escrow_approver.update_escrow(&platform_address, &updated_escrow_properties);
+
+    let escrow = escrow_approver.get_escrow();
+    assert_eq!(escrow.milestones.len(), 3);
+    assert_eq!(escrow.milestones.get(0).unwrap(), initial_escrow_properties.milestones.get(0).unwrap());
+    assert_eq!(escrow.milestones.get(1).unwrap(), initial_escrow_properties.milestones.get(1).unwrap());
+    // Non-milestone fields must remain unchanged
+    assert_eq!(escrow.engagement_id, initial_escrow_properties.engagement_id);
+    assert_eq!(escrow.title, initial_escrow_properties.title);
+    assert_eq!(escrow.description, initial_escrow_properties.description);
+    assert!(escrow.roles == initial_escrow_properties.roles);
+    assert_eq!(escrow.platform_fee, initial_escrow_properties.platform_fee);
+    assert!(escrow.trustline == initial_escrow_properties.trustline);
+    assert_eq!(escrow.receiver_memo, initial_escrow_properties.receiver_memo);
 }
 
 #[test]
@@ -291,7 +409,6 @@ fn test_change_milestone_status_and_approved_flag() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -313,6 +430,7 @@ fn test_change_milestone_status_and_approved_flag() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -320,6 +438,7 @@ fn test_change_milestone_status_and_approved_flag() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -443,7 +562,6 @@ fn test_release_milestone_funds_successful() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -465,6 +583,7 @@ fn test_release_milestone_funds_successful() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -472,6 +591,7 @@ fn test_release_milestone_funds_successful() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -559,7 +679,6 @@ fn test_release_milestone_funds_no_milestones() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let trustline: Trustline = Trustline {
@@ -610,7 +729,6 @@ fn test_release_milestone_funds_milestones_incomplete() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -632,6 +750,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -639,6 +758,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -701,7 +821,6 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
     };
 
     let flags: Flags = Flags {
@@ -723,6 +842,7 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
             amount,
             evidence: String::from_str(&env, "Initial evidence"),
             flags,
+            receiver: _receiver_address.clone(),
         },
     ];
 
@@ -811,7 +931,6 @@ fn test_release_funds_invalid_receiver_fallback() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: _receiver_address.clone(), // Different receiver address than service provider
     };
 
     let flags: Flags = Flags {
@@ -833,6 +952,7 @@ fn test_release_funds_invalid_receiver_fallback() {
             amount,
             evidence: String::from_str(&env, "Initial evidence"),
             flags,
+            receiver: _receiver_address.clone(),
         },
     ];
 
@@ -923,7 +1043,6 @@ fn test_dispute_management() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -945,6 +1064,7 @@ fn test_dispute_management() {
             amount,
             evidence: String::from_str(&env, "Initial evidence"),
             flags,
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1021,7 +1141,6 @@ fn test_dispute_resolution_process() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -1043,6 +1162,7 @@ fn test_dispute_resolution_process() {
             flags: flags.clone(),
             amount,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1146,7 +1266,6 @@ fn test_cannot_release_after_dispute_resolved() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
     let flags = Flags {
         disputed: false,
@@ -1165,6 +1284,7 @@ fn test_cannot_release_after_dispute_resolved() {
             flags: flags.clone(),
             amount,
             evidence: String::from_str(&env, "e"),
+            receiver: service_provider.clone(),
         },
     ];
     let esc = Escrow {
@@ -1225,7 +1345,6 @@ fn test_cannot_dispute_resolve_after_released() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
     let flags = Flags {
         disputed: false,
@@ -1244,6 +1363,7 @@ fn test_cannot_dispute_resolve_after_released() {
             flags: flags.clone(),
             amount,
             evidence: String::from_str(&env, "e"),
+            receiver: service_provider.clone(),
         },
     ];
     let esc = Escrow {
@@ -1306,7 +1426,6 @@ fn test_fund_escrow_successful_deposit() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -1328,6 +1447,7 @@ fn test_fund_escrow_successful_deposit() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -1335,6 +1455,7 @@ fn test_fund_escrow_successful_deposit() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1397,7 +1518,6 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -1419,6 +1539,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -1426,6 +1547,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1489,7 +1611,6 @@ fn test_fund_escrow_dispute_flag_error() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -1511,6 +1632,7 @@ fn test_fund_escrow_dispute_flag_error() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -1518,6 +1640,7 @@ fn test_fund_escrow_dispute_flag_error() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1572,7 +1695,6 @@ fn test_dispute_milestone() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
-        receiver: service_provider_address.clone(),
     };
 
     let flags: Flags = Flags {
@@ -1594,6 +1716,7 @@ fn test_dispute_milestone() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -1601,6 +1724,7 @@ fn test_dispute_milestone() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
         },
     ];
 
@@ -1668,7 +1792,6 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
         platform_address,
         release_signer,
         dispute_resolver,
-        receiver: service_provider,
     };
 
     let flags: Flags = Flags {
@@ -1690,6 +1813,7 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider.clone(),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -1697,6 +1821,7 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
             flags: flags.clone(),
             amount: 100_000,
             evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider.clone(),
         },
     ];
 
@@ -1759,7 +1884,6 @@ fn test_withdraw_remaining_funds_success() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
 
     let flags = Flags {
@@ -1779,6 +1903,7 @@ fn test_withdraw_remaining_funds_success() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
         Milestone {
             description: String::from_str(&env, "m2"),
@@ -1786,6 +1911,7 @@ fn test_withdraw_remaining_funds_success() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
     ];
 
@@ -1884,7 +2010,6 @@ fn test_withdraw_remaining_funds_unauthorized() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
     let flags = Flags {
         disputed: false,
@@ -1903,6 +2028,7 @@ fn test_withdraw_remaining_funds_unauthorized() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
     ];
     let esc = Escrow {
@@ -1950,7 +2076,6 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
     let flags = Flags {
         disputed: false,
@@ -1969,6 +2094,7 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
         Milestone {
             description: String::from_str(&env, "m2"),
@@ -1976,6 +2102,7 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
     ];
     let esc = Escrow {
@@ -2027,7 +2154,6 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
-        receiver: service_provider.clone(),
     };
     let flags = Flags {
         disputed: false,
@@ -2046,6 +2172,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
         Milestone {
             description: String::from_str(&env, "m2"),
@@ -2053,6 +2180,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
             evidence: String::from_str(&env, "e"),
             amount: 100_000,
             flags: flags.clone(),
+            receiver: service_provider.clone(),
         },
     ];
     let esc = Escrow {
