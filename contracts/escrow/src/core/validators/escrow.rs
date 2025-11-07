@@ -118,6 +118,11 @@ pub fn validate_escrow_property_change_conditions(
             return Err(ContractError::AmountCannotBeZero);
         }
 
+        let max_bps_percentage: u32 = 99 * 100;
+        if new_escrow.platform_fee > max_bps_percentage {
+            return Err(ContractError::PlatformFeeTooHigh);
+        }
+
         if new_escrow.milestones.len() > 50 {
             return Err(ContractError::TooManyMilestones);
         }
