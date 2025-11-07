@@ -30,6 +30,136 @@ fn create_escrow_contract<'a>(env: &Env) -> TestData {
 }
 
 #[test]
+fn test_initialize_escrow_rejects_platform_fee_exceeding_aggregate_cap() {
+    let env = Env::default();
+
+    let approver_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let engagement_id = String::from_str(&env, "agg-cap");
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+        approved: false,
+    };
+
+    let trustline: Trustline = Trustline { address: usdc_token.0.address.clone() };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            flags: flags.clone(),
+            amount: 100_000,
+            evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
+        },
+    ];
+
+    // Platform fee that makes (platform + TW) > 100%. TW fee is 30 bps.
+    let platform_fee_bps_over = (10_000 - 30) + 1;
+
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Escrow"),
+        description: String::from_str(&env, "Desc"),
+        roles: roles.clone(),
+        platform_fee: platform_fee_bps_over,
+        milestones: milestones,
+        trustline,
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    let res = client.try_initialize_escrow(&escrow_properties);
+    assert!(res.is_err());
+}
+
+#[test]
+fn test_change_escrow_rejects_platform_fee_exceeding_aggregate_cap() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+    };
+
+    let flags: Flags = Flags { disputed: false, released: false, resolved: false, approved: false };
+
+    let trustline: Trustline = Trustline { address: usdc_token.0.address.clone() };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            flags: flags.clone(),
+            amount: 100_000,
+            evidence: String::from_str(&env, "Empty"),
+            receiver: service_provider_address.clone(),
+        },
+    ];
+
+    // Start with a valid platform fee
+    let base_platform_fee = 3 * 100;
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: String::from_str(&env, "E1"),
+        title: String::from_str(&env, "Escrow"),
+        description: String::from_str(&env, "Desc"),
+        roles: roles.clone(),
+        platform_fee: base_platform_fee,
+        milestones: milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+
+    // Now attempt to change to an invalid platform fee (aggregate > 100%). TW fee is 30 bps.
+    let over_platform_fee = (10_000 - 30) + 1;
+    let updated_escrow_properties = Escrow {
+        platform_fee: over_platform_fee,
+        ..escrow_properties
+    };
+
+    let res = client.try_update_escrow(&platform_address, &updated_escrow_properties);
+    assert!(res.is_err());
+}
+
+#[test]
 fn test_initialize_escrow() {
     let env = Env::default();
 
