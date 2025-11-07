@@ -83,6 +83,7 @@ impl EscrowContract {
         ChgEsc {
             platform: plataform_address,
             engagement_id: escrow_properties.engagement_id.clone(),
+            new_escrow_properties: updated_escrow.clone(),
         }
         .publish(e);
         Ok(updated_escrow)
