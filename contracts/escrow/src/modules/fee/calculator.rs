@@ -9,28 +9,27 @@ use crate::{
 const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
 const BASIS_POINTS_DENOMINATOR: i128 = 10000;
 
-#[derive(Debug, Clone)]
-pub struct StandardFeeResult {
-    pub trustless_work_fee: i128,
-    pub platform_fee: i128,
-    pub receiver_amount: i128,
-}
-
 pub trait FeeCalculatorTrait {
-    fn calculate_standard_fees(
+    fn calculate_total_fees(
         total_amount: i128,
         platform_fee_bps: u32,
-    ) -> Result<StandardFeeResult, ContractError>;
+    ) -> Result<(i128, i128, i128), ContractError>;
+    fn calculate_net_share(
+        share_amount: i128,
+        total_amount: i128,
+        platform_fee_bps: u32,
+    ) -> Result<(i128, i128, i128), ContractError>;
 }
 
 #[derive(Clone)]
 pub struct FeeCalculator;
 
 impl FeeCalculatorTrait for FeeCalculator {
-    fn calculate_standard_fees(
+    #[inline]
+    fn calculate_total_fees(
         total_amount: i128,
         platform_fee_bps: u32,
-    ) -> Result<StandardFeeResult, ContractError> {
+    ) -> Result<(i128, i128, i128), ContractError> {
         let trustless_work_fee = SafeMath::safe_mul_div(
             total_amount,
             TRUSTLESS_WORK_FEE_BPS,
@@ -38,14 +37,34 @@ impl FeeCalculatorTrait for FeeCalculator {
         )?;
         let platform_fee =
             SafeMath::safe_mul_div(total_amount, platform_fee_bps, BASIS_POINTS_DENOMINATOR)?;
+        let total_fees = BasicMath::safe_add(trustless_work_fee, platform_fee)?;
+        Ok((trustless_work_fee, platform_fee, total_fees))
+    }
 
-        let after_tw = BasicMath::safe_sub(total_amount, trustless_work_fee)?;
-        let receiver_amount = BasicMath::safe_sub(after_tw, platform_fee)?;
+    #[inline]
+    fn calculate_net_share(
+        share_amount: i128,
+        total_amount: i128,
+        platform_fee_bps: u32,
+    ) -> Result<(i128, i128, i128), ContractError> {
+        if share_amount <= 0 || total_amount <= 0 || share_amount > total_amount {
+            return Err(ContractError::AmountsToBeTransferredShouldBePositive);
+        }
+        let (trustless_work_fee, platform_fee, total_fees) =
+            Self::calculate_total_fees(total_amount, platform_fee_bps)?;
+        let share_total_fees = SafeMath::safe_mul_div(share_amount, total_fees as u32, total_amount)?;
+        let trustless_share_fee = if total_fees == 0 {
+            0
+        } else {
+            SafeMath::safe_mul_div(share_total_fees, trustless_work_fee as u32, total_fees)?
+        };
+        let platform_share_fee = if total_fees == 0 {
+            0
+        } else {
+            SafeMath::safe_mul_div(share_total_fees, platform_fee as u32, total_fees)?
+        };
 
-        Ok(StandardFeeResult {
-            trustless_work_fee,
-            platform_fee,
-            receiver_amount,
-        })
+        let net_share = BasicMath::safe_sub(share_amount, share_total_fees)?;
+        Ok((net_share, trustless_share_fee, platform_share_fee))
     }
 }

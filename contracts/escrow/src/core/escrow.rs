@@ -65,26 +65,32 @@ impl EscrowManager {
                 return Err(ContractError::EscrowBalanceNotEnoughToSendEarnings);
             }
 
-            let fee_result = FeeCalculator::calculate_standard_fees(
+            let (net_share, trustless_fee_share, platform_fee_share) = FeeCalculator::calculate_net_share(
+                milestone.amount as i128,
                 milestone.amount as i128,
                 escrow.platform_fee,
             )?;
             let platform_address = escrow.roles.platform_address.clone();
 
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &fee_result.trustless_work_fee,
-            );
-
-            token_client.transfer(
-                &contract_address,
-                &platform_address,
-                &fee_result.platform_fee,
-            );
+            if trustless_fee_share > 0 {
+                token_client.transfer(
+                    &contract_address,
+                    &trustless_work_address,
+                    &trustless_fee_share,
+                );
+            }
+            if platform_fee_share > 0 {
+                token_client.transfer(
+                    &contract_address,
+                    &platform_address,
+                    &platform_fee_share,
+                );
+            }
 
             let receiver = Self::get_receiver(&milestone);
-            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            if net_share > 0 {
+                token_client.transfer(&contract_address, &receiver, &net_share);
+            }
         } else {
             return Err(ContractError::MilestoneNotFound);
         }
