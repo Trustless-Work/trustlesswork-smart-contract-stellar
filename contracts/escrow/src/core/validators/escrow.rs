@@ -50,8 +50,6 @@ pub fn validate_escrow_conditions(
         return Err(ContractError::PlatformFeeTooHigh);
     }
 
-    // Trustless Work fee is 30 bps (0.3%) per FeeCalculator. Keep behavior but validate sum <= 100%.
-    // We retain the stricter platform cap (<= 99%), so this check is redundant but explicit.
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
     if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
@@ -92,14 +90,9 @@ pub fn validate_escrow_conditions(
             return Err(ContractError::EscrowOpenedForDisputeResolution);
         }
 
-        if existing.milestones.iter().any(|m| m.approved) {
-            return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
-        }
-
         if new_escrow.flags.released
             || new_escrow.flags.disputed
             || new_escrow.flags.resolved
-            || new_escrow.milestones.iter().any(|m| m.approved)
         {
             return Err(ContractError::FlagsMustBeFalse);
         }
@@ -128,6 +121,20 @@ pub fn validate_escrow_conditions(
                 if existing.milestones.get(i).unwrap() != new_escrow.milestones.get(i).unwrap() {
                     return Err(ContractError::EscrowPropertiesMismatch);
                 }
+            }
+
+            for i in old_len..new_len {
+                if new_escrow.milestones.get(i).unwrap().approved {
+                    return Err(ContractError::FlagsMustBeFalse);
+                }
+            }
+        } else {
+            if existing.milestones.iter().any(|m| m.approved) {
+                return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
+            }
+
+            if new_escrow.milestones.iter().any(|m| m.approved) {
+                return Err(ContractError::FlagsMustBeFalse);
             }
         }
     }
