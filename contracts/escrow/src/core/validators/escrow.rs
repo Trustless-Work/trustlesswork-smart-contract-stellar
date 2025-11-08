@@ -15,31 +15,24 @@ pub fn validate_release_conditions(
     if milestone.flags.released {
         return Err(ContractError::MilestoneAlreadyReleased);
     }
-
     if milestone.flags.resolved {
         return Err(ContractError::EscrowAlreadyResolved);
     }
-
     if release_signer != &escrow.roles.release_signer {
         return Err(ContractError::OnlyReleaseSignerCanReleaseEarnings);
     }
-
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMileStoneDefined);
     }
-
     if !milestone.flags.approved {
         return Err(ContractError::MilestoneNotCompleted);
     }
-
     if milestone.flags.disputed {
         return Err(ContractError::MilestoneOpenedForDisputeResolution);
     }
-
     if milestone_index >= escrow.milestones.len() {
         return Err(ContractError::InvalidMileStoneIndex);
     }
-
     Ok(())
 }
 
@@ -55,13 +48,10 @@ fn validate_escrow_conditions(
     if new_escrow.platform_fee > max_bps_percentage {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
-    // Trustless Work fee currently 30 bps (0.3%) in the fee calculator
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
     if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
     if new_escrow.milestones.is_empty() {
         return Err(ContractError::NoMileStoneDefined);
     }
@@ -73,29 +63,54 @@ fn validate_escrow_conditions(
         if m.amount <= 0 {
             return Err(ContractError::AmountCannotBeZero);
         }
-        if m.flags.disputed
-            || m.flags.released
-            || m.flags.resolved
-            || m.flags.approved
-        {
-            return Err(ContractError::FlagsMustBeFalse);
-        }
     }
 
-    if !is_init {
+    if is_init {
+        for m in new_escrow.milestones.iter() {
+            if m.flags.disputed
+                || m.flags.released
+                || m.flags.resolved
+                || m.flags.approved
+            {
+                return Err(ContractError::FlagsMustBeFalse);
+            }
+        }
+    } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
         let caller = platform_address
             .ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
-
         if caller != &existing.roles.platform_address {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
-
         if existing.roles.platform_address != new_escrow.roles.platform_address {
             return Err(ContractError::PlatformAddressCannotBeChanged);
         }
 
         let has_funds = contract_balance.unwrap_or(0) > 0;
+
+        let old_len = existing.milestones.len();
+        let new_len = new_escrow.milestones.len();
+        let overlap = if new_len < old_len { new_len } else { old_len };
+        for i in 0..overlap {
+            let old_m = existing.milestones.get(i).unwrap();
+            let new_m = new_escrow.milestones.get(i).unwrap();
+            if old_m.flags != new_m.flags {
+                return Err(ContractError::EscrowPropertiesMismatch);
+            }
+        }
+        if new_len > old_len {
+            for i in old_len..new_len {
+                let m = new_escrow.milestones.get(i).unwrap();
+                if m.flags.disputed
+                    || m.flags.released
+                    || m.flags.resolved
+                    || m.flags.approved
+                {
+                    return Err(ContractError::FlagsMustBeFalse);
+                }
+            }
+        }
+
         if has_funds {
             if existing.engagement_id != new_escrow.engagement_id
                 || existing.title != new_escrow.title
@@ -107,14 +122,9 @@ fn validate_escrow_conditions(
             {
                 return Err(ContractError::EscrowPropertiesMismatch);
             }
-
-            let old_len = existing.milestones.len();
-            let new_len = new_escrow.milestones.len();
-
             if new_len < old_len {
                 return Err(ContractError::EscrowPropertiesMismatch);
             }
-
             for i in 0..old_len {
                 let old_m = existing.milestones.get(i).unwrap();
                 let new_m = new_escrow.milestones.get(i).unwrap();
@@ -124,7 +134,6 @@ fn validate_escrow_conditions(
             }
         }
     }
-
     Ok(())
 }
 
@@ -165,10 +174,8 @@ pub fn validate_fund_escrow_conditions(
     if amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
-
     if !stored_escrow.eq(&expected_escrow) {
         return Err(ContractError::EscrowPropertiesMismatch);
     }
-
     Ok(())
 }
