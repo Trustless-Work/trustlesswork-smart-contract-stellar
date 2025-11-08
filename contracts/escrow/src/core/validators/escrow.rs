@@ -95,12 +95,6 @@ fn validate_escrow_conditions(
             return Err(ContractError::PlatformAddressCannotBeChanged);
         }
 
-        for m in existing.milestones.iter() {
-            if m.flags.approved {
-                return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
-            }
-        }
-
         let has_funds = contract_balance.unwrap_or(0) > 0;
         if has_funds {
             if existing.engagement_id != new_escrow.engagement_id
