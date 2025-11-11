@@ -2440,3 +2440,101 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
         let appended = final_escrow.milestones.get(1).unwrap();
         assert!(!appended.flags.approved && !appended.flags.released && !appended.flags.resolved && !appended.flags.disputed, "New milestone flags must all be false");
     }
+
+    #[test]
+    fn test_update_after_milestone_released_append_new() {
+        // Scenario: After releasing an existing milestone (flags.released = true),
+        // we should still be able to append new milestones whose flags are all false.
+        // Existing milestone flags must match exactly; new milestone flags must be false.
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let approver = Address::generate(&env);
+        let service_provider = Address::generate(&env);
+        let platform = Address::generate(&env);
+        let release_signer = Address::generate(&env);
+        let dispute_resolver = Address::generate(&env);
+        let trustless_work_address = Address::generate(&env);
+        let admin = Address::generate(&env);
+        let (token_client, token_admin) = create_usdc_token(&env, &admin);
+
+        let roles = Roles {
+            approver: approver.clone(),
+            service_provider: service_provider.clone(),
+            platform_address: platform.clone(),
+            release_signer: release_signer.clone(),
+            dispute_resolver: dispute_resolver.clone(),
+        };
+        let flags = Flags { disputed: false, released: false, resolved: false, approved: false };
+        let trustline = Trustline { address: token_client.address.clone() };
+
+        let amount: i128 = 100_000;
+        let initial_milestones = vec![
+            &env,
+            Milestone {
+                description: String::from_str(&env, "m1"),
+                status: String::from_str(&env, "Pending"),
+                evidence: String::from_str(&env, "e"),
+                amount,
+                flags: flags.clone(),
+                receiver: service_provider.clone(),
+            },
+        ];
+
+        let esc = Escrow {
+            engagement_id: String::from_str(&env, "eng-released-update"),
+            title: String::from_str(&env, "t"),
+            description: String::from_str(&env, "d"),
+            roles: roles.clone(),
+            platform_fee: 300, // 3%
+            milestones: initial_milestones.clone(),
+            trustline: trustline.clone(),
+            receiver_memo: 0,
+        };
+
+        let test = create_escrow_contract(&env);
+        let client = test.client;
+        client.initialize_escrow(&esc);
+
+        // Fund contract and approve + release milestone 0
+        token_admin.mint(&client.address, &amount);
+        client.approve_milestone(&0, &approver);
+        client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
+
+        // Verify released flag
+        let after_release = client.get_escrow();
+        let released_milestone = after_release.milestones.get(0).unwrap();
+        assert!(released_milestone.flags.released, "Milestone should be released before update");
+
+        // Build updated escrow properties: keep released milestone, append new one with all flags false
+        let new_milestone = Milestone {
+            description: String::from_str(&env, "m2"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "e"),
+            amount,
+            flags: flags.clone(), // all false
+            receiver: service_provider.clone(),
+        };
+        let updated_milestones = vec![&env, released_milestone.clone(), new_milestone.clone()];
+
+        let updated_escrow = Escrow {
+            engagement_id: esc.engagement_id.clone(),
+            title: esc.title.clone(),
+            description: esc.description.clone(),
+            roles: esc.roles.clone(),
+            platform_fee: esc.platform_fee,
+            milestones: updated_milestones.clone(),
+            trustline: esc.trustline.clone(),
+            receiver_memo: esc.receiver_memo,
+        };
+
+        // Perform update
+        let res = client.try_update_escrow(&platform, &updated_escrow);
+        assert!(res.is_ok(), "Update should succeed when appending after a milestone was released");
+
+        let final_escrow = client.get_escrow();
+        assert_eq!(final_escrow.milestones.len(), 2);
+        assert!(final_escrow.milestones.get(0).unwrap().flags.released, "Existing milestone released flag must remain true");
+        let appended = final_escrow.milestones.get(1).unwrap();
+        assert!(!appended.flags.approved && !appended.flags.released && !appended.flags.resolved && !appended.flags.disputed, "New milestone flags must all be false");
+    }
