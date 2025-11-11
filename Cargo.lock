@@ -3,6 +3,14 @@
 version = 4
 
 [[package]]
+name = "Contract-Events-for-Indexer"
+version = "0.0.0"
+dependencies = [
+ "soroban-sdk",
+ "soroban-token-sdk",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
