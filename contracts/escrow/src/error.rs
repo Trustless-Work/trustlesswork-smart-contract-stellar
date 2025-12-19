@@ -51,6 +51,7 @@ pub enum ContractError {
     InsufficientEscrowFundsToMakeTheRefund = 45,
     DisputeResolverCannotDisputeTheMilestone = 46,
     TotalAmountCannotBeZero = 47,
+    InsufficientFundsForEscrowFunding = 48,
 }
 
 impl fmt::Display for ContractError {
@@ -199,6 +200,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::TotalAmountCannotBeZero => {
                 write!(f, "The total amount to be transferred cannot be zero.")
+            }
+            ContractError::InsufficientFundsForEscrowFunding => {
+                write!(f, "The signer has insufficient funds to fund the escrow.")
             }
         }
     }
