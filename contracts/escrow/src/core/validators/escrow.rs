@@ -168,14 +168,21 @@ pub fn validate_initialize_escrow_conditions(
 #[inline]
 pub fn validate_fund_escrow_conditions(
     amount: i128,
+    balance: i128,
     stored_escrow: &Escrow,
     expected_escrow: &Escrow,
 ) -> Result<(), ContractError> {
     if amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
+
     if !stored_escrow.eq(&expected_escrow) {
         return Err(ContractError::EscrowPropertiesMismatch);
     }
+
+    if balance < amount {
+        return Err(ContractError::InsufficientFundsForEscrowFunding);
+    }
+    
     Ok(())
 }
