@@ -32,10 +32,12 @@ impl EscrowManager {
         amount: i128,
     ) -> Result<(), ContractError> {
         let stored_escrow: Escrow = Self::get_escrow(e)?;
-        validate_fund_escrow_conditions(amount, &stored_escrow, expected_escrow)?;
-
+        
         signer.require_auth();
         let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
+        let balance = token_client.balance(signer);
+        validate_fund_escrow_conditions(amount, balance, &stored_escrow, expected_escrow)?;
+
         token_client.transfer(signer, &e.current_contract_address(), &amount);
         Ok(())
     }
