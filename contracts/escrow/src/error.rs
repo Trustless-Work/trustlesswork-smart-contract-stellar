@@ -45,6 +45,7 @@ pub enum ContractError {
     PlatformAddressCannotBeChanged = 37,
     DisputeResolverCannotDisputeTheEscrow = 40,
     TotalAmountCannotBeZero = 41,
+    InsufficientFundsForEscrowFunding = 42,
 }
 
 impl fmt::Display for ContractError {
@@ -173,6 +174,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::TotalAmountCannotBeZero => {
                 write!(f, "The total amount to be distributed cannot be equal to zero.")
+            }
+            ContractError::InsufficientFundsForEscrowFunding => {
+                write!(f, "The signer has insufficient funds to fund the escrow.")
             }
         }
     }
