@@ -22,7 +22,7 @@ struct TestData<'a> {
     client: EscrowContractClient<'a>,
 }
 
-fn create_escrow_contract<'a>(env: &Env) -> TestData {
+fn create_escrow_contract<'a>(env: &Env) -> TestData<'a> {
     env.mock_all_auths();
     let client = EscrowContractClient::new(env, &env.register(EscrowContract {}, ()));
 
