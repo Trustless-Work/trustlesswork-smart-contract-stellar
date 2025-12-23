@@ -105,6 +105,7 @@ pub fn validate_dispute_flag_change_conditions(
         platform_address,
         release_signer,
         dispute_resolver,
+        observers: _,
     } = &escrow.roles;
 
     let is_authorized = signer == approver
