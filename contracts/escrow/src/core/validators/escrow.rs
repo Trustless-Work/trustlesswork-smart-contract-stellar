@@ -2,6 +2,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     error::ContractError,
+    modules::helper::roles_equal_excluding_observers,
     storage::types::{DataKey, Escrow},
 };
 
@@ -102,7 +103,7 @@ pub fn validate_escrow_conditions(
             if existing.engagement_id != new_escrow.engagement_id
                 || existing.title != new_escrow.title
                 || existing.description != new_escrow.description
-                || existing.roles != new_escrow.roles
+                || !roles_equal_excluding_observers(&existing.roles, &new_escrow.roles)
                 || existing.amount != new_escrow.amount
                 || existing.platform_fee != new_escrow.platform_fee
                 || existing.flags != new_escrow.flags
