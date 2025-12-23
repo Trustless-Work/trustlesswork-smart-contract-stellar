@@ -32,6 +32,12 @@ mod modules {
 
         pub use calculator::*;
     }
+
+    pub mod helper {
+        pub mod roles;
+
+        pub use roles::*;
+    }
 }
 
 /// This module is currently Work In Progress.
