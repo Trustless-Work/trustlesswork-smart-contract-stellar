@@ -32,6 +32,7 @@ pub struct Roles {
     pub platform_address: Address,
     pub release_signer: Address,
     pub dispute_resolver: Address,
+    pub observers: Vec<Address>,
 }
 
 #[contracttype]

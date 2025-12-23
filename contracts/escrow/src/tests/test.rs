@@ -49,6 +49,7 @@ fn test_initialize_escrow_rejects_platform_fee_exceeding_aggregate_cap() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -113,6 +114,7 @@ fn test_change_escrow_rejects_platform_fee_exceeding_aggregate_cap() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags { disputed: false, released: false, resolved: false, approved: false };
@@ -180,6 +182,7 @@ fn test_initialize_escrow() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -279,6 +282,7 @@ fn test_update_escrow() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -427,6 +431,7 @@ fn test_append_milestones_with_funds() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags { disputed: false, released: false, resolved: false, approved: false };
@@ -539,6 +544,7 @@ fn test_change_milestone_status_and_approved_flag() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -692,6 +698,7 @@ fn test_release_milestone_funds_successful() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -809,6 +816,7 @@ fn test_release_milestone_funds_no_milestones() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -859,6 +867,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -952,6 +961,7 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1062,6 +1072,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1174,6 +1185,7 @@ fn test_dispute_management() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1272,6 +1284,7 @@ fn test_dispute_resolution_process() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1399,6 +1412,7 @@ fn test_cannot_release_after_dispute_resolved() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
     let flags = Flags {
         disputed: false,
@@ -1479,6 +1493,7 @@ fn test_cannot_dispute_resolve_after_released() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
     let flags = Flags {
         disputed: false,
@@ -1560,6 +1575,7 @@ fn test_fund_escrow_successful_deposit() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1652,6 +1668,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1745,6 +1762,7 @@ fn test_fund_escrow_dispute_flag_error() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1829,6 +1847,7 @@ fn test_dispute_milestone() {
         platform_address: platform_address.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1926,6 +1945,7 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
         platform_address,
         release_signer,
         dispute_resolver,
+        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -2018,6 +2038,7 @@ fn test_withdraw_remaining_funds_success() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
 
     let flags = Flags {
@@ -2145,6 +2166,7 @@ fn test_withdraw_remaining_funds_unauthorized() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
     let flags = Flags {
         disputed: false,
@@ -2212,6 +2234,7 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
     let flags = Flags {
         disputed: false,
@@ -2291,6 +2314,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
         platform_address: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
     };
     let flags = Flags {
         disputed: false,
@@ -2371,6 +2395,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
             platform_address: platform.clone(),
             release_signer: release_signer.clone(),
             dispute_resolver: dispute_resolver.clone(),
+            observers: vec![&env],
         };
         let flags = Flags { disputed: false, released: false, resolved: false, approved: false };
         let trustline = Trustline { address: token_client.address.clone() };
@@ -2464,6 +2489,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
             platform_address: platform.clone(),
             release_signer: release_signer.clone(),
             dispute_resolver: dispute_resolver.clone(),
+            observers: vec![&env],
         };
         let flags = Flags { disputed: false, released: false, resolved: false, approved: false };
         let trustline = Trustline { address: token_client.address.clone() };
