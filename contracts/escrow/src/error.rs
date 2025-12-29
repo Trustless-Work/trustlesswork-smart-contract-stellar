@@ -52,6 +52,7 @@ pub enum ContractError {
     DisputeResolverCannotDisputeTheMilestone = 46,
     TotalAmountCannotBeZero = 47,
     InsufficientFundsForEscrowFunding = 48,
+        MilestoneToApproveDoesNotExist = 49,
 }
 
 impl fmt::Display for ContractError {
@@ -203,6 +204,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::InsufficientFundsForEscrowFunding => {
                 write!(f, "The signer has insufficient funds to fund the escrow.")
+            }
+            ContractError::MilestoneToApproveDoesNotExist => {
+                write!(f, "One of the selected milestones to approve does not exist")
             }
         }
     }
