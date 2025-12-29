@@ -609,7 +609,8 @@ fn test_change_milestone_status_and_approved_flag() {
     assert_eq!(updated_escrow.milestones.get(0).unwrap().status, new_status);
 
     // Change milestone approved_flag (valid case)
-    escrow_approver.approve_milestone(&(0), &approver_address);
+    let milestone_indexes = vec![&env, 0];
+    escrow_approver.approve_milestones(&milestone_indexes, &approver_address);
 
     // Verify milestone approved_flag change
     let final_escrow = escrow_approver.get_escrow();
@@ -629,7 +630,8 @@ fn test_change_milestone_status_and_approved_flag() {
     assert!(result.is_err());
 
     // Test for `change_approved_flag` with invalid index
-    let result = escrow_approver.try_approve_milestone(&invalid_index, &approver_address);
+    let invalid_indices = vec![&env, invalid_index];
+    let result = escrow_approver.try_approve_milestones(&invalid_indices, &approver_address);
     assert!(result.is_err());
 
     // Test only authorized party can perform the function
@@ -645,7 +647,8 @@ fn test_change_milestone_status_and_approved_flag() {
     assert!(result.is_err());
 
     // Test for `change_approved_flag` by invalid approver
-    let result = escrow_approver.try_approve_milestone(&(0), &unauthorized_address);
+    let valid_indices = vec![&env, 0];
+    let result = escrow_approver.try_approve_milestones(&valid_indices, &unauthorized_address);
     assert!(result.is_err());
 
     //Escrow Test with no milestone
@@ -755,7 +758,8 @@ fn test_release_milestone_funds_successful() {
     let initial_contract_balance = usdc_token.0.balance(&escrow_approver.address);
 
     // Approve the milestone before releasing funds
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indexes = vec![&env, 0];
+    escrow_approver.approve_milestones(&milestone_indexes, &approver_address);
     escrow_approver.release_milestone_funds(&release_signer_address, &trustless_work_address, &(0));
 
     let total_amount = milestones.get(0).unwrap().amount as i128;
@@ -1009,7 +1013,8 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     // Approve before release
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indexes = vec![&env, 0];
+    escrow_approver.approve_milestones(&milestone_indexes, &approver_address);
     escrow_approver.release_milestone_funds(&release_signer_address, &trustless_work_address, &0);
 
     let total_amount = amount as i128;
@@ -1120,7 +1125,8 @@ fn test_release_funds_invalid_receiver_fallback() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     // Approve before release
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indexes = vec![&env, 0];
+    escrow_approver.approve_milestones(&milestone_indexes, &approver_address);
     escrow_approver.release_milestone_funds(&release_signer_address, &trustless_work_address, &0);
 
     let total_amount = amount as i128;
@@ -1531,7 +1537,8 @@ fn test_cannot_dispute_resolve_after_released() {
 
     // Fund and mark approved then release
     usdc.1.mint(&client.address, &amount);
-    client.approve_milestone(&0, &approver);
+    let milestone_indexes = vec![&env, 0];
+    client.approve_milestones(&milestone_indexes, &approver);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
 
     // Try to dispute-resolve after released - should fail
@@ -2089,8 +2096,10 @@ fn test_withdraw_remaining_funds_success() {
     usdc.1.mint(&client.address, &250_000);
 
     // Approve and release both milestones
-    client.approve_milestone(&0, &approver);
-    client.approve_milestone(&1, &approver);
+    let milestone_indexes = vec![&env, 0];
+    client.approve_milestones(&milestone_indexes, &approver);
+    let milestone_indexes_1 = vec![&env, 1];
+    client.approve_milestones(&milestone_indexes_1, &approver);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &1);
 
@@ -2204,7 +2213,8 @@ fn test_withdraw_remaining_funds_unauthorized() {
 
     // Process the single milestone fully and leave leftover of 10_000
     usdc.1.mint(&client.address, &110_000);
-    client.approve_milestone(&0, &approver);
+    let milestone_indexes = vec![&env, 0];
+    client.approve_milestones(&milestone_indexes, &approver);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
 
     // Attacker provides any distributions but is not resolver
@@ -2280,7 +2290,8 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
 
     usdc.1.mint(&client.address, &220_000);
     // Process only first milestone; second remains pending
-    client.approve_milestone(&0, &approver);
+    let milestone_indexes = vec![&env, 0];
+    client.approve_milestones(&milestone_indexes, &approver);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
 
     // Try withdraw while second milestone not processed
@@ -2360,8 +2371,10 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
 
     // Fund exactly the total milestones 200_000; after releases, no leftover
     usdc.1.mint(&client.address, &200_000);
-    client.approve_milestone(&0, &approver);
-    client.approve_milestone(&1, &approver);
+    let milestone_indexes = vec![&env, 0];
+    client.approve_milestones(&milestone_indexes, &approver);
+    let milestone_indexes_1 = vec![&env, 1];
+    client.approve_milestones(&milestone_indexes_1, &approver);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
     client.release_milestone_funds(&release_signer, &trustless_work_address, &1);
 
@@ -2428,7 +2441,8 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
         client.initialize_escrow(&esc);
 
         // Approve the existing milestone -> flags.approved = true
-        client.approve_milestone(&0, &approver);
+        let milestone_indexes = vec![&env, 0];
+        client.approve_milestones(&milestone_indexes, &approver);
         let after_approval = client.get_escrow();
         let approved_milestone = after_approval.milestones.get(0).unwrap();
         assert!(approved_milestone.flags.approved, "Milestone should be approved before update");
@@ -2524,7 +2538,8 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
 
         // Fund contract and approve + release milestone 0
         token_admin.mint(&client.address, &amount);
-        client.approve_milestone(&0, &approver);
+        let milestone_indexes = vec![&env, 0];
+        client.approve_milestones(&milestone_indexes, &approver);
         client.release_milestone_funds(&release_signer, &trustless_work_address, &0);
 
         // Verify released flag
@@ -2564,3 +2579,165 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
         let appended = final_escrow.milestones.get(1).unwrap();
         assert!(!appended.flags.approved && !appended.flags.released && !appended.flags.resolved && !appended.flags.disputed, "New milestone flags must all be false");
     }
+
+#[test]
+fn test_approve_multiple_milestones_at_once() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
+
+    let roles = Roles {
+        approver: approver.clone(),
+        service_provider: service_provider.clone(),
+        platform_address: platform.clone(),
+        release_signer: release_signer.clone(),
+        dispute_resolver: dispute_resolver.clone(),
+        observers: vec![&env],
+    };
+
+    let flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+        approved: false,
+    };
+
+    let trustline = Trustline {
+        address: token_client.address.clone(),
+    };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Completed"),
+            amount: 25_000,
+            evidence: String::from_str(&env, "Evidence 1"),
+            flags: flags.clone(),
+            receiver: service_provider.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 2"),
+            status: String::from_str(&env, "Completed"),
+            amount: 25_000,
+            evidence: String::from_str(&env, "Evidence 2"),
+            flags: flags.clone(),
+            receiver: service_provider.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 3"),
+            status: String::from_str(&env, "Completed"),
+            amount: 25_000,
+            evidence: String::from_str(&env, "Evidence 3"),
+            flags: flags.clone(),
+            receiver: service_provider.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 4"),
+            status: String::from_str(&env, "Completed"),
+            amount: 25_000,
+            evidence: String::from_str(&env, "Evidence 4"),
+            flags: flags.clone(),
+            receiver: service_provider.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "test_multiple_approval"),
+        title: String::from_str(&env, "Test Multiple Approval"),
+        description: String::from_str(&env, "Testing approval of multiple milestones at once"),
+        roles: roles.clone(),
+        platform_fee: 300, // 3%
+        milestones: milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+
+    token_admin.mint(&client.address, &100_000);
+
+    // Verify initial state - no milestones approved
+    let initial_escrow = client.get_escrow();
+    assert!(!initial_escrow.milestones.get(0).unwrap().flags.approved);
+    assert!(!initial_escrow.milestones.get(1).unwrap().flags.approved);
+    assert!(!initial_escrow.milestones.get(2).unwrap().flags.approved);
+    assert!(!initial_escrow.milestones.get(3).unwrap().flags.approved);
+
+    // Test 1: Approve first two milestones at once
+    let indices_batch_1 = vec![&env, 0, 1];
+    client.approve_milestones(&indices_batch_1, &approver);
+
+    let after_first_batch = client.get_escrow();
+    assert!(after_first_batch.milestones.get(0).unwrap().flags.approved, "Milestone 0 should be approved");
+    assert!(after_first_batch.milestones.get(1).unwrap().flags.approved, "Milestone 1 should be approved");
+    assert!(!after_first_batch.milestones.get(2).unwrap().flags.approved, "Milestone 2 should not be approved yet");
+    assert!(!after_first_batch.milestones.get(3).unwrap().flags.approved, "Milestone 3 should not be approved yet");
+
+    // Test 2: Approve remaining milestones at once
+    let indices_batch_2 = vec![&env, 2, 3];
+    client.approve_milestones(&indices_batch_2, &approver);
+
+    let after_second_batch = client.get_escrow();
+    assert!(after_second_batch.milestones.get(0).unwrap().flags.approved);
+    assert!(after_second_batch.milestones.get(1).unwrap().flags.approved);
+    assert!(after_second_batch.milestones.get(2).unwrap().flags.approved, "Milestone 2 should now be approved");
+    assert!(after_second_batch.milestones.get(3).unwrap().flags.approved, "Milestone 3 should now be approved");
+
+    // Test 3: Try to approve already approved milestones (should fail)
+    let already_approved_indices = vec![&env, 0, 1];
+    let result = client.try_approve_milestones(&already_approved_indices, &approver);
+    assert!(result.is_err(), "Should fail when trying to approve already approved milestones");
+
+    // Test 4: Try to approve with negative index (should fail)
+    let negative_indices = vec![&env, -1];
+    let result = client.try_approve_milestones(&negative_indices, &approver);
+    assert!(result.is_err(), "Should fail with negative index");
+
+    // Test 5: Try to approve with non-existent index (should fail)
+    let invalid_indices = vec![&env, 10];
+    let result = client.try_approve_milestones(&invalid_indices, &approver);
+    assert!(result.is_err(), "Should fail with non-existent index");
+
+    // Test 6: Try to approve multiple milestones where one is invalid (should fail and not approve any)
+    // Create a new escrow for this test
+    let test_data_2 = create_escrow_contract(&env);
+    let client_2 = test_data_2.client;
+    client_2.initialize_escrow(&escrow_properties);
+
+    let mixed_indices = vec![&env, 0, 1, 99]; // 99 doesn't exist
+    let result = client_2.try_approve_milestones(&mixed_indices, &approver);
+    assert!(result.is_err(), "Should fail when any index in the batch is invalid");
+
+    // Verify that NONE of the milestones were approved (atomic operation)
+    let after_failed_attempt = client_2.get_escrow();
+    assert!(!after_failed_attempt.milestones.get(0).unwrap().flags.approved, "Milestone 0 should not be approved after failed batch");
+    assert!(!after_failed_attempt.milestones.get(1).unwrap().flags.approved, "Milestone 1 should not be approved after failed batch");
+
+    // Test 7: Try to approve with unauthorized address (should fail)
+    let unauthorized = Address::generate(&env);
+    let valid_indices = vec![&env, 0];
+    let result = client_2.try_approve_milestones(&valid_indices, &unauthorized);
+    assert!(result.is_err(), "Should fail when approver is not authorized");
+
+    // Test 8: Approve all remaining milestones at once in client_2
+    let all_indices = vec![&env, 0, 1, 2, 3];
+    client_2.approve_milestones(&all_indices, &approver);
+
+    let final_escrow = client_2.get_escrow();
+    assert!(final_escrow.milestones.get(0).unwrap().flags.approved);
+    assert!(final_escrow.milestones.get(1).unwrap().flags.approved);
+    assert!(final_escrow.milestones.get(2).unwrap().flags.approved);
+    assert!(final_escrow.milestones.get(3).unwrap().flags.approved);
+}
+
