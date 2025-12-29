@@ -610,7 +610,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     escrow_client.fund_escrow(&approver_address, &initial_escrow_properties, &amount);
 
     // Approve the first milestone
-    escrow_client.approve_milestone(&0, &approver_address);
+    let milestone_indices = vec![&env, 0];
+    escrow_client.approve_milestone(&milestone_indices, &approver_address);
     let after_approval = escrow_client.get_escrow();
     assert!(after_approval.milestones.get(0).unwrap().approved);
 
@@ -747,7 +748,8 @@ fn test_change_milestone_status_and_approved() {
     );
 
     // Change milestone approved (valid case)
-    escrow_approver.approve_milestone(&(0 as i128), &approver_address);
+    let milestone_indices = vec![&env, 0 as i128];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
 
     let final_escrow = escrow_approver.get_escrow();
     assert!(final_escrow.milestones.get(0).unwrap().approved);
@@ -764,7 +766,8 @@ fn test_change_milestone_status_and_approved() {
     );
     assert!(result.is_err());
 
-    let result = escrow_approver.try_approve_milestone(&invalid_index, &approver_address);
+    let invalid_indices = vec![&env, invalid_index];
+    let result = escrow_approver.try_approve_milestone(&invalid_indices, &approver_address);
     assert!(result.is_err());
 
     let unauthorized_address = Address::generate(&env);
@@ -779,7 +782,8 @@ fn test_change_milestone_status_and_approved() {
     assert!(result.is_err());
 
     // Test for `change_approved` by invalid approver
-    let result = escrow_approver.try_approve_milestone(&(0 as i128), &unauthorized_address);
+    let valid_indices = vec![&env, 0 as i128];
+    let result = escrow_approver.try_approve_milestone(&valid_indices, &unauthorized_address);
     assert!(result.is_err());
 }
 
@@ -863,8 +867,8 @@ fn test_release_funds_successful_flow() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
-    escrow_approver.approve_milestone(&1, &approver_address);
+    let milestone_indices = vec![&env, 0, 1];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -982,7 +986,8 @@ fn test_release_funds_milestones_incomplete() {
     usdc_token
         .1
         .mint(&escrow_approver.address, &(amount as i128));
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indices = vec![&env, 0];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
     let result =
         escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
@@ -1064,7 +1069,8 @@ fn test_release_funds_same_receiver_as_provider() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indices = vec![&env, 0];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -1174,7 +1180,8 @@ fn test_release_funds_invalid_receiver_fallback() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
+    let milestone_indices = vec![&env, 0];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -1801,3 +1808,124 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         c1.get_multiple_escrow_balances(&vec![&env, c1.address.clone(), c2.address.clone()]);
     assert_eq!(res_two.len(), 2);
 }
+
+#[test]
+fn test_approve_multiple_milestones() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let amount: i128 = 1000;
+    let platform_fee: u32 = 300;
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+        Milestone {
+            description: String::from_str(&env, "Second milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+        Milestone {
+            description: String::from_str(&env, "Third milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+    ];
+
+    let engagement_id = String::from_str(&env, "test-multiple-milestones");
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let trustline: Trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Multiple Milestones"),
+        description: String::from_str(&env, "Test approving multiple milestones at once"),
+        roles,
+        amount,
+        platform_fee,
+        milestones: milestones.clone(),
+        flags,
+        trustline,
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_approver = test_data.client;
+
+    escrow_approver.initialize_escrow(&escrow_properties);
+
+    usdc_token
+        .1
+        .mint(&escrow_approver.address, &amount);
+
+    // Test 1: Aprobar múltiples milestones a la vez (0 y 1)
+    let milestone_indices = vec![&env, 0, 1];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+
+    let escrow_after_approval = escrow_approver.get_escrow();
+    assert!(escrow_after_approval.milestones.get(0).unwrap().approved, "Milestone 0 should be approved");
+    assert!(escrow_after_approval.milestones.get(1).unwrap().approved, "Milestone 1 should be approved");
+    assert!(!escrow_after_approval.milestones.get(2).unwrap().approved, "Milestone 2 should not be approved");
+
+    // Test 2: Aprobar el último milestone
+    let milestone_indices = vec![&env, 2];
+    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+
+    let escrow_after_all_approved = escrow_approver.get_escrow();
+    assert!(escrow_after_all_approved.milestones.get(2).unwrap().approved, "Milestone 2 should be approved");
+
+    // Test 3: Intentar aprobar con un índice negativo (debe fallar)
+    let negative_indices = vec![&env, -1];
+    let result = escrow_approver.try_approve_milestone(&negative_indices, &approver_address);
+    assert!(result.is_err(), "Should fail with negative index");
+
+    // Test 4: Intentar aprobar con un índice que no existe (debe fallar)
+    let invalid_indices = vec![&env, 10];
+    let result = escrow_approver.try_approve_milestone(&invalid_indices, &approver_address);
+    assert!(result.is_err(), "Should fail with non-existent index");
+
+    // Test 5: Intentar aprobar múltiples índices donde uno es inválido (debe fallar)
+    let mixed_indices = vec![&env, 0, 99];
+    let result = escrow_approver.try_approve_milestone(&mixed_indices, &approver_address);
+    assert!(result.is_err(), "Should fail when any index is invalid");
+
+    // Test 6: Intentar aprobar con un índice negativo en un conjunto de índices (debe fallar)
+    let mixed_negative_indices = vec![&env, 0, -5];
+    let result = escrow_approver.try_approve_milestone(&mixed_negative_indices, &approver_address);
+    assert!(result.is_err(), "Should fail when any index is negative");
+}
+
+
