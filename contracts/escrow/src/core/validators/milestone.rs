@@ -56,6 +56,5 @@ pub fn validate_milestone_flag_change_conditions(
         }
     }
 
-
     Ok(())
 }
