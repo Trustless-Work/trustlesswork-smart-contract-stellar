@@ -45,7 +45,7 @@ impl MilestoneManager {
 
     pub fn change_milestone_approved_flag(
         e: &Env,
-        milestone_indixes: Vec<i128>,
+        milestone_indexes: Vec<i128>,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
         approver.require_auth();
@@ -53,12 +53,12 @@ impl MilestoneManager {
 
         validate_milestone_flag_change_conditions(
             &existing_escrow,
-            &milestone_indixes,
+            &milestone_indexes,
             &approver,
         )?;
 
-        for i in 0..milestone_indixes.len() {
-            let milestone_index = milestone_indixes.get(i).unwrap();
+        for i in 0..milestone_indexes.len() {
+            let milestone_index = milestone_indexes.get(i).unwrap();
             let mut milestone_to_update = existing_escrow
                 .milestones
                 .get(milestone_index as u32)

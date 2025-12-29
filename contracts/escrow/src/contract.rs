@@ -162,11 +162,11 @@ impl EscrowContract {
 
     pub fn approve_milestone(
         e: Env,
-        milestone_indixes: Vec<i128>,
+        milestone_indexes: Vec<i128>,
         approver: Address,
     ) -> Result<(), ContractError> {
         let escrow =
-            MilestoneManager::change_milestone_approved_flag(&e, milestone_indixes, approver)?;
+            MilestoneManager::change_milestone_approved_flag(&e, milestone_indexes, approver)?;
         MilestoneApproved { escrow }.publish(&e);
         Ok(())
     }

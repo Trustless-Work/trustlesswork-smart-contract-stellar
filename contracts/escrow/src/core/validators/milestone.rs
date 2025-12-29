@@ -24,7 +24,7 @@ pub fn validate_milestone_status_change_conditions(
 #[inline]
 pub fn validate_milestone_flag_change_conditions(
     escrow: &Escrow,
-    milestone_indixes: &soroban_sdk::Vec<i128>,
+    milestone_indexes: &soroban_sdk::Vec<i128>,
     approver: &Address,
 ) -> Result<(), ContractError> {
     if approver != &escrow.roles.approver {
@@ -35,8 +35,8 @@ pub fn validate_milestone_flag_change_conditions(
         return Err(ContractError::NoMilestoneDefined);
     }
 
-    for i in 0..milestone_indixes.len() {
-        let milestone_index = milestone_indixes.get(i).unwrap();
+    for i in 0..milestone_indexes.len() {
+        let milestone_index = milestone_indexes.get(i).unwrap();
         
         if milestone_index < 0 {
             return Err(ContractError::InvalidMileStoneIndex);
