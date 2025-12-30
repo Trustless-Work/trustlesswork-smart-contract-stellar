@@ -4,7 +4,7 @@ extern crate std;
 
 use crate::contract::EscrowContract;
 use crate::contract::EscrowContractClient;
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, MilestoneUpdate, Roles, Trustline};
 
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Map, String};
 use token::Client as TokenClient;
@@ -595,18 +595,22 @@ fn test_change_milestone_status_and_approved_flag() {
     escrow_approver.initialize_escrow(&escrow_properties);
 
     // Change milestone status (valid case)
-    let new_status = String::from_str(&env, "completed");
-    let new_evidence = Some(String::from_str(&env, "New evidence"));
+    let milestone_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "New evidence")),
+        },
+    ];
     escrow_approver.change_milestone_status(
-        &0, // Milestone index
-        &new_status,
-        &new_evidence,
+        &milestone_updates,
         &service_provider_address,
     );
 
     // Verify milestone status change
     let updated_escrow = escrow_approver.get_escrow();
-    assert_eq!(updated_escrow.milestones.get(0).unwrap().status, new_status);
+    assert_eq!(updated_escrow.milestones.get(0).unwrap().status, String::from_str(&env, "completed"));
 
     // Change milestone approved_flag (valid case)
     let milestone_indexes = vec![&env, 0];
@@ -618,13 +622,18 @@ fn test_change_milestone_status_and_approved_flag() {
 
     // Invalid index test
     let invalid_index = 10;
-    let new_status = String::from_str(&env, "completed");
 
     // Test for `change_status` with invalid index
+    let invalid_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: invalid_index,
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "New evidence")),
+        },
+    ];
     let result = escrow_approver.try_change_milestone_status(
-        &invalid_index,
-        &new_status,
-        &new_evidence,
+        &invalid_updates,
         &service_provider_address,
     );
     assert!(result.is_err());
@@ -638,10 +647,16 @@ fn test_change_milestone_status_and_approved_flag() {
     let unauthorized_address = Address::generate(&env);
 
     // Test for `change_status` by invalid service provider
+    let valid_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "New evidence")),
+        },
+    ];
     let result = escrow_approver.try_change_milestone_status(
-        &(0),
-        &new_status,
-        &new_evidence,
+        &valid_updates,
         &unauthorized_address,
     );
     assert!(result.is_err());
@@ -650,6 +665,101 @@ fn test_change_milestone_status_and_approved_flag() {
     let valid_indices = vec![&env, 0];
     let result = escrow_approver.try_approve_milestones(&valid_indices, &unauthorized_address);
     assert!(result.is_err());
+
+    // Test changing multiple milestones at once
+    let multiple_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: String::from_str(&env, "reviewed"),
+            evidence: Some(String::from_str(&env, "Batch update evidence")),
+        },
+        MilestoneUpdate {
+            index: 1,
+            status: String::from_str(&env, "reviewed"),
+            evidence: Some(String::from_str(&env, "Batch update evidence")),
+        },
+    ];
+    
+    escrow_approver.change_milestone_status(
+        &multiple_updates,
+        &service_provider_address,
+    );
+
+    let batch_updated_escrow = escrow_approver.get_escrow();
+    assert_eq!(batch_updated_escrow.milestones.get(0).unwrap().status, String::from_str(&env, "reviewed"));
+    assert_eq!(batch_updated_escrow.milestones.get(1).unwrap().status, String::from_str(&env, "reviewed"));
+    assert_eq!(
+        batch_updated_escrow.milestones.get(0).unwrap().evidence,
+        String::from_str(&env, "Batch update evidence")
+    );
+    assert_eq!(
+        batch_updated_escrow.milestones.get(1).unwrap().evidence,
+        String::from_str(&env, "Batch update evidence")
+    );
+
+    // Test with negative index
+    let negative_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: -1,
+            status: String::from_str(&env, "reviewed"),
+            evidence: Some(String::from_str(&env, "Batch update evidence")),
+        },
+    ];
+    let result = escrow_approver.try_change_milestone_status(
+        &negative_update,
+        &service_provider_address,
+    );
+    assert!(result.is_err());
+
+    // Test with empty status
+    let empty_status_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: String::from_str(&env, ""),
+            evidence: Some(String::from_str(&env, "Batch update evidence")),
+        },
+    ];
+    let result = escrow_approver.try_change_milestone_status(
+        &empty_status_update,
+        &service_provider_address,
+    );
+    assert!(result.is_err());
+
+    // Test with different status and evidence for each milestone
+    let different_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "Evidence for milestone 0")),
+        },
+        MilestoneUpdate {
+            index: 1,
+            status: String::from_str(&env, "in-progress"),
+            evidence: None,
+        },
+    ];
+    
+    escrow_approver.change_milestone_status(
+        &different_updates,
+        &service_provider_address,
+    );
+
+    let final_check_escrow = escrow_approver.get_escrow();
+    assert_eq!(final_check_escrow.milestones.get(0).unwrap().status, String::from_str(&env, "completed"));
+    assert_eq!(final_check_escrow.milestones.get(1).unwrap().status, String::from_str(&env, "in-progress"));
+    assert_eq!(
+        final_check_escrow.milestones.get(0).unwrap().evidence,
+        String::from_str(&env, "Evidence for milestone 0")
+    );
+    // Milestone 1 should keep its previous evidence since we passed None
+    assert_eq!(
+        final_check_escrow.milestones.get(1).unwrap().evidence,
+        String::from_str(&env, "Batch update evidence")
+    );
 
     //Escrow Test with no milestone
     let escrow_properties_v2: Escrow = Escrow {
