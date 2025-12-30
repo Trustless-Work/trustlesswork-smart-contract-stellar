@@ -53,6 +53,7 @@ pub enum ContractError {
     TotalAmountCannotBeZero = 47,
     InsufficientFundsForEscrowFunding = 48,
         MilestoneToApproveDoesNotExist = 49,
+    MilestoneToUpdateDoesNotExist = 50,
 }
 
 impl fmt::Display for ContractError {
@@ -207,6 +208,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::MilestoneToApproveDoesNotExist => {
                 write!(f, "One of the selected milestones to approve does not exist")
+            }
+            ContractError::MilestoneToUpdateDoesNotExist => {
+                write!(f, "One of the selected milestones to update does not exist in the milestones list")
             }
         }
     }
