@@ -25,6 +25,14 @@ pub struct Milestone {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MilestoneUpdate {
+    pub index: i128,
+    pub status: String,
+    pub evidence: Option<String>,
+}
+
+#[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Roles {
     pub approver: Address,
