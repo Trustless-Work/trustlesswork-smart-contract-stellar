@@ -1,7 +1,7 @@
 use crate::error::ContractError;
-use crate::storage::types::{DataKey, Escrow};
+use crate::storage::types::{DataKey, Escrow, MilestoneUpdate};
 use crate::core::escrow::EscrowManager;
-use soroban_sdk::{Address, Env, String, Vec};
+use soroban_sdk::{Address, Env, Vec};
 
 use super::validators::milestone::{
     validate_milestone_flag_change_conditions, validate_milestone_status_change_conditions,
@@ -12,30 +12,36 @@ pub struct MilestoneManager;
 impl MilestoneManager {
     pub fn change_milestone_status(
         e: &Env,
-        milestone_index: i128,
-        new_status: String,
-        new_evidence: Option<String>,
+        milestone_updates: Vec<MilestoneUpdate>,
         service_provider: Address,
     ) -> Result<Escrow, ContractError> {
         service_provider.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
-        validate_milestone_status_change_conditions(&existing_escrow, &service_provider)?;
+        validate_milestone_status_change_conditions(
+            &existing_escrow,
+            &milestone_updates,
+            &service_provider,
+        )?;
 
-        let mut milestone_to_update = existing_escrow
-            .milestones
-            .get(milestone_index as u32)
-            .ok_or(ContractError::InvalidMileStoneIndex)?;
+        for i in 0..milestone_updates.len() {
+            let update = milestone_updates.get(i).unwrap();
+            let mut milestone_to_update = existing_escrow
+                .milestones
+                .get(update.index as u32)
+                .unwrap();
 
-        if let Some(evidence) = new_evidence {
-            milestone_to_update.evidence = evidence;
+            if let Some(ref evidence) = update.evidence {
+                milestone_to_update.evidence = evidence.clone();
+            }
+
+            milestone_to_update.status = update.status.clone();
+
+            existing_escrow
+                .milestones
+                .set(update.index as u32, milestone_to_update);
         }
 
-        milestone_to_update.status = new_status;
-
-        existing_escrow
-            .milestones
-            .set(milestone_index as u32, milestone_to_update);
         e.storage().instance().set(&DataKey::Escrow, &existing_escrow);
 
         Ok(existing_escrow)
