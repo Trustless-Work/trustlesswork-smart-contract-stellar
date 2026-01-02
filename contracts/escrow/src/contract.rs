@@ -156,7 +156,7 @@ impl EscrowContract {
         Ok(())
     }
 
-    pub fn approve_milestone(
+    pub fn approve_milestones(
         e: Env,
         milestone_indexes: Vec<i128>,
         approver: Address,
