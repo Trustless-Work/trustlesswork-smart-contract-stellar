@@ -611,7 +611,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
 
     // Approve the first milestone
     let milestone_indices = vec![&env, 0];
-    escrow_client.approve_milestone(&milestone_indices, &approver_address);
+    escrow_client.approve_milestones(&milestone_indices, &approver_address);
     let after_approval = escrow_client.get_escrow();
     assert!(after_approval.milestones.get(0).unwrap().approved);
 
@@ -753,7 +753,7 @@ fn test_change_milestone_status_and_approved() {
 
     // Change milestone approved (valid case)
     let milestone_indices = vec![&env, 0 as i128];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
 
     let final_escrow = escrow_approver.get_escrow();
     assert!(final_escrow.milestones.get(0).unwrap().approved);
@@ -775,7 +775,7 @@ fn test_change_milestone_status_and_approved() {
     assert!(result.is_err());
 
     let invalid_indices = vec![&env, invalid_index];
-    let result = escrow_approver.try_approve_milestone(&invalid_indices, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&invalid_indices, &approver_address);
     assert!(result.is_err());
 
     let unauthorized_address = Address::generate(&env);
@@ -797,7 +797,7 @@ fn test_change_milestone_status_and_approved() {
 
     // Test for `change_approved` by invalid approver
     let valid_indices = vec![&env, 0 as i128];
-    let result = escrow_approver.try_approve_milestone(&valid_indices, &unauthorized_address);
+    let result = escrow_approver.try_approve_milestones(&valid_indices, &unauthorized_address);
     assert!(result.is_err());
 
     // Test changing multiple milestones at once
@@ -977,7 +977,7 @@ fn test_release_funds_successful_flow() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     let milestone_indices = vec![&env, 0, 1];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -1096,7 +1096,7 @@ fn test_release_funds_milestones_incomplete() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
     let milestone_indices = vec![&env, 0];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
     let result =
         escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
@@ -1179,7 +1179,7 @@ fn test_release_funds_same_receiver_as_provider() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     let milestone_indices = vec![&env, 0];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -1290,7 +1290,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     let milestone_indices = vec![&env, 0];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -2002,7 +2002,7 @@ fn test_approve_multiple_milestones() {
 
     // Test 1: Aprobar múltiples milestones a la vez (0 y 1)
     let milestone_indices = vec![&env, 0, 1];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
 
     let escrow_after_approval = escrow_approver.get_escrow();
     assert!(escrow_after_approval.milestones.get(0).unwrap().approved, "Milestone 0 should be approved");
@@ -2011,29 +2011,29 @@ fn test_approve_multiple_milestones() {
 
     // Test 2: Aprobar el último milestone
     let milestone_indices = vec![&env, 2];
-    escrow_approver.approve_milestone(&milestone_indices, &approver_address);
+    escrow_approver.approve_milestones(&milestone_indices, &approver_address);
 
     let escrow_after_all_approved = escrow_approver.get_escrow();
     assert!(escrow_after_all_approved.milestones.get(2).unwrap().approved, "Milestone 2 should be approved");
 
     // Test 3: Intentar aprobar con un índice negativo (debe fallar)
     let negative_indices = vec![&env, -1];
-    let result = escrow_approver.try_approve_milestone(&negative_indices, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&negative_indices, &approver_address);
     assert!(result.is_err(), "Should fail with negative index");
 
     // Test 4: Intentar aprobar con un índice que no existe (debe fallar)
     let invalid_indices = vec![&env, 10];
-    let result = escrow_approver.try_approve_milestone(&invalid_indices, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&invalid_indices, &approver_address);
     assert!(result.is_err(), "Should fail with non-existent index");
 
     // Test 5: Intentar aprobar múltiples índices donde uno es inválido (debe fallar)
     let mixed_indices = vec![&env, 0, 99];
-    let result = escrow_approver.try_approve_milestone(&mixed_indices, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&mixed_indices, &approver_address);
     assert!(result.is_err(), "Should fail when any index is invalid");
 
     // Test 6: Intentar aprobar con un índice negativo en un conjunto de índices (debe fallar)
     let mixed_negative_indices = vec![&env, 0, -5];
-    let result = escrow_approver.try_approve_milestone(&mixed_negative_indices, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&mixed_negative_indices, &approver_address);
     assert!(result.is_err(), "Should fail when any index is negative");
 }
 
