@@ -52,7 +52,7 @@ pub enum ContractError {
     DisputeResolverCannotDisputeTheMilestone = 46,
     TotalAmountCannotBeZero = 47,
     InsufficientFundsForEscrowFunding = 48,
-        MilestoneToApproveDoesNotExist = 49,
+    MilestoneToApproveDoesNotExist = 49,
     MilestoneToUpdateDoesNotExist = 50,
 }
 
