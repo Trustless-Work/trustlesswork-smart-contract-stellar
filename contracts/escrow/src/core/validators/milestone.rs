@@ -30,6 +30,10 @@ pub fn validate_milestone_status_change_conditions(
             return Err(ContractError::InvalidMileStoneIndex);
         }
         
+        if update.index as u128 >= escrow.milestones.len() as u128 {
+            return Err(ContractError::MilestoneToUpdateDoesNotExist);
+        }
+        
         let _milestone = escrow
             .milestones
             .get(update.index as u32)
@@ -58,6 +62,11 @@ pub fn validate_milestone_flag_change_conditions(
         
         if milestone_index < 0 {
             return Err(ContractError::InvalidMileStoneIndex);
+        }
+        
+        // Check that index doesn't overflow when casting to u32 and is within bounds
+        if milestone_index as u128 >= escrow.milestones.len() as u128 {
+            return Err(ContractError::MilestoneToApproveDoesNotExist);
         }
         
         let milestone = escrow
