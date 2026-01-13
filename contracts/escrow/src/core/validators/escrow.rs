@@ -55,7 +55,7 @@ pub fn validate_escrow_conditions(
         return Err(ContractError::PlatformFeeTooHigh);
     }
 
-    if new_escrow.amount < 0 {
+    if new_escrow.amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
 
