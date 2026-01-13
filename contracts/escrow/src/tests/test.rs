@@ -2038,6 +2038,128 @@ fn test_approve_multiple_milestones() {
 }
 
 #[test]
+fn test_milestone_index_overflow_protection() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let platform_fee = 3 * 100;
+    let amount: i128 = 100_000_000;
+    
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+        Milestone {
+            description: String::from_str(&env, "Second milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+    ];
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let engagement_id = String::from_str(&env, "test-overflow");
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let trustline: Trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Overflow Protection"),
+        description: String::from_str(&env, "Should reject large i128 values"),
+        roles: roles.clone(),
+        amount,
+        platform_fee,
+        milestones: milestones.clone(),
+        flags: flags.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_client = test_data.client;
+
+    escrow_client.initialize_escrow(&escrow_properties);
+
+    // Test 1: Intentar aprobar con índice que causaría overflow (2^32)
+    let overflow_index: i128 = 4_294_967_296; // 2^32, would wrap to 0 if not validated
+    let overflow_indices = vec![&env, overflow_index];
+    let result = escrow_client.try_approve_milestones(&overflow_indices, &approver_address);
+    assert!(result.is_err(), "Should fail with index >= 2^32");
+
+    // Test 2: Intentar aprobar con índice muy grande
+    let large_index: i128 = i128::MAX;
+    let large_indices = vec![&env, large_index];
+    let result = escrow_client.try_approve_milestones(&large_indices, &approver_address);
+    assert!(result.is_err(), "Should fail with very large index");
+
+    // Test 3: Intentar actualizar milestone status con índice overflow
+    let overflow_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: 4_294_967_296, // 2^32
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "Evidence")),
+        },
+    ];
+    let result = escrow_client.try_change_milestone_status(
+        &overflow_update,
+        &service_provider_address,
+    );
+    assert!(result.is_err(), "Should fail when updating with overflow index");
+
+    // Test 4: Intentar actualizar con índice muy grande
+    let large_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: i128::MAX,
+            status: String::from_str(&env, "completed"),
+            evidence: Some(String::from_str(&env, "Evidence")),
+        },
+    ];
+    let result = escrow_client.try_change_milestone_status(
+        &large_update,
+        &service_provider_address,
+    );
+    assert!(result.is_err(), "Should fail when updating with very large index");
+
+    // Test 5: Verificar que índices válidos todavía funcionan correctamente
+    let valid_indices = vec![&env, 0, 1];
+    escrow_client.approve_milestones(&valid_indices, &approver_address);
+    
+    let updated_escrow = escrow_client.get_escrow();
+    assert!(updated_escrow.milestones.get(0).unwrap().approved, "Valid index 0 should work");
+    assert!(updated_escrow.milestones.get(1).unwrap().approved, "Valid index 1 should work");
+}
+
+#[test]
 fn test_withdraw_remaining_funds_with_fees() {
     let env = Env::default();
     env.mock_all_auths();
