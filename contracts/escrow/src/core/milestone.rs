@@ -5,6 +5,7 @@ use soroban_sdk::{Address, Env, Vec};
 
 use super::validators::milestone::{
     validate_milestone_flag_change_conditions, validate_milestone_status_change_conditions,
+    validate_and_convert_milestone_index,
 };
 
 pub struct MilestoneManager;
@@ -26,9 +27,14 @@ impl MilestoneManager {
 
         for i in 0..milestone_updates.len() {
             let update = milestone_updates.get(i).unwrap();
+            let idx = validate_and_convert_milestone_index(
+                update.index,
+                existing_escrow.milestones.len(),
+            )?;
+
             let mut milestone_to_update = existing_escrow
                 .milestones
-                .get(update.index as u32)
+                .get(idx)
                 .unwrap();
 
             if let Some(ref evidence) = update.evidence {
@@ -39,7 +45,7 @@ impl MilestoneManager {
 
             existing_escrow
                 .milestones
-                .set(update.index as u32, milestone_to_update);
+                .set(idx, milestone_to_update);
         }
 
         e.storage()
@@ -65,15 +71,20 @@ impl MilestoneManager {
 
         for i in 0..milestone_indexes.len() {
             let milestone_index = milestone_indexes.get(i).unwrap();
+            let idx = validate_and_convert_milestone_index(
+                milestone_index,
+                existing_escrow.milestones.len(),
+            )?;
+
             let mut milestone_to_update = existing_escrow
                 .milestones
-                .get(milestone_index as u32)
+                .get(idx)
                 .unwrap();
             
             milestone_to_update.approved = true;
             existing_escrow
                 .milestones
-                .set(milestone_index as u32, milestone_to_update);
+                .set(idx, milestone_to_update);
         }
         
         e.storage()
