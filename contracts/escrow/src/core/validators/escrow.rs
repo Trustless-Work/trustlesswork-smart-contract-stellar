@@ -158,10 +158,16 @@ pub fn validate_escrow_property_change_conditions(
 pub fn validate_initialize_escrow_conditions(
     e: &Env,
     escrow_properties: Escrow,
+    escrow_balance: i128,
 ) -> Result<(), ContractError> {
     if e.storage().instance().has(&DataKey::Escrow) {
         return Err(ContractError::EscrowAlreadyInitialized);
     }
+
+    if escrow_balance > 0 {
+        return Err(ContractError::EscrowBalanceMustBeZeroOnInitialization);
+    }
+
     validate_escrow_conditions(None, &escrow_properties, None, None, true)
 }
 
