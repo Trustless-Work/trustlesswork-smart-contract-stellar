@@ -20,36 +20,36 @@ pub enum ContractError {
     EscrowNotFullyProcessed = 14,
     EscrowPropertiesMismatch = 15,
     FlagsMustBeFalse = 16,
-    IncompatibleEscrowWasmHash = 17,
-    InsufficientApproverFundsForCommissions = 18,
-    InsufficientEscrowFundsToMakeTheRefund = 19,
-    InsufficientFundsForEscrowFunding = 20,
-    InsufficientFundsForRefund = 21,
-    InsufficientFundsForResolution = 22,
-    InsufficientServiceProviderFundsForCommissions = 23,
-    InvalidMileStoneIndex = 24,
-    MilestoneAlreadyInDispute = 25,
-    MilestoneAlreadyReleased = 26,
-    MilestoneAlreadyResolved = 27,
-    MilestoneApprovedCantChangeEscrowProperties = 28,
-    MilestoneHasAlreadyBeenApproved = 29,
-    MilestoneNotCompleted = 30,
-    MilestoneNotFound = 31,
-    MilestoneNotInDispute = 32,
-    MilestoneOpenedForDisputeResolution = 33,
-    MilestoneToApproveDoesNotExist = 34,
-    MilestoneToUpdateDoesNotExist = 35,
-    NoMileStoneDefined = 36,
-    OnlyApproverChangeMilstoneFlag = 37,
-    OnlyDisputeResolverCanExecuteThisFunction = 38,
-    OnlyPlatformAddressExecuteThisFunction = 39,
-    OnlyReleaseSignerCanReleaseEarnings = 40,
-    OnlyServiceProviderChangeMilstoneStatus = 41,
-    Overflow = 42,
-    PlatformAddressCannotBeChanged = 43,
-    PlatformFeeTooHigh = 44,
-    TooManyEscrowsRequested = 45,
-    TooManyMilestones = 46,
+    InsufficientApproverFundsForCommissions = 17,
+    InsufficientEscrowFundsToMakeTheRefund = 18,
+    InsufficientFundsForEscrowFunding = 19,
+    InsufficientFundsForRefund = 20,
+    InsufficientFundsForResolution = 21,
+    InsufficientServiceProviderFundsForCommissions = 22,
+    InvalidMileStoneIndex = 23,
+    MilestoneAlreadyInDispute = 24,
+    MilestoneAlreadyReleased = 25,
+    MilestoneAlreadyResolved = 26,
+    MilestoneApprovedCantChangeEscrowProperties = 27,
+    MilestoneHasAlreadyBeenApproved = 28,
+    MilestoneNotCompleted = 29,
+    MilestoneNotFound = 30,
+    MilestoneNotInDispute = 31,
+    MilestoneOpenedForDisputeResolution = 32,
+    MilestoneToApproveDoesNotExist = 33,
+    MilestoneToUpdateDoesNotExist = 34,
+    NoMileStoneDefined = 35,
+    OnlyApproverChangeMilstoneFlag = 36,
+    OnlyDisputeResolverCanExecuteThisFunction = 37,
+    OnlyPlatformAddressExecuteThisFunction = 38,
+    OnlyReleaseSignerCanReleaseEarnings = 39,
+    OnlyServiceProviderChangeMilstoneStatus = 40,
+    Overflow = 41,
+    PlatformAddressCannotBeChanged = 42,
+    PlatformFeeTooHigh = 43,
+    TooManyEscrowsRequested = 44,
+    TooManyMilestones = 45,
+    TooManyDistributions = 46,
     TotalAmountCannotBeZero = 47,
     TotalDisputeFundsMustNotExceedTheMilestoneAmount = 48,
     UnauthorizedToChangeDisputeFlag = 49,
@@ -109,12 +109,6 @@ impl fmt::Display for ContractError {
             }
             ContractError::FlagsMustBeFalse => {
                 write!(f, "All flags (approved, disputed, released) must be false in order to execute this function.")
-            }
-            ContractError::IncompatibleEscrowWasmHash => {
-                write!(
-                    f,
-                    "The provided contract address is not an instance of this escrow contract."
-                )
             }
             ContractError::InsufficientApproverFundsForCommissions => {
                 write!(f, "Insufficient approver funds for commissions")
@@ -203,6 +197,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::TooManyMilestones => {
                 write!(f, "Cannot define more than 50 milestones in an escrow")
+            }
+            ContractError::TooManyDistributions => {
+                write!(f, "Cannot define more than 50 distribution entries")
             }
             ContractError::TotalAmountCannotBeZero => {
                 write!(f, "The total amount to be transferred cannot be zero.")
