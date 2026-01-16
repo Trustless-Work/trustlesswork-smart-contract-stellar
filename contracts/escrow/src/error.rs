@@ -49,6 +49,7 @@ pub enum ContractError {
     MilestoneToApproveDoesNotExist = 43,
     MilestoneToUpdateDoesNotExist = 44,
     EscrowNotFullyProcessed = 45,
+    EscrowBalanceMustBeZeroOnInitialization = 46,
 }
 
 impl fmt::Display for ContractError {
@@ -186,9 +187,12 @@ impl fmt::Display for ContractError {
             }
             ContractError::MilestoneToUpdateDoesNotExist => {
                 write!(f, "One of the selected milestones to update does not exist in the milestones list")
-            },
+            }
             ContractError::EscrowNotFullyProcessed => {
                 write!(f, "All milestones must be released or dispute-resolved before withdrawing remaining funds")
+            }
+            ContractError::EscrowBalanceMustBeZeroOnInitialization => {
+                write!(f, "The escrow balance must be zero when initializing the escrow.")
             }
         }
     }
