@@ -178,7 +178,11 @@ impl DisputeManager {
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, milestone_index, &signer)?;
 
-        let idx = milestone_index as u32;
+        let idx = crate::core::validators::milestone::validate_and_convert_milestone_index(
+            milestone_index,
+            escrow.milestones.len(),
+        )?;
+
         let mut target = escrow
             .milestones
             .get(idx)

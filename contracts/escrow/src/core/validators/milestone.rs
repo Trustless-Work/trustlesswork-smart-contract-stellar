@@ -26,17 +26,37 @@ pub fn validate_milestone_status_change_conditions(
             return Err(ContractError::EmptyMilestoneStatus);
         }
         
-        if update.index < 0 {
-            return Err(ContractError::InvalidMileStoneIndex);
-        }
+        let idx = validate_and_convert_milestone_index(
+            update.index,
+            escrow.milestones.len(),
+        )?;
         
         let _milestone = escrow
             .milestones
-            .get(update.index as u32)
+            .get(idx)
             .ok_or(ContractError::MilestoneToUpdateDoesNotExist)?;
     }
 
     Ok(())
+}
+
+#[inline]
+pub fn validate_and_convert_milestone_index(
+    milestone_index: i128,
+    milestones_len: u32,
+) -> Result<u32, ContractError> {
+    if milestone_index < 0 {
+        return Err(ContractError::InvalidMileStoneIndex);
+    }
+
+    let idx = u32::try_from(milestone_index)
+        .map_err(|_| ContractError::InvalidMileStoneIndex)?;
+
+    if idx >= milestones_len {
+        return Err(ContractError::InvalidMileStoneIndex);
+    }
+
+    Ok(idx)
 }
 
 #[inline]
@@ -56,13 +76,14 @@ pub fn validate_milestone_flag_change_conditions(
     for i in 0..milestone_indexes.len() {
         let milestone_index = milestone_indexes.get(i).unwrap();
 
-        if milestone_index < 0 {
-            return Err(ContractError::InvalidMileStoneIndex);
-        }
+        let idx = validate_and_convert_milestone_index(
+            milestone_index,
+            escrow.milestones.len(),
+        )?;
 
         let milestone = escrow
             .milestones
-            .get(milestone_index as u32)
+            .get(idx)
             .ok_or(ContractError::MilestoneToApproveDoesNotExist)?;
 
         if milestone.flags.approved {

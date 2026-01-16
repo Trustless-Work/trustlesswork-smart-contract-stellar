@@ -80,13 +80,14 @@ pub fn validate_dispute_flag_change_conditions(
         return Err(ContractError::NoMileStoneDefined);
     }
 
-    if milestone_index < 0 || milestone_index >= escrow.milestones.len() as i128 {
-        return Err(ContractError::InvalidMileStoneIndex);
-    }
+    let idx = crate::core::validators::milestone::validate_and_convert_milestone_index(
+        milestone_index,
+        escrow.milestones.len(),
+    )?;
 
     let milestone = escrow
         .milestones
-        .get(milestone_index as u32)
+        .get(idx)
         .ok_or(ContractError::InvalidMileStoneIndex)?;
 
     if milestone.flags.released {
