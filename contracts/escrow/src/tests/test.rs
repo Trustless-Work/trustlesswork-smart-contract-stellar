@@ -2851,3 +2851,127 @@ fn test_approve_multiple_milestones_at_once() {
     assert!(final_escrow.milestones.get(3).unwrap().flags.approved);
 }
 
+#[test]
+fn test_milestone_index_wraparound_prevention() {
+    let env = Env::default();
+    let approver = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let engagement_id = String::from_str(&env, "wraparound-test");
+
+    let roles: Roles = Roles {
+        approver: approver.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        approved: false,
+        resolved: false,
+    };
+
+    let trustline: Trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 0"),
+            amount: 1000,
+            receiver: approver.clone(),
+            status: String::from_str(&env, "pending"),
+            flags: flags.clone(),
+            evidence: String::from_str(&env, ""),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            amount: 2000,
+            receiver: approver.clone(),
+            status: String::from_str(&env, "pending"),
+            flags: flags.clone(),
+            evidence: String::from_str(&env, ""),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Escrow"),
+        description: String::from_str(&env, "Testing wraparound prevention"),
+        roles: roles.clone(),
+        platform_fee: 300,
+        milestones: milestones.clone(),
+        trustline,
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+
+    // Test 1: Try to approve with an index that would wrap around (2^32 + 0 = 0 after truncation)
+    let wraparound_index_zero: i128 = (u32::MAX as i128) + 1; // This would wrap to 0 if using unsafe casting
+    let wraparound_indices = vec![&env, wraparound_index_zero];
+    let result = client.try_approve_milestones(&wraparound_indices, &approver);
+    assert!(
+        result.is_err(),
+        "Should fail with index that would wrap around to 0"
+    );
+
+    // Test 2: Try to approve with an index that would wrap around (2^32 + 1 = 1 after truncation)
+    let wraparound_index_one: i128 = (u32::MAX as i128) + 2; // This would wrap to 1 if using unsafe casting
+    let wraparound_indices = vec![&env, wraparound_index_one];
+    let result = client.try_approve_milestones(&wraparound_indices, &approver);
+    assert!(
+        result.is_err(),
+        "Should fail with index that would wrap around to 1"
+    );
+
+    // Test 3: Try to update milestone status with wraparound index
+    let wraparound_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: wraparound_index_zero,
+            status: String::from_str(&env, "completed"),
+            evidence: None,
+        },
+    ];
+    let result = client.try_change_milestone_status(&wraparound_update, &service_provider_address);
+    assert!(
+        result.is_err(),
+        "Should fail when updating milestone with wraparound index"
+    );
+
+    // Test 4: Try to dispute with wraparound index
+    let result = client.try_dispute_milestone(&wraparound_index_zero, &approver);
+    assert!(
+        result.is_err(),
+        "Should fail when disputing milestone with wraparound index"
+    );
+
+    // Test 5: Verify that legitimate indices still work
+    let valid_indices = vec![&env, 0, 1];
+    client.approve_milestones(&valid_indices, &approver);
+    let escrow = client.get_escrow();
+    assert!(escrow.milestones.get(0).unwrap().flags.approved);
+    assert!(escrow.milestones.get(1).unwrap().flags.approved);
+
+    // Test 6: Try with index equal to i128::MAX (should fail)
+    let max_index = i128::MAX;
+    let max_indices = vec![&env, max_index];
+    let result = client.try_approve_milestones(&max_indices, &approver);
+    assert!(
+        result.is_err(),
+        "Should fail with i128::MAX as index"
+    );
+}
