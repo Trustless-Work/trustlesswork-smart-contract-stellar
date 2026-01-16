@@ -1,4 +1,4 @@
-use soroban_sdk::token::Client as TokenClient;
+use soroban_sdk::token::{Client as TokenClient};
 use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use super::validators::escrow::{
@@ -18,7 +18,9 @@ impl EscrowManager {
     }
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
-        validate_initialize_escrow_conditions(e, escrow_properties.clone())?;
+        let token_client = TokenClient::new(&e, &escrow_properties.trustline.address);
+        let escrow_balance = token_client.balance(&e.current_contract_address());
+        validate_initialize_escrow_conditions(e, escrow_properties.clone(), escrow_balance)?;
         e.storage()
             .instance()
             .set(&DataKey::Escrow, &escrow_properties);
