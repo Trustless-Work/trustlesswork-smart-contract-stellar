@@ -41,7 +41,7 @@ pub enum ContractError {
     EscrowPropertiesMismatch = 33,
     ApproverOrReceiverFundsLessThanZero = 34,
     EscrowAlreadyReleased = 35,
-    IncompatibleEscrowWasmHash = 36,
+    TooManyDistributions = 36,
     PlatformAddressCannotBeChanged = 37,
     DisputeResolverCannotDisputeTheEscrow = 40,
     TotalAmountCannotBeZero = 41,
@@ -164,11 +164,8 @@ impl fmt::Display for ContractError {
             ContractError::EscrowAlreadyReleased => {
                 write!(f, "The escrow funds have been released.")
             }
-            ContractError::IncompatibleEscrowWasmHash => {
-                write!(
-                    f,
-                    "The provided contract address is not an instance of this escrow contract."
-                )
+            ContractError::TooManyDistributions => {
+                write!(f, "Cannot define more than 50 distribution entries")
             }
             ContractError::PlatformAddressCannotBeChanged => {
                 write!(f, "The platform address of the escrow cannot be changed.")
