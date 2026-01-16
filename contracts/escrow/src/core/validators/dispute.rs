@@ -1,7 +1,7 @@
 use soroban_sdk::Address;
 
 use crate::{
-    error::ContractError, storage::types::{Escrow, Milestone, Roles}
+    core::validators::milestone::validate_and_convert_milestone_index, error::ContractError, storage::types::{Escrow, Milestone, Roles}
 };
 
 #[inline]
@@ -73,20 +73,21 @@ pub fn validate_withdraw_remaining_funds_conditions(
 #[inline]
 pub fn validate_dispute_flag_change_conditions(
     escrow: &Escrow,
-    milestone_index: i128,
+    milestone_index: u32,
     signer: &Address,
 ) -> Result<(), ContractError> {
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMileStoneDefined);
     }
 
-    if milestone_index < 0 || milestone_index >= escrow.milestones.len() as i128 {
-        return Err(ContractError::InvalidMileStoneIndex);
-    }
+    let idx = validate_and_convert_milestone_index(
+        milestone_index,
+        escrow.milestones.len(),
+    )?;
 
     let milestone = escrow
         .milestones
-        .get(milestone_index as u32)
+        .get(idx)
         .ok_or(ContractError::InvalidMileStoneIndex)?;
 
     if milestone.flags.released {
