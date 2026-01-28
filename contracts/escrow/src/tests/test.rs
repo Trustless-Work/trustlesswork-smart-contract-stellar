@@ -2354,3 +2354,114 @@ fn test_withdraw_remaining_funds_with_fees() {
         remaining_amount,
         "Total withdrawn should equal the extra remaining amount"    );
 }
+
+#[test]
+fn test_dispute_resolution_rounding_edge_case() {
+    let env = Env::default();
+    env.mock_all_auths();
+    
+    // Setup with small amounts that trigger rounding
+    // Total = 2.
+    // Trustless fee = 2 * 30 / 10000 = 0.
+    // Platform fee = 50% = 2 * 5000 / 10000 = 1.
+    // Total fees = 1.
+    // Distributions: A=1, B=1.
+    // Share A: (1 * 1) / 2 = 0. Net A = 1.
+    // Share B: (1 * 1) / 2 = 0. Net B = 1.
+    // Total Net to distribute = 2.
+    // Remaining balance after fees = 2 - 1 = 1.
+    // Fails on second transfer.
+
+    let total_amount: i128 = 2;
+    let platform_fee = 50 * 100; // 50%
+
+    let approver_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let receiver_a = Address::generate(&env);
+    let receiver_b = Address::generate(&env);
+    
+    // Create token
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
+    let trustline: Trustline = Trustline {
+        address: token_client.address.clone(),
+    };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approved: false,
+        },
+    ];
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform_address: platform_address.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let engagement_id = String::from_str(&env, "test_rounding");
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Test Rounding"),
+        description: String::from_str(&env, "Test Rounding Description"),
+        roles: roles.clone(),
+        amount: total_amount,
+        platform_fee: platform_fee,
+        milestones: milestones.clone(),
+        flags: flags.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let contract_address = client.address.clone();
+
+    // Initialize
+    client.initialize_escrow(&escrow_properties);
+
+    // Fund
+    token_admin.mint(&approver_address, &total_amount);
+    client.fund_escrow(&approver_address, &escrow_properties, &total_amount);
+
+    // Dispute
+    client.dispute_escrow(&approver_address);
+
+    let mut distributions = Map::new(&env);
+    distributions.set(receiver_a.clone(), 1);
+    distributions.set(receiver_b.clone(), 1);
+    
+    // We also need trustless work address. 
+    // In `resolve_dispute(e, dispute_resolver, trustless_work_address, distributions)`
+    let trustless_work_address = Address::generate(&env);
+
+    // This is expected to fail with the current bug
+    let result = client.try_resolve_dispute(
+        &dispute_resolver_address,
+        &trustless_work_address,
+        &distributions
+    );
+    
+    assert!(result.is_ok(), "Should deal with rounding errors without reverting");
+
+    // Verify final balance is 0
+    let final_balance = token_client.balance(&contract_address);
+    assert_eq!(final_balance, 0, "All funds should be distributed");
+}
