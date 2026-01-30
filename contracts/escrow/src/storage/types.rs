@@ -41,7 +41,6 @@ pub struct Roles {
     pub release_signer: Address,
     pub dispute_resolver: Address,
     pub receiver: Address,
-    pub observers: Vec<Address>,
 }
 
 #[contracttype]
@@ -71,4 +70,5 @@ pub struct AddressBalance {
 pub enum DataKey {
     Escrow,
     Admin,
+    Observers,
 }

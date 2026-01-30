@@ -71,7 +71,6 @@ fn test_initialize_excrow() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -100,7 +99,7 @@ fn test_initialize_excrow() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    let initialized_escrow = escrow_approver.initialize_escrow(&escrow_properties);
+    let initialized_escrow = escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.engagement_id, initialized_escrow.engagement_id);
@@ -127,7 +126,7 @@ fn test_initialize_excrow() {
     assert_eq!(escrow.roles.receiver, escrow_properties.roles.receiver);
     assert_eq!(escrow.receiver_memo, escrow_properties.receiver_memo);
 
-    let result = escrow_approver.try_initialize_escrow(&escrow_properties);
+    let result = escrow_approver.try_initialize_escrow(&escrow_properties, &vec![&env]);
     assert!(result.is_err());
 }
 
@@ -172,7 +171,6 @@ fn test_update_escrow() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -202,7 +200,7 @@ fn test_update_escrow() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&initial_escrow_properties);
+    escrow_approver.initialize_escrow(&initial_escrow_properties, &vec![&env]);
 
     // Create a new updated escrow properties
     let new_milestones = vec![
@@ -311,7 +309,6 @@ fn test_update_escrow_platform_fee_too_high() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags { disputed: false, released: false, resolved: false };
@@ -331,7 +328,7 @@ fn test_update_escrow_platform_fee_too_high() {
 
     let test_data = create_escrow_contract(&env);
     let client = test_data.client;
-    client.initialize_escrow(&initial_escrow);
+    client.initialize_escrow(&initial_escrow, &vec![&env]);
 
     // Attempt invalid update (no funds path so full modification allowed but platform_fee cap enforced)
     let invalid_update: Escrow = Escrow {
@@ -386,7 +383,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags { disputed: false, released: false, resolved: false };
@@ -406,7 +402,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
 
     let test_data = create_escrow_contract(&env);
     let client = test_data.client;
-    let res = client.try_initialize_escrow(&invalid_escrow);
+    let res = client.try_initialize_escrow(&invalid_escrow, &vec![&env]);
     assert!(res.is_err(), "Initialization should fail with platform fee > 99% cap");
 }
 
@@ -451,7 +447,6 @@ fn test_append_milestones_with_funds() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: receiver_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -481,7 +476,7 @@ fn test_append_milestones_with_funds() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&initial_escrow_properties);
+    escrow_approver.initialize_escrow(&initial_escrow_properties, &vec![&env]);
 
     // Fund the escrow contract
     token_admin.mint(&approver_address, &amount);
@@ -574,7 +569,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: receiver_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -603,7 +597,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
 
     let test_data = create_escrow_contract(&env);
     let escrow_client = test_data.client;
-    escrow_client.initialize_escrow(&initial_escrow_properties);
+    escrow_client.initialize_escrow(&initial_escrow_properties, &vec![&env]);
 
     // Fund the escrow contract
     token_admin.mint(&approver_address, &amount);
@@ -698,7 +692,6 @@ fn test_change_milestone_status_and_approved() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -728,7 +721,7 @@ fn test_change_milestone_status_and_approved() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Change milestone status (valid case)
     let milestone_updates = vec![
@@ -940,7 +933,6 @@ fn test_release_funds_successful_flow() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -970,7 +962,7 @@ fn test_release_funds_successful_flow() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .1
@@ -1061,7 +1053,6 @@ fn test_release_funds_milestones_incomplete() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1090,7 +1081,7 @@ fn test_release_funds_milestones_incomplete() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .1
@@ -1142,7 +1133,6 @@ fn test_release_funds_same_receiver_as_provider() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1172,7 +1162,7 @@ fn test_release_funds_same_receiver_as_provider() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .1
@@ -1253,7 +1243,6 @@ fn test_release_funds_invalid_receiver_fallback() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(), // Different receiver address than service provider
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1283,7 +1272,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .1
@@ -1368,7 +1357,6 @@ fn test_dispute_management() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1397,7 +1385,7 @@ fn test_dispute_management() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     let escrow = escrow_approver.get_escrow();
     assert!(!escrow.flags.disputed);
@@ -1456,7 +1444,6 @@ fn test_dispute_resolution_process() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1486,7 +1473,7 @@ fn test_dispute_resolution_process() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .0
@@ -1619,7 +1606,6 @@ fn test_fund_escrow_successful_deposit() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1649,7 +1635,7 @@ fn test_fund_escrow_successful_deposit() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Check initial balances
     assert_eq!(usdc_token.0.balance(&approver_address), amount);
@@ -1718,7 +1704,6 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1748,7 +1733,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Check initial balance
     assert_eq!(usdc_token.0.balance(&approver_address), small_amount);
@@ -1785,7 +1770,6 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
         receiver: receiver.clone(),
-        observers: vec![&env],
     };
 
     let milestones = vec![
@@ -1820,7 +1804,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let test_data = create_escrow_contract(&env);
     let escrow_client_1 = test_data.client;
 
-    escrow_client_1.initialize_escrow(&escrow_base);
+    escrow_client_1.initialize_escrow(&escrow_base, &vec![&env]);
     escrow_client_1.dispute_escrow(&approver);
 
     let updated_escrow = escrow_client_1.get_escrow();
@@ -1832,7 +1816,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let test_data = create_escrow_contract(&env);
     let escrow_client_2 = test_data.client;
 
-    escrow_client_2.initialize_escrow(&escrow_base);
+    escrow_client_2.initialize_escrow(&escrow_base, &vec![&env]);
     let result = escrow_client_2.try_dispute_escrow(&unauthorized);
 
     assert!(
@@ -1863,7 +1847,6 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
         receiver: receiver.clone(),
-        observers: vec![&env],
     };
 
     let milestones = vec![
@@ -1897,10 +1880,10 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
 
     // Deploy two escrow contracts of the same code and initialize both
     let c1 = create_escrow_contract(&env).client;
-    c1.initialize_escrow(&escrow_base);
+    c1.initialize_escrow(&escrow_base, &vec![&env]);
 
     let c2 = create_escrow_contract(&env).client;
-    c2.initialize_escrow(&escrow_base);
+    c2.initialize_escrow(&escrow_base, &vec![&env]);
 
     // Mint funds to both contracts so they have balances
     usdc_token.1.mint(&c1.address, &escrow_base.amount);
@@ -1965,7 +1948,6 @@ fn test_approve_multiple_milestones() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -1994,7 +1976,7 @@ fn test_approve_multiple_milestones() {
     let test_data = create_escrow_contract(&env);
     let escrow_approver = test_data.client;
 
-    escrow_approver.initialize_escrow(&escrow_properties);
+    escrow_approver.initialize_escrow(&escrow_properties, &vec![&env]);
 
     usdc_token
         .1
@@ -2077,7 +2059,6 @@ fn test_milestone_index_overflow_protection() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -2106,7 +2087,7 @@ fn test_milestone_index_overflow_protection() {
     let test_data = create_escrow_contract(&env);
     let escrow_client = test_data.client;
 
-    escrow_client.initialize_escrow(&escrow_properties);
+    escrow_client.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Test 1: Intentar aprobar con índice que causaría overflow (2^32)
     let overflow_index: i128 = 4_294_967_296; // 2^32, would wrap to 0 if not validated
@@ -2198,7 +2179,6 @@ fn test_withdraw_remaining_funds_with_fees() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -2227,7 +2207,7 @@ fn test_withdraw_remaining_funds_with_fees() {
     let test_data = create_escrow_contract(&env);
     let escrow_contract = test_data.client;
 
-    escrow_contract.initialize_escrow(&escrow_properties);
+    escrow_contract.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Fund the escrow - mint to approver first, then transfer via fund_escrow
     usdc_token.1.mint(&approver_address, &amount);
@@ -2407,7 +2387,6 @@ fn test_dispute_resolution_rounding_edge_case() {
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
-        observers: vec![&env],
     };
 
     let flags: Flags = Flags {
@@ -2435,7 +2414,7 @@ fn test_dispute_resolution_rounding_edge_case() {
     let contract_address = client.address.clone();
 
     // Initialize
-    client.initialize_escrow(&escrow_properties);
+    client.initialize_escrow(&escrow_properties, &vec![&env]);
 
     // Fund
     token_admin.mint(&approver_address, &total_amount);

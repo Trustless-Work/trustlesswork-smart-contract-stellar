@@ -5,6 +5,7 @@ use soroban_sdk::{contractevent, String};
 #[derive(Clone)]
 pub struct InitEsc {
     pub escrow: Escrow,
+    pub observers: soroban_sdk::Vec<soroban_sdk::Address>,
 }
 
 #[contractevent(topics = ["tw_fund"], data_format = "vec")]
@@ -60,4 +61,10 @@ pub struct EscrowDisputed {
 pub struct ExtTtlEvt {
     pub platform: soroban_sdk::Address,
     pub ledgers_to_extend: u32,
+}
+
+#[contractevent(topics = ["tw_withdraw_rem"], data_format = "vec")]
+#[derive(Clone)]
+pub struct FundsWithdrawn {
+    pub escrow: Escrow,
 }

@@ -17,14 +17,26 @@ impl EscrowManager {
         escrow.roles.receiver.clone()
     }
 
-    pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
+    pub fn initialize_escrow(
+        e: &Env,
+        escrow_properties: Escrow,
+        observers: Vec<Address>,
+    ) -> Result<Escrow, ContractError> {
         let token_client = TokenClient::new(&e, &escrow_properties.trustline.address);
         let escrow_balance = token_client.balance(&e.current_contract_address());
         validate_initialize_escrow_conditions(e, escrow_properties.clone(), escrow_balance)?;
         e.storage()
             .instance()
             .set(&DataKey::Escrow, &escrow_properties);
+        e.storage().instance().set(&DataKey::Observers, &observers);
         Ok(escrow_properties)
+    }
+
+    pub fn get_observers(e: &Env) -> Vec<Address> {
+        e.storage()
+            .instance()
+            .get(&DataKey::Observers)
+            .unwrap_or(Vec::new(e))
     }
 
     pub fn fund_escrow(

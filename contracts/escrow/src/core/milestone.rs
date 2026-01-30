@@ -35,7 +35,7 @@ impl MilestoneManager {
             let mut milestone_to_update = existing_escrow
                 .milestones
                 .get(idx)
-                .unwrap();
+                .ok_or(ContractError::MilestoneToUpdateDoesNotExist)?;
 
             if let Some(ref evidence) = update.evidence {
                 milestone_to_update.evidence = evidence.clone();

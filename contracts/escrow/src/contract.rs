@@ -3,7 +3,7 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Symbol, Val
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::ContractError;
 use crate::events::handler::{
-    ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
+    ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, FundsWithdrawn, InitEsc,
     MilestoneApproved, MilestoneStatusChanged,
 };
 use crate::storage::types::{AddressBalance, Escrow, MilestoneUpdate};
@@ -45,10 +45,16 @@ impl EscrowContract {
     // Escrow /////
     ////////////////////////
 
-    pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
-        let initialized_escrow = EscrowManager::initialize_escrow(e, escrow_properties)?;
+    pub fn initialize_escrow(
+        e: &Env,
+        escrow_properties: Escrow,
+        observers: Vec<Address>,
+    ) -> Result<Escrow, ContractError> {
+        let initialized_escrow =
+            EscrowManager::initialize_escrow(e, escrow_properties, observers.clone())?;
         InitEsc {
             escrow: initialized_escrow.clone(),
+            observers,
         }
         .publish(e);
         Ok(initialized_escrow)
@@ -110,6 +116,10 @@ impl EscrowContract {
         addresses: Vec<Address>,
     ) -> Result<Vec<AddressBalance>, ContractError> {
         EscrowManager::get_multiple_escrow_balances(e, addresses)
+    }
+
+    pub fn get_observers(e: &Env) -> Vec<Address> {
+        EscrowManager::get_observers(e)
     }
 
     ////////////////////////
@@ -181,12 +191,13 @@ impl EscrowContract {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), ContractError> {
-        DisputeManager::withdraw_remaining_funds(
+        let escrow = DisputeManager::withdraw_remaining_funds(
             &e,
             dispute_resolver,
             trustless_work_address,
             distributions,
         )?;
+        FundsWithdrawn { escrow }.publish(&e);
         Ok(())
     }
 
