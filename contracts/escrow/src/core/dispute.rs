@@ -37,7 +37,7 @@ impl DisputeManager {
             all_processed = false;
         }
 
-        let token_client = TokenClient::new(&e, &escrow.trustline.address);
+        let token_client = TokenClient::new(e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
         let mut total: i128 = 0;
         for (_addr, amount) in distributions.iter() {
@@ -82,7 +82,7 @@ impl DisputeManager {
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
-        let token_client = TokenClient::new(&e, &escrow.trustline.address);
+        let token_client = TokenClient::new(e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
 
         let mut total: i128 = 0;
@@ -144,10 +144,6 @@ impl DisputeManager {
         let mut net_distributions: Vec<(Address, i128)> = Vec::new(e);
 
         for (addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                continue;
-            }
-
             let recipient_trustless_fee =
                 BasicMath::safe_mul(amount, fee_result.trustless_work_fee)?
                     .checked_div(total)

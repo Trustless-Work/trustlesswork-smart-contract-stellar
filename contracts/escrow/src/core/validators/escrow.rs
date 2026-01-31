@@ -52,7 +52,7 @@ pub fn validate_escrow_conditions(
     }
 
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
-    if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
+    if new_escrow.platform_fee + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
     }
 
@@ -187,7 +187,7 @@ pub fn validate_fund_escrow_conditions(
         return Err(ContractError::AmountCannotBeZero);
     }
 
-    if !stored_escrow.eq(&expected_escrow) {
+    if !stored_escrow.eq(expected_escrow) {
         return Err(ContractError::EscrowPropertiesMismatch);
     }
 

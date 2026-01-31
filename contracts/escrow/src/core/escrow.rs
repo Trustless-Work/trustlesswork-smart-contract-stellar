@@ -22,7 +22,7 @@ impl EscrowManager {
         escrow_properties: Escrow,
         observers: Vec<Address>,
     ) -> Result<Escrow, ContractError> {
-        let token_client = TokenClient::new(&e, &escrow_properties.trustline.address);
+        let token_client = TokenClient::new(e, &escrow_properties.trustline.address);
         let escrow_balance = token_client.balance(&e.current_contract_address());
         validate_initialize_escrow_conditions(e, escrow_properties.clone(), escrow_balance)?;
         e.storage()
@@ -52,7 +52,7 @@ impl EscrowManager {
         let balance = token_client.balance(signer);
         validate_fund_escrow_conditions(amount, balance, &stored_escrow, expected_escrow)?;
 
-        token_client.transfer(signer, &e.current_contract_address(), &amount);
+        token_client.transfer(signer, e.current_contract_address(), &amount);
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl EscrowManager {
         }
 
         let fee_result =
-            FeeCalculator::calculate_standard_fees(escrow.amount as i128, escrow.platform_fee)?;
+            FeeCalculator::calculate_standard_fees(escrow.amount, escrow.platform_fee)?;
 
         token_client.transfer(
             &contract_address,
@@ -154,9 +154,9 @@ impl EscrowManager {
     }
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, ContractError> {
-        Ok(e.storage()
+        e.storage()
             .instance()
             .get(&DataKey::Escrow)
-            .ok_or(ContractError::EscrowNotFound)?)
+            .ok_or(ContractError::EscrowNotFound)
     }
 }
