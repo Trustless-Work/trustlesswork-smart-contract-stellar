@@ -23,8 +23,8 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         validate_distributions_size(&distributions)?;
+        dispute_resolver.require_auth();
 
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
@@ -94,8 +94,8 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         validate_distributions_size(&distributions)?;
+        dispute_resolver.require_auth();
 
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
@@ -156,9 +156,9 @@ impl DisputeManager {
     }
 
     pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, ContractError> {
-        signer.require_auth();
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
+        signer.require_auth();
 
         escrow.flags.disputed = true;
         e.storage().instance().set(&DataKey::Escrow, &escrow);

@@ -16,14 +16,14 @@ impl MilestoneManager {
         milestone_updates: Vec<MilestoneUpdate>,
         service_provider: Address,
     ) -> Result<Escrow, ContractError> {
-        service_provider.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
-
+        
         validate_milestone_status_change_conditions(
             &existing_escrow,
             &milestone_updates,
             &service_provider,
         )?;
+        service_provider.require_auth();
 
         for i in 0..milestone_updates.len() {
             let update = milestone_updates.get(i).unwrap();
@@ -60,14 +60,14 @@ impl MilestoneManager {
         milestone_indexes: Vec<i128>,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
-        approver.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
-
+        
         validate_milestone_flag_change_conditions(
             &existing_escrow,
             &milestone_indexes,
             &approver,
         )?;
+        approver.require_auth();
 
         for i in 0..milestone_indexes.len() {
             let milestone_index = milestone_indexes.get(i).unwrap();
