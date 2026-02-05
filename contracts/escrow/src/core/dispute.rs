@@ -71,13 +71,15 @@ impl DisputeManager {
         }
 
         for (addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                continue;
-            }
-            let fee_share = (amount * total_fees) / total;
-            let net_amount = amount - fee_share;
-            if net_amount > 0 {
-                token_client.transfer(&contract_address, &addr, &net_amount);
+            if amount > 0 {
+                let fee_share = BasicMath::safe_div(
+                    BasicMath::safe_mul(amount, total_fees)?,
+                    total,
+                )?;
+                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
+                if net_amount > 0 {
+                    token_client.transfer(&contract_address, &addr, &net_amount);
+                }
             }
         }
 
@@ -134,13 +136,15 @@ impl DisputeManager {
         }
 
         for (addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                continue;
-            }
-            let fee_share = (amount * (total_fees as i128)) / total;
-            let net_amount = amount - fee_share;
-            if net_amount > 0 {
-                token_client.transfer(&contract_address, &addr, &net_amount);
+            if amount > 0 {
+                let fee_share = BasicMath::safe_div(
+                BasicMath::safe_mul(amount, total_fees)?,
+                total,
+                )?;
+                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
+                if net_amount > 0 {
+                    token_client.transfer(&contract_address, &addr, &net_amount);
+                }
             }
         }
 
