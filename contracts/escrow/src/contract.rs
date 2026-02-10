@@ -17,7 +17,7 @@ impl EscrowContract {
     
     pub fn tw_new_single_release_escrow(
         env: Env,
-        platform_address: Address,
+        signer: Address,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         init_fn: Symbol,
@@ -28,7 +28,7 @@ impl EscrowContract {
             return Err(ContractError::EscrowAlreadyInitialized);
         }
 
-        platform_address.require_auth();
+        signer.require_auth();
 
         let deployer = env.current_contract_address();
         let deployed_address = env
