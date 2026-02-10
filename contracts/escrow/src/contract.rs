@@ -14,7 +14,7 @@ pub struct EscrowContract;
 #[contractimpl]
 impl EscrowContract {
     pub fn __constructor() {}
-
+    
     pub fn tw_new_single_release_escrow(
         env: Env,
         platform_address: Address,
@@ -24,12 +24,11 @@ impl EscrowContract {
         init_args: Vec<Val>,
         constructor_args: Vec<Val>,
     ) -> Result<(Address, Val), ContractError> {
-        platform_address.require_auth();
-
-        let escrow = EscrowManager::get_escrow(&env)?;
-        if platform_address != escrow.roles.platform_address {
-            return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+        if EscrowManager::get_escrow(&env).is_ok() {
+            return Err(ContractError::EscrowAlreadyInitialized);
         }
+
+        platform_address.require_auth();
 
         let deployer = env.current_contract_address();
         let deployed_address = env
