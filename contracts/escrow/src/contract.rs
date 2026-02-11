@@ -161,7 +161,7 @@ impl EscrowContract {
 
     pub fn approve_milestones(
         e: Env,
-        milestone_indexes: Vec<i128>,
+        milestone_indexes: Vec<u32>,
         approver: Address,
     ) -> Result<(), ContractError> {
         let escrow =

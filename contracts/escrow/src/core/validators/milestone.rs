@@ -7,13 +7,9 @@ use crate::{
 
 #[inline]
 pub fn validate_and_convert_milestone_index(
-    milestone_index: i128,
+    milestone_index: u32,
     milestones_len: u32,
 ) -> Result<u32, ContractError> {
-    if milestone_index < 0 {
-        return Err(ContractError::InvalidMileStoneIndex);
-    }
-
     let idx = u32::try_from(milestone_index)
         .map_err(|_| ContractError::InvalidMileStoneIndex)?;
 
@@ -62,7 +58,7 @@ pub fn validate_milestone_status_change_conditions(
 #[inline]
 pub fn validate_milestone_flag_change_conditions(
     escrow: &Escrow,
-    milestone_indexes: &soroban_sdk::Vec<i128>,
+    milestone_indexes: &soroban_sdk::Vec<u32>,
     approver: &Address,
 ) -> Result<(), ContractError> {
     if approver != &escrow.roles.approver {

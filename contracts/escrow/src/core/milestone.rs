@@ -57,7 +57,7 @@ impl MilestoneManager {
 
     pub fn change_milestone_approved_flag(
         e: &Env,
-        milestone_indexes: Vec<i128>,
+        milestone_indexes: Vec<u32>,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
