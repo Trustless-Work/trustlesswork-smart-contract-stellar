@@ -22,7 +22,7 @@ impl EscrowManager {
         let escrow_balance = token_client.balance(&e.current_contract_address());
         validate_initialize_escrow_conditions(e, escrow_properties.clone(), escrow_balance)?;
         e.storage()
-            .persistent()
+            .instance()
             .set(&DataKey::Escrow, &escrow_properties);
         Ok(escrow_properties)
     }
