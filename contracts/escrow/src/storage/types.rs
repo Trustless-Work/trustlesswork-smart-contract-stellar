@@ -12,7 +12,7 @@ pub struct Escrow {
     pub milestones: Vec<Milestone>,
     pub flags: Flags,
     pub trustline: Trustline,
-    pub receiver_memo: i128,
+    pub receiver_memo: u32,
 }
 
 #[contracttype]
@@ -27,7 +27,7 @@ pub struct Milestone {
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MilestoneUpdate {
-    pub index: i128,
+    pub index: u32,
     pub status: String,
     pub evidence: Option<String>,
 }
