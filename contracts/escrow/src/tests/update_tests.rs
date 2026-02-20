@@ -12,7 +12,7 @@ fn test_update_escrow() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -42,7 +42,7 @@ fn test_update_escrow() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -116,7 +116,7 @@ fn test_update_escrow() {
 
     // Update escrow properties
     let _updated_escrow =
-        escrow_approver.update_escrow(&platform_address, &updated_escrow_properties);
+        escrow_approver.update_escrow(&platform, &updated_escrow_properties);
 
     // Verify updated escrow properties
     let escrow = escrow_approver.get_escrow();
@@ -143,9 +143,9 @@ fn test_update_escrow() {
     );
 
     // Try to update escrow properties without platform address (should fail)
-    let non_platform_address = Address::generate(&env);
+    let non_platform = Address::generate(&env);
     let result =
-        escrow_approver.try_update_escrow(&non_platform_address, &updated_escrow_properties);
+        escrow_approver.try_update_escrow(&non_platform, &updated_escrow_properties);
     assert!(result.is_err());
 }
 
@@ -156,7 +156,7 @@ fn test_update_escrow_platform_fee_too_high() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -181,7 +181,7 @@ fn test_update_escrow_platform_fee_too_high() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -221,7 +221,7 @@ fn test_update_escrow_platform_fee_too_high() {
         receiver_memo: 0,
     };
 
-    let res = client.try_update_escrow(&platform_address, &invalid_update);
+    let res = client.try_update_escrow(&platform, &invalid_update);
     assert!(res.is_err(), "Update should fail with platform fee > 99% cap");
 }
 
@@ -232,7 +232,7 @@ fn test_append_milestones_with_funds() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -262,7 +262,7 @@ fn test_append_milestones_with_funds() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: receiver_address.clone(),
@@ -328,7 +328,7 @@ fn test_append_milestones_with_funds() {
         receiver_memo: 0,
     };
 
-    escrow_approver.update_escrow(&platform_address, &updated_escrow_properties);
+    escrow_approver.update_escrow(&platform, &updated_escrow_properties);
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.milestones.len(), 3);
@@ -355,7 +355,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -385,7 +385,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: receiver_address.clone(),
@@ -456,7 +456,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         receiver_memo: 0,
     };
 
-    escrow_client.update_escrow(&platform_address, &updated_escrow_properties);
+    escrow_client.update_escrow(&platform, &updated_escrow_properties);
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);

@@ -13,7 +13,7 @@ fn test_fund_escrow_successful_deposit() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
@@ -38,7 +38,7 @@ fn test_fund_escrow_successful_deposit() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),
@@ -110,7 +110,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
@@ -137,7 +137,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),

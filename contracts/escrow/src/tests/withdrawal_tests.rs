@@ -13,7 +13,7 @@ fn test_withdraw_remaining_funds_with_fees() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -40,7 +40,7 @@ fn test_withdraw_remaining_funds_with_fees() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -106,7 +106,7 @@ fn test_withdraw_remaining_funds_with_fees() {
 
     // Get initial balances
     let initial_tw_balance = usdc_token.0.balance(&trustless_work_address);
-    let initial_platform_balance = usdc_token.0.balance(&platform_address);
+    let initial_platform_balance = usdc_token.0.balance(&platform);
     let initial_recipient1_balance = usdc_token.0.balance(&recipient1);
     let initial_recipient2_balance = usdc_token.0.balance(&recipient2);
 
@@ -147,7 +147,7 @@ fn test_withdraw_remaining_funds_with_fees() {
 
     // Verify final balances
     let final_tw_balance = usdc_token.0.balance(&trustless_work_address);
-    let final_platform_balance = usdc_token.0.balance(&platform_address);
+    let final_platform_balance = usdc_token.0.balance(&platform);
     let final_recipient1_balance = usdc_token.0.balance(&recipient1);
     let final_recipient2_balance = usdc_token.0.balance(&recipient2);
     let final_contract_balance = usdc_token.0.balance(&escrow_contract.address);

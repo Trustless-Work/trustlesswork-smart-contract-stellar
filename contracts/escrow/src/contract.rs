@@ -123,7 +123,7 @@ impl EscrowContract {
         platform_address.require_auth();
 
         let escrow = EscrowManager::get_escrow(e)?;
-        if platform_address != escrow.roles.platform_address {
+        if platform_address != escrow.roles.platform {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 

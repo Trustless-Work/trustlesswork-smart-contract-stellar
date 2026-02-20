@@ -13,7 +13,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     let admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
@@ -23,7 +23,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
         receiver: receiver.clone(),

@@ -13,7 +13,7 @@ fn test_dispute_management() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -37,7 +37,7 @@ fn test_dispute_management() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -100,7 +100,7 @@ fn test_dispute_resolution_process() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -125,7 +125,7 @@ fn test_dispute_resolution_process() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -237,7 +237,7 @@ fn test_dispute_resolution_process() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_amount,
         "Platform commission amount is incorrect"
     );
@@ -263,7 +263,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
@@ -274,7 +274,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
         receiver: receiver.clone(),

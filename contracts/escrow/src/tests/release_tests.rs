@@ -13,7 +13,7 @@ fn test_release_funds_successful_flow() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
@@ -45,7 +45,7 @@ fn test_release_funds_successful_flow() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(),
@@ -102,7 +102,7 @@ fn test_release_funds_successful_flow() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );
@@ -134,7 +134,7 @@ fn test_release_funds_milestones_incomplete() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
@@ -165,7 +165,7 @@ fn test_release_funds_milestones_incomplete() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -219,7 +219,7 @@ fn test_release_funds_same_receiver_as_provider() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     // Use service_provider_address as receiver to test same-address case
@@ -246,7 +246,7 @@ fn test_release_funds_same_receiver_as_provider() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
@@ -303,7 +303,7 @@ fn test_release_funds_same_receiver_as_provider() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );
@@ -329,7 +329,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -357,7 +357,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: _receiver_address.clone(), // Different receiver address than service provider
@@ -414,7 +414,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );

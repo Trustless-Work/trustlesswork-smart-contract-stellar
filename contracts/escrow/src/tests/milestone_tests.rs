@@ -13,7 +13,7 @@ fn test_change_milestone_status_and_approved() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -39,7 +39,7 @@ fn test_change_milestone_status_and_approved() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
@@ -234,7 +234,7 @@ fn test_approve_multiple_milestones() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let amount: i128 = 1000;
@@ -269,7 +269,7 @@ fn test_approve_multiple_milestones() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
         receiver: service_provider_address.clone(),
