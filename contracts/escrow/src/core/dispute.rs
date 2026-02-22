@@ -143,35 +143,54 @@ impl DisputeManager {
         )?;
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        let total_fees =
-            BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
 
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &fee_result.trustless_work_fee,
-            );
-        }
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform,
-                &fee_result.platform_fee,
-            );
-        }
+        let mut actual_trustless_fees = 0i128;
+        let mut actual_platform_fees = 0i128;
+        let mut net_distributions: soroban_sdk::Vec<(Address, i128)> = soroban_sdk::Vec::new(&e);
 
         for (addr, amount) in distributions.iter() {
             if amount > 0 {
-                let fee_share = BasicMath::safe_div(
-                BasicMath::safe_mul(amount, total_fees)?,
-                total,
+                let recipient_trustless_fee = BasicMath::safe_div(
+                    BasicMath::safe_mul(amount, fee_result.trustless_work_fee)?,
+                    total,
                 )?;
-                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
+                let recipient_platform_fee = BasicMath::safe_div(
+                    BasicMath::safe_mul(amount, fee_result.platform_fee)?,
+                    total,
+                )?;
+
+                let total_recipient_fee =
+                    BasicMath::safe_add(recipient_trustless_fee, recipient_platform_fee)?;
+                let net_amount = BasicMath::safe_sub(amount, total_recipient_fee)?;
+
+                actual_trustless_fees =
+                    BasicMath::safe_add(actual_trustless_fees, recipient_trustless_fee)?;
+                actual_platform_fees =
+                    BasicMath::safe_add(actual_platform_fees, recipient_platform_fee)?;
+
                 if net_amount > 0 {
-                    token_client.transfer(&contract_address, &addr, &net_amount);
+                    net_distributions.push_back((addr.clone(), net_amount));
                 }
             }
+        }
+
+        if actual_trustless_fees > 0 {
+            token_client.transfer(
+                &contract_address,
+                &trustless_work_address,
+                &actual_trustless_fees,
+            );
+        }
+        if actual_platform_fees > 0 {
+            token_client.transfer(
+                &contract_address,
+                &escrow.roles.platform,
+                &actual_platform_fees,
+            );
+        }
+
+        for (addr, net_amount) in net_distributions.iter() {
+            token_client.transfer(&contract_address, &addr, &net_amount);
         }
 
         escrow.flags.resolved = true;
