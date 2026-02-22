@@ -333,3 +333,94 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         "Unauthorized user should not be able to change dispute flag"
     );
 }
+
+#[test]
+fn test_dispute_resolution_rounding_edge_case() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    // Setup with small amounts that trigger rounding
+    // total = 2, trustless_work_fee (30bps) = 0, platform_fee (300bps) = 0 (due to floor)
+    // Actually, let's use slightly larger small amounts to see some rounding
+    let total = 2i128;
+    let platform_fee = 300; // 3%
+
+    usdc_token.1.mint(&approver_address, &total);
+
+    let roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform: platform.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "rounding_edge_case"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles,
+        amount: total,
+        platform_fee: platform_fee,
+        milestones: vec![
+            &env,
+            Milestone {
+                description: String::from_str(&env, "First milestone"),
+                status: String::from_str(&env, "Pending"),
+                evidence: String::from_str(&env, "Initial evidence"),
+                approved: false,
+            },
+        ],
+        flags,
+        trustline,
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+
+    usdc_token.0.transfer(&approver_address, &client.address, &total);
+
+    client.dispute_escrow(&approver_address);
+
+    let mut distributions = Map::new(&env);
+    distributions.set(approver_address.clone(), 1);
+    distributions.set(service_provider_address.clone(), 1);
+
+    // This should NOT revert
+    let result = client.try_resolve_dispute(
+        &dispute_resolver_address,
+        &trustless_work_address,
+        &distributions,
+    );
+
+    assert!(result.is_ok(), "Should handle rounding correctly");
+
+    // Verify all funds were distributed properly
+    let final_balance = usdc_token.0.balance(&client.address);
+    assert_eq!(final_balance, 0, "All funds should be distributed");
+}
