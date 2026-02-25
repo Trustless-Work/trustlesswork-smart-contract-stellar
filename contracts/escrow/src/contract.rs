@@ -6,7 +6,7 @@ use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestoneApproved, MilestoneStatusChanged, WithdrawEvt,
 };
-use crate::storage::types::{AddressBalance, Escrow, MilestoneUpdate};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, MilestoneUpdate};
 
 #[contract]
 pub struct EscrowContract;
@@ -131,10 +131,10 @@ impl EscrowContract {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
-        let min_ledgers = 1u32;
+        let min_ledgers = 17280u32;
         e.storage()
-            .instance()
-            .extend_ttl(min_ledgers, ledgers_to_extend);
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
         ExtTtlEvt {
             platform: platform_address,

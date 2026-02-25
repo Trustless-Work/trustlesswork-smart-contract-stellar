@@ -160,7 +160,7 @@ pub fn validate_initialize_escrow_conditions(
     escrow_properties: Escrow,
     escrow_balance: i128,
 ) -> Result<(), ContractError> {
-    if e.storage().instance().has(&DataKey::Escrow) {
+    if e.storage().persistent().has(&DataKey::Escrow) {
         return Err(ContractError::EscrowAlreadyInitialized);
     }
 

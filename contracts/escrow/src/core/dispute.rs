@@ -86,7 +86,10 @@ impl DisputeManager {
             }
         }
 
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
@@ -175,7 +178,10 @@ impl DisputeManager {
         );
         escrow.milestones = updated_milestones;
 
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
@@ -200,7 +206,10 @@ impl DisputeManager {
             .ok_or(ContractError::InvalidMileStoneIndex)?;
         target.flags.disputed = true;
         escrow.milestones.set(idx, target);
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
