@@ -20,7 +20,9 @@ pub fn validate_milestone_status_change_conditions(
     }
 
     for i in 0..milestone_updates.len() {
-        let update = milestone_updates.get(i).unwrap();
+        let update = milestone_updates
+            .get(i)
+            .ok_or(ContractError::MilestoneToUpdateDoesNotExist)?;
 
         if update.status.is_empty() {
             return Err(ContractError::EmptyMilestoneStatus);
