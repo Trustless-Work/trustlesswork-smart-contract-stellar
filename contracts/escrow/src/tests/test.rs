@@ -4,7 +4,7 @@ extern crate std;
 
 use crate::contract::EscrowContract;
 use crate::contract::EscrowContractClient;
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, MilestoneUpdate, Roles, Trustline};
 
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Map, String};
 use token::Client as TokenClient;
@@ -591,12 +591,15 @@ fn test_change_milestone_status_and_approved_flag() {
     // Change milestone status (valid case)
     let new_status = String::from_str(&env, "completed");
     let new_evidence = Some(String::from_str(&env, "New evidence"));
-    escrow_approver.change_milestone_status(
-        &0, // Milestone index
-        &new_status,
-        &new_evidence,
-        &service_provider_address,
-    );
+    let milestone_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: new_status.clone(),
+            evidence: new_evidence.clone(),
+        },
+    ];
+    escrow_approver.change_milestone_status(&milestone_updates, &service_provider_address);
 
     // Verify milestone status change
     let updated_escrow = escrow_approver.get_escrow();
@@ -614,10 +617,16 @@ fn test_change_milestone_status_and_approved_flag() {
     let new_status = String::from_str(&env, "completed");
 
     // Test for `change_status` with invalid index
+    let invalid_milestone_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: invalid_index,
+            status: new_status.clone(),
+            evidence: new_evidence.clone(),
+        },
+    ];
     let result = escrow_approver.try_change_milestone_status(
-        &invalid_index,
-        &new_status,
-        &new_evidence,
+        &invalid_milestone_updates,
         &service_provider_address,
     );
     assert!(result.is_err());
@@ -630,10 +639,16 @@ fn test_change_milestone_status_and_approved_flag() {
     let unauthorized_address = Address::generate(&env);
 
     // Test for `change_status` by invalid service provider
+    let valid_milestone_updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            status: new_status.clone(),
+            evidence: new_evidence.clone(),
+        },
+    ];
     let result = escrow_approver.try_change_milestone_status(
-        &(0),
-        &new_status,
-        &new_evidence,
+        &valid_milestone_updates,
         &unauthorized_address,
     );
     assert!(result.is_err());
@@ -1323,7 +1338,7 @@ fn test_dispute_resolution_process() {
     assert_eq!(escrow_balance, amount as i128);
 
     // Change milestone dispute flag
-    escrow_approver.dispute_milestone(&(0 as i128), &approver_address);
+    escrow_approver.dispute_milestone(&0, &approver_address);
 
     // Verify milestone dispute flag changed
     let disputed_escrow = escrow_approver.get_escrow();
@@ -1878,7 +1893,7 @@ fn test_dispute_milestone() {
 
     escrow_approver.initialize_escrow(&escrow_properties);
 
-    escrow_approver.dispute_milestone(&(0 as i128), &approver_address);
+    escrow_approver.dispute_milestone(&0, &approver_address);
 
     let escrow = escrow_approver.get_escrow();
     let milestone = escrow.milestones.get(0).unwrap();
@@ -1893,10 +1908,10 @@ fn test_dispute_milestone() {
         "Second milestone dispute flag should remain false"
     );
 
-    let result = escrow_approver.try_dispute_milestone(&(5 as i128), &approver_address);
+    let result = escrow_approver.try_dispute_milestone(&5, &approver_address);
     assert!(result.is_err(), "Should fail with invalid milestone index");
 
-    let result = escrow_approver.try_dispute_milestone(&(0 as i128), &approver_address);
+    let result = escrow_approver.try_dispute_milestone(&0, &approver_address);
     assert!(
         result.is_err(),
         "Should fail when milestone is already in dispute"
