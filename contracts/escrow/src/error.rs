@@ -47,7 +47,8 @@ pub enum ContractError {
     InsufficientFundsForEscrowFunding = 42,
     MilestoneToApproveDoesNotExist = 43,
     EscrowNotFullyProcessed = 44,
-    TooManyDistributions = 45
+    TooManyDistributions = 45,
+    MilestoneToUpdateDoesNotExist = 46,
 }
 
 // impl fmt::Display for ContractError {
