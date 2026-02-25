@@ -6,7 +6,7 @@ use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestoneApproved, MilestoneStatusChanged,
 };
-use crate::storage::types::{AddressBalance, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow};
 
 #[contract]
 pub struct EscrowContract;
@@ -17,19 +17,18 @@ impl EscrowContract {
 
     pub fn tw_new_single_release_escrow(
         env: Env,
-        platform_address: Address,
+        signer: Address,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         init_fn: Symbol,
         init_args: Vec<Val>,
         constructor_args: Vec<Val>,
     ) -> Result<(Address, Val), ContractError> {
-        platform_address.require_auth();
-
-        let escrow = EscrowManager::get_escrow(&env)?;
-        if platform_address != escrow.roles.platform_address {
-            return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+        if EscrowManager::get_escrow(&env).is_ok() {
+            return Err(ContractError::EscrowAlreadyInitialized);
         }
+
+        signer.require_auth();
 
         let deployer = env.current_contract_address();
         let deployed_address = env
@@ -128,10 +127,10 @@ impl EscrowContract {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
-        let min_ledgers = 1u32;
+        let min_ledgers = 17280u32;
         e.storage()
-            .instance()
-            .extend_ttl(min_ledgers, ledgers_to_extend);
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
         ExtTtlEvt {
             platform: platform_address,
