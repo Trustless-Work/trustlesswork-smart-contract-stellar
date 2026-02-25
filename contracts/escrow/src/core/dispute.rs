@@ -2,7 +2,6 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, String};
 
 use crate::core::escrow::EscrowManager;
-use crate::core::validators::dispute::validate_distributions_size;
 use crate::core::validators::milestone::validate_and_convert_milestone_index;
 use crate::error::ContractError;
 use crate::modules::{
@@ -25,8 +24,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        validate_distributions_size(&distributions)?;
-
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -55,6 +52,7 @@ impl DisputeManager {
             all_processed,
             current_balance,
             total,
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();
@@ -100,8 +98,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        validate_distributions_size(&distributions)?;
-
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -128,6 +124,7 @@ impl DisputeManager {
             &dispute_resolver,
             current_balance,
             total,
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();
