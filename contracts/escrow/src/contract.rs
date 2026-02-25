@@ -17,24 +17,27 @@ impl EscrowContract {
 
     pub fn tw_new_multi_release_escrow(
         env: Env,
-        deployer: Address,
+        signer: Address,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         init_fn: Symbol,
         init_args: Vec<Val>,
         constructor_args: Vec<Val>,
-    ) -> (Address, Val) {
-        if deployer != env.current_contract_address() {
-            deployer.require_auth();
+    ) -> Result<(Address, Val), ContractError> {
+        if EscrowManager::get_escrow(&env).is_ok() {
+            return Err(ContractError::EscrowAlreadyInitialized);
         }
 
+        signer.require_auth();
+
+        let deployer = env.current_contract_address();
         let deployed_address = env
             .deployer()
             .with_address(deployer, salt)
             .deploy_v2(wasm_hash, constructor_args);
 
         let res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
-        (deployed_address, res)
+        Ok((deployed_address, res))
     }
 
     ////////////////////////
