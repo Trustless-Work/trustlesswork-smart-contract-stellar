@@ -25,10 +25,6 @@ pub fn validate_milestone_status_change_conditions(
         return Err(ContractError::EmptyMilestoneStatus);
     }
 
-    if *milestone_index < 0 {
-        return Err(ContractError::InvalidMileStoneIndex);
-    }
-
     Ok(())
 }
 
@@ -53,10 +49,6 @@ pub fn validate_milestone_flag_change_conditions(
 
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
-    }
-        
-    if *milestone_index < 0 {
-        return Err(ContractError::InvalidMileStoneIndex);
     }
         
     // Check that index doesn't overflow when casting to u32 and is within bounds
