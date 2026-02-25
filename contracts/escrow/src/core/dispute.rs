@@ -3,6 +3,7 @@ use soroban_sdk::{Address, Env, Map, String};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::validate_distributions_size;
+use crate::core::validators::milestone::validate_and_convert_milestone_index;
 use crate::error::ContractError;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
@@ -188,7 +189,7 @@ impl DisputeManager {
 
         signer.require_auth();
 
-        let idx = crate::core::validators::milestone::validate_and_convert_milestone_index(
+        let idx = validate_and_convert_milestone_index(
             milestone_index,
             escrow.milestones.len(),
         )?;
