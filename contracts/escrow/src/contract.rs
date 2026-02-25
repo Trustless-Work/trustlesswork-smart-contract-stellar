@@ -120,12 +120,12 @@ impl EscrowContract {
         platform_address: Address,
         ledgers_to_extend: u32,
     ) -> Result<(), ContractError> {
-        platform_address.require_auth();
-
         let escrow = EscrowManager::get_escrow(e)?;
         if platform_address != escrow.roles.platform_address {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
+
+        platform_address.require_auth();
 
         let min_ledgers = 17280u32;
         e.storage()

@@ -23,7 +23,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -50,6 +49,8 @@ impl DisputeManager {
             current_balance,
             total
         )?;
+
+        dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
         let total_fees =
@@ -97,7 +98,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -118,6 +118,8 @@ impl DisputeManager {
             current_balance,
             total,
         )?;
+
+        dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
         let total_fees =
@@ -162,9 +164,10 @@ impl DisputeManager {
     }
 
     pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, ContractError> {
-        signer.require_auth();
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
+
+        signer.require_auth();
 
         escrow.flags.disputed = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);

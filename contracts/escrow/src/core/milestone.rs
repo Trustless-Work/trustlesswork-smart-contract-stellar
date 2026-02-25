@@ -17,10 +17,11 @@ impl MilestoneManager {
         new_evidence: Option<String>,
         service_provider: Address,
     ) -> Result<Escrow, ContractError> {
-        service_provider.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
         validate_milestone_status_change_conditions(&existing_escrow, &service_provider, &milestone_index)?;
+
+        service_provider.require_auth();
 
         let mut milestone_to_update = existing_escrow
             .milestones
@@ -51,7 +52,6 @@ impl MilestoneManager {
         milestone_index: u32,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
-        approver.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
         let mut milestone_to_update = existing_escrow
@@ -65,6 +65,9 @@ impl MilestoneManager {
             &approver,
             &milestone_index
         )?;
+
+        approver.require_auth();
+
         milestone_to_update.approved = true;
 
         existing_escrow

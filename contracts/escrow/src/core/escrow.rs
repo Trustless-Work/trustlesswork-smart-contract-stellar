@@ -35,11 +35,11 @@ impl EscrowManager {
         amount: i128,
     ) -> Result<(), ContractError> {
         let stored_escrow: Escrow = Self::get_escrow(e)?;
-        
-        signer.require_auth();
         let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
         let balance = token_client.balance(signer);
         validate_fund_escrow_conditions(amount, balance, &stored_escrow, expected_escrow)?;
+
+        signer.require_auth();
 
         token_client.transfer(signer, &e.current_contract_address(), &amount);
         Ok(())
@@ -50,10 +50,10 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
     ) -> Result<(), ContractError> {
-        release_signer.require_auth();
-
         let mut escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
+
+        release_signer.require_auth();
 
         escrow.flags.released = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
@@ -92,7 +92,6 @@ impl EscrowManager {
         platform_address: &Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, ContractError> {
-        platform_address.require_auth();
         let existing_escrow = Self::get_escrow(e)?;
         let token_client = TokenClient::new(e, &existing_escrow.trustline.address);
         let contract_balance = token_client.balance(&e.current_contract_address());
@@ -103,6 +102,8 @@ impl EscrowManager {
             platform_address,
             contract_balance,
         )?;
+
+        platform_address.require_auth();
 
         e.storage()
             .persistent()
