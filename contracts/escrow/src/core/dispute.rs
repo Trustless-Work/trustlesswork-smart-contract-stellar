@@ -50,8 +50,9 @@ impl DisputeManager {
             total = BasicMath::safe_add(total, amount)?;
         }
 
-        let (trustless_fee, platform_fee, total_fees) =
-            FeeCalculator::calculate_total_fees(total, escrow.platform_fee)?;
+        let fee_result =
+            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
+        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
 
         validate_withdraw_remaining_funds_conditions(
             &escrow,
@@ -61,14 +62,14 @@ impl DisputeManager {
             total,
         )?;
 
-        if trustless_fee > 0 {
-            token_client.transfer(&contract_address, &trustless_work_address, &trustless_fee);
+        if fee_result.trustless_work_fee > 0 {
+            token_client.transfer(&contract_address, &trustless_work_address, &fee_result.trustless_work_fee);
         }
-        if platform_fee > 0 {
+        if fee_result.platform_fee > 0 {
             token_client.transfer(
                 &contract_address,
                 &escrow.roles.platform_address,
-                &platform_fee,
+                &fee_result.platform_fee,
             );
         }
         for (addr, amount) in distributions.iter() {
@@ -129,28 +130,28 @@ impl DisputeManager {
             total,
         )?;
 
-        let (trustless_fee, platform_fee, total_fees) =
-            FeeCalculator::calculate_total_fees(total, escrow.platform_fee)?;
+        let fee_result =
+            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
+        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
 
-        if trustless_fee > 0 {
-            token_client.transfer(&contract_address, &trustless_work_address, &trustless_fee);
+        if fee_result.trustless_work_fee > 0 {
+            token_client.transfer(&contract_address, &trustless_work_address, &fee_result.trustless_work_fee);
         }
-        if platform_fee > 0 {
+        if fee_result.platform_fee > 0 {
             token_client.transfer(
                 &contract_address,
                 &escrow.roles.platform_address,
-                &platform_fee,
+                &fee_result.platform_fee,
             );
         }
 
         for (addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                continue;
-            }
-            let fee_share = BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
-            let net_amount = BasicMath::safe_sub(amount, fee_share)?;
-            if net_amount > 0 {
-                token_client.transfer(&contract_address, &addr, &net_amount);
+            if amount > 0 {
+                let fee_share = BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
+                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
+                if net_amount > 0 {
+                    token_client.transfer(&contract_address, &addr, &net_amount);
+                }
             }
         }
 
