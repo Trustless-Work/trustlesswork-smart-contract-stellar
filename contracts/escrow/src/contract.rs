@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::ContractError;
@@ -6,7 +6,7 @@ use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestoneApproved, MilestoneStatusChanged, WithdrawEvt,
 };
-use crate::storage::types::{AddressBalance, Escrow};
+use crate::storage::types::{AddressBalance, Escrow, MilestoneUpdate};
 
 #[contract]
 pub struct EscrowContract;
@@ -151,16 +151,12 @@ impl EscrowContract {
 
     pub fn change_milestone_status(
         e: &Env,
-        milestone_index: i128,
-        new_status: String,
-        new_evidence: Option<String>,
+        milestone_updates: Vec<MilestoneUpdate>,
         service_provider: Address,
     ) -> Result<(), ContractError> {
         let escrow = MilestoneManager::change_milestone_status(
             e,
-            milestone_index,
-            new_status,
-            new_evidence,
+            milestone_updates,
             service_provider,
         )?;
         MilestoneStatusChanged { escrow }.publish(&e);
@@ -169,7 +165,7 @@ impl EscrowContract {
 
     pub fn approve_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         approver: Address,
     ) -> Result<(), ContractError> {
         let escrow = MilestoneManager::change_milestone_approved_flag(
@@ -205,7 +201,7 @@ impl EscrowContract {
 
     pub fn dispute_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         signer: Address,
     ) -> Result<(), ContractError> {
         let escrow = DisputeManager::dispute_milestone(e, milestone_index, signer)?;

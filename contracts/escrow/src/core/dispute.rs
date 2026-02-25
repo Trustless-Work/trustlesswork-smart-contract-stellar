@@ -171,7 +171,7 @@ impl DisputeManager {
 
     pub fn dispute_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         signer: Address,
     ) -> Result<Escrow, ContractError> {
         signer.require_auth();
