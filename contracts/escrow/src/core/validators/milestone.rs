@@ -24,14 +24,14 @@ pub fn validate_milestone_status_change_conditions(
         return Err(ContractError::NoMilestoneDefined);
     }
 
+    if *milestone_index >= escrow.milestones.len() {
+        return Err(ContractError::MilestoneToUpdateDoesNotExist);
+    }
+
     let update = escrow.milestones.get(*milestone_index).unwrap();
 
     if update.status.is_empty() {
         return Err(ContractError::EmptyMilestoneStatus);
-    }
-
-    if *milestone_index >= escrow.milestones.len() {
-        return Err(ContractError::MilestoneToUpdateDoesNotExist);
     }
 
     Ok(())
