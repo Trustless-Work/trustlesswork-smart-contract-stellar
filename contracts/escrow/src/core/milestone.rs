@@ -19,7 +19,11 @@ impl MilestoneManager {
     ) -> Result<Escrow, ContractError> {
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
-        validate_milestone_status_change_conditions(&existing_escrow, &service_provider, &milestone_index)?;
+        validate_milestone_status_change_conditions(
+            &existing_escrow,
+            &service_provider,
+            &milestone_index,
+        )?;
 
         service_provider.require_auth();
 
@@ -63,7 +67,7 @@ impl MilestoneManager {
             &existing_escrow,
             &milestone_to_update,
             &approver,
-            &milestone_index
+            &milestone_index,
         )?;
 
         approver.require_auth();

@@ -49,16 +49,13 @@ pub fn validate_escrow_conditions(
     if new_escrow.platform_fee > max_bps_percentage {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
     if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
     if new_escrow.amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
-
     if new_escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
     }
@@ -76,8 +73,8 @@ pub fn validate_escrow_conditions(
         }
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
-
-        let caller = platform_address.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
+        let caller =
+            platform_address.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
         if caller != &existing.roles.platform_address {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
@@ -90,10 +87,7 @@ pub fn validate_escrow_conditions(
             return Err(ContractError::EscrowOpenedForDisputeResolution);
         }
 
-        if new_escrow.flags.released
-            || new_escrow.flags.disputed
-            || new_escrow.flags.resolved
-        {
+        if new_escrow.flags.released || new_escrow.flags.disputed || new_escrow.flags.resolved {
             return Err(ContractError::FlagsMustBeFalse);
         }
 

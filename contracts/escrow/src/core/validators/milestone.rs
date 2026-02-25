@@ -9,7 +9,7 @@ use crate::{
 pub fn validate_milestone_status_change_conditions(
     escrow: &Escrow,
     service_provider: &Address,
-    milestone_index: &u32
+    milestone_index: &u32,
 ) -> Result<(), ContractError> {
     if service_provider != &escrow.roles.service_provider {
         return Err(ContractError::OnlyServiceProviderChangeMilstoneStatus);
@@ -20,7 +20,7 @@ pub fn validate_milestone_status_change_conditions(
     }
 
     let update = escrow.milestones.get(*milestone_index).unwrap();
-        
+
     if update.status.is_empty() {
         return Err(ContractError::EmptyMilestoneStatus);
     }
@@ -33,7 +33,7 @@ pub fn validate_milestone_flag_change_conditions(
     escrow: &Escrow,
     milestone: &Milestone,
     approver: &Address,
-    milestone_index: &u32
+    milestone_index: &u32,
 ) -> Result<(), ContractError> {
     if approver != &escrow.roles.approver {
         return Err(ContractError::OnlyApproverChangeMilstoneFlag);
@@ -50,7 +50,7 @@ pub fn validate_milestone_flag_change_conditions(
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
     }
-        
+
     // Check that index doesn't overflow when casting to u32 and is within bounds
     if *milestone_index >= escrow.milestones.len() {
         return Err(ContractError::MilestoneToApproveDoesNotExist);

@@ -300,7 +300,9 @@ fn test_update_escrow_platform_fee_too_high() {
     ];
 
     let (token_client, _admin_client) = create_usdc_token(&env, &admin);
-    let trustline: Trustline = Trustline { address: token_client.address.clone() };
+    let trustline: Trustline = Trustline {
+        address: token_client.address.clone(),
+    };
 
     let roles: Roles = Roles {
         approver: approver_address.clone(),
@@ -311,7 +313,11 @@ fn test_update_escrow_platform_fee_too_high() {
         receiver: service_provider_address.clone(),
     };
 
-    let flags: Flags = Flags { disputed: false, released: false, resolved: false };
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
 
     let initial_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_valid"),
@@ -345,7 +351,10 @@ fn test_update_escrow_platform_fee_too_high() {
     };
 
     let res = client.try_update_escrow(&platform_address, &invalid_update);
-    assert!(res.is_err(), "Update should fail with platform fee > 99% cap");
+    assert!(
+        res.is_err(),
+        "Update should fail with platform fee > 99% cap"
+    );
 }
 
 #[test]
@@ -374,7 +383,9 @@ fn test_initialize_escrow_platform_fee_too_high() {
     ];
 
     let (token_client, _admin_client) = create_usdc_token(&env, &admin);
-    let trustline: Trustline = Trustline { address: token_client.address.clone() };
+    let trustline: Trustline = Trustline {
+        address: token_client.address.clone(),
+    };
 
     let roles: Roles = Roles {
         approver: approver_address.clone(),
@@ -385,7 +396,11 @@ fn test_initialize_escrow_platform_fee_too_high() {
         receiver: service_provider_address.clone(),
     };
 
-    let flags: Flags = Flags { disputed: false, released: false, resolved: false };
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
 
     let invalid_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_invalid_init"),
@@ -403,7 +418,10 @@ fn test_initialize_escrow_platform_fee_too_high() {
     let test_data = create_escrow_contract(&env);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&invalid_escrow);
-    assert!(res.is_err(), "Initialization should fail with platform fee > 99% cap");
+    assert!(
+        res.is_err(),
+        "Initialization should fail with platform fee > 99% cap"
+    );
 }
 
 #[test]
@@ -512,10 +530,19 @@ fn test_append_milestones_with_funds() {
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.milestones.len(), 3);
-    assert_eq!(escrow.milestones.get(0).unwrap(), initial_escrow_properties.milestones.get(0).unwrap());
-    assert_eq!(escrow.milestones.get(1).unwrap(), initial_escrow_properties.milestones.get(1).unwrap());
+    assert_eq!(
+        escrow.milestones.get(0).unwrap(),
+        initial_escrow_properties.milestones.get(0).unwrap()
+    );
+    assert_eq!(
+        escrow.milestones.get(1).unwrap(),
+        initial_escrow_properties.milestones.get(1).unwrap()
+    );
     // Ensure non-milestone properties unchanged
-    assert_eq!(escrow.engagement_id, initial_escrow_properties.engagement_id);
+    assert_eq!(
+        escrow.engagement_id,
+        initial_escrow_properties.engagement_id
+    );
     assert_eq!(escrow.title, initial_escrow_properties.title);
     assert_eq!(escrow.description, initial_escrow_properties.description);
     assert!(escrow.roles == initial_escrow_properties.roles);
@@ -523,7 +550,10 @@ fn test_append_milestones_with_funds() {
     assert_eq!(escrow.platform_fee, initial_escrow_properties.platform_fee);
     assert!(escrow.flags == initial_escrow_properties.flags);
     assert!(escrow.trustline == initial_escrow_properties.trustline);
-    assert_eq!(escrow.receiver_memo, initial_escrow_properties.receiver_memo);
+    assert_eq!(
+        escrow.receiver_memo,
+        initial_escrow_properties.receiver_memo
+    );
 }
 
 #[test]
@@ -638,19 +668,40 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
-    assert!(final_escrow.milestones.get(0).unwrap().approved, "Existing approved milestone should remain approved");
-    assert_eq!(final_escrow.milestones.get(1).unwrap(), after_approval.milestones.get(1).unwrap());
-    assert!(!final_escrow.milestones.get(2).unwrap().approved, "Appended milestone should start unapproved");
+    assert!(
+        final_escrow.milestones.get(0).unwrap().approved,
+        "Existing approved milestone should remain approved"
+    );
+    assert_eq!(
+        final_escrow.milestones.get(1).unwrap(),
+        after_approval.milestones.get(1).unwrap()
+    );
+    assert!(
+        !final_escrow.milestones.get(2).unwrap().approved,
+        "Appended milestone should start unapproved"
+    );
     // Ensure other properties unchanged
-    assert_eq!(final_escrow.engagement_id, initial_escrow_properties.engagement_id);
+    assert_eq!(
+        final_escrow.engagement_id,
+        initial_escrow_properties.engagement_id
+    );
     assert_eq!(final_escrow.title, initial_escrow_properties.title);
-    assert_eq!(final_escrow.description, initial_escrow_properties.description);
+    assert_eq!(
+        final_escrow.description,
+        initial_escrow_properties.description
+    );
     assert!(final_escrow.roles == initial_escrow_properties.roles);
     assert_eq!(final_escrow.amount, initial_escrow_properties.amount);
-    assert_eq!(final_escrow.platform_fee, initial_escrow_properties.platform_fee);
+    assert_eq!(
+        final_escrow.platform_fee,
+        initial_escrow_properties.platform_fee
+    );
     assert!(final_escrow.flags == initial_escrow_properties.flags);
     assert!(final_escrow.trustline == initial_escrow_properties.trustline);
-    assert_eq!(final_escrow.receiver_memo, initial_escrow_properties.receiver_memo);
+    assert_eq!(
+        final_escrow.receiver_memo,
+        initial_escrow_properties.receiver_memo
+    );
 }
 
 #[test]

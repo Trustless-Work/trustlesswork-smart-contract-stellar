@@ -178,21 +178,6 @@ impl EscrowContract {
     // Disputes /////
     ////////////////////////
 
-    pub fn withdraw_remaining_funds(
-        e: Env,
-        dispute_resolver: Address,
-        trustless_work_address: Address,
-        distributions: Map<Address, i128>,
-    ) -> Result<(), ContractError> {
-        DisputeManager::withdraw_remaining_funds(
-            &e,
-            dispute_resolver,
-            trustless_work_address,
-            distributions,
-        )?;
-        Ok(())
-    }
-
     pub fn resolve_dispute(
         e: Env,
         dispute_resolver: Address,
@@ -212,6 +197,21 @@ impl EscrowContract {
     pub fn dispute_escrow(e: Env, signer: Address) -> Result<(), ContractError> {
         let escrow = DisputeManager::dispute_escrow(&e, signer)?;
         EscrowDisputed { escrow }.publish(&e);
+        Ok(())
+    }
+
+    pub fn withdraw_remaining_funds(
+        e: Env,
+        dispute_resolver: Address,
+        trustless_work_address: Address,
+        distributions: Map<Address, i128>,
+    ) -> Result<(), ContractError> {
+        DisputeManager::withdraw_remaining_funds(
+            &e,
+            dispute_resolver,
+            trustless_work_address,
+            distributions,
+        )?;
         Ok(())
     }
 }
