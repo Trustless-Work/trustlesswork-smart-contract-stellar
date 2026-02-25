@@ -67,18 +67,14 @@ fn validate_escrow_conditions(
 
     if is_init {
         for m in new_escrow.milestones.iter() {
-            if m.flags.disputed
-                || m.flags.released
-                || m.flags.resolved
-                || m.flags.approved
-            {
+            if m.flags.disputed || m.flags.released || m.flags.resolved || m.flags.approved {
                 return Err(ContractError::FlagsMustBeFalse);
             }
         }
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
-        let caller = platform_address
-            .ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
+        let caller =
+            platform_address.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
         if caller != &existing.roles.platform_address {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
@@ -101,11 +97,7 @@ fn validate_escrow_conditions(
         if new_len > old_len {
             for i in old_len..new_len {
                 let m = new_escrow.milestones.get(i).unwrap();
-                if m.flags.disputed
-                    || m.flags.released
-                    || m.flags.resolved
-                    || m.flags.approved
-                {
+                if m.flags.disputed || m.flags.released || m.flags.resolved || m.flags.approved {
                     return Err(ContractError::FlagsMustBeFalse);
                 }
             }
@@ -189,6 +181,6 @@ pub fn validate_fund_escrow_conditions(
     if balance < amount {
         return Err(ContractError::InsufficientFundsForEscrowFunding);
     }
-    
+
     Ok(())
 }

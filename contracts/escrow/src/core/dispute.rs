@@ -11,7 +11,8 @@ use crate::modules::{
 use crate::storage::types::{DataKey, Escrow, Milestone};
 
 use super::validators::dispute::{
-    validate_withdraw_remaining_funds_conditions, validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
+    validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
+    validate_withdraw_remaining_funds_conditions,
 };
 
 pub struct DisputeManager;
@@ -57,15 +58,11 @@ impl DisputeManager {
             &dispute_resolver,
             all_processed,
             current_balance,
-            total
+            total,
         )?;
 
         if trustless_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &trustless_fee,
-            );
+            token_client.transfer(&contract_address, &trustless_work_address, &trustless_fee);
         }
         if platform_fee > 0 {
             token_client.transfer(
@@ -76,10 +73,8 @@ impl DisputeManager {
         }
         for (addr, amount) in distributions.iter() {
             if amount > 0 {
-                let fee_share = BasicMath::safe_div(
-                    BasicMath::safe_mul(amount, total_fees)?,
-                    total,
-                )?;
+                let fee_share =
+                    BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
                 let net_amount = BasicMath::safe_sub(amount, fee_share)?;
                 if net_amount > 0 {
                     token_client.transfer(&contract_address, &addr, &net_amount);
@@ -131,18 +126,14 @@ impl DisputeManager {
             &milestone,
             &dispute_resolver,
             current_balance,
-            total
+            total,
         )?;
 
         let (trustless_fee, platform_fee, total_fees) =
             FeeCalculator::calculate_total_fees(total, escrow.platform_fee)?;
 
         if trustless_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &trustless_fee,
-            );
+            token_client.transfer(&contract_address, &trustless_work_address, &trustless_fee);
         }
         if platform_fee > 0 {
             token_client.transfer(
@@ -156,10 +147,7 @@ impl DisputeManager {
             if amount <= 0 {
                 continue;
             }
-            let fee_share = BasicMath::safe_div(
-                BasicMath::safe_mul(amount, total_fees)?,
-                total,
-            )?;
+            let fee_share = BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
             let net_amount = BasicMath::safe_sub(amount, fee_share)?;
             if net_amount > 0 {
                 token_client.transfer(&contract_address, &addr, &net_amount);

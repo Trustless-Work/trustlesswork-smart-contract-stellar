@@ -1,11 +1,11 @@
+use crate::core::escrow::EscrowManager;
 use crate::error::ContractError;
 use crate::storage::types::{DataKey, Escrow, MilestoneUpdate};
-use crate::core::escrow::EscrowManager;
 use soroban_sdk::{Address, Env, Vec};
 
 use super::validators::milestone::{
-    validate_milestone_flag_change_conditions, validate_milestone_status_change_conditions,
-    validate_and_convert_milestone_index,
+    validate_and_convert_milestone_index, validate_milestone_flag_change_conditions,
+    validate_milestone_status_change_conditions,
 };
 
 pub struct MilestoneManager;
@@ -33,10 +33,7 @@ impl MilestoneManager {
                 existing_escrow.milestones.len(),
             )?;
 
-            let mut milestone_to_update = existing_escrow
-                .milestones
-                .get(idx)
-                .unwrap();
+            let mut milestone_to_update = existing_escrow.milestones.get(idx).unwrap();
 
             if let Some(ref evidence) = update.evidence {
                 milestone_to_update.evidence = evidence.clone();
@@ -44,12 +41,12 @@ impl MilestoneManager {
 
             milestone_to_update.status = update.status.clone();
 
-            existing_escrow
-                .milestones
-                .set(idx, milestone_to_update);
+            existing_escrow.milestones.set(idx, milestone_to_update);
         }
 
-        e.storage().persistent().set(&DataKey::Escrow, &existing_escrow);
+        e.storage()
+            .persistent()
+            .set(&DataKey::Escrow, &existing_escrow);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
@@ -71,8 +68,8 @@ impl MilestoneManager {
 
         validate_milestone_flag_change_conditions(
             &existing_escrow,
-            &milestone_to_update, 
-            &approver
+            &milestone_to_update,
+            &approver,
         )?;
 
         approver.require_auth();
@@ -82,7 +79,9 @@ impl MilestoneManager {
         existing_escrow
             .milestones
             .set(milestone_index, milestone_to_update);
-        e.storage().persistent().set(&DataKey::Escrow, &existing_escrow);
+        e.storage()
+            .persistent()
+            .set(&DataKey::Escrow, &existing_escrow);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);

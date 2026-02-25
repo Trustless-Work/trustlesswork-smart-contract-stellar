@@ -157,11 +157,8 @@ impl EscrowContract {
         milestone_updates: Vec<MilestoneUpdate>,
         service_provider: Address,
     ) -> Result<(), ContractError> {
-        let escrow = MilestoneManager::change_milestone_status(
-            e,
-            milestone_updates,
-            service_provider,
-        )?;
+        let escrow =
+            MilestoneManager::change_milestone_status(e, milestone_updates, service_provider)?;
         MilestoneStatusChanged { escrow }.publish(&e);
         Ok(())
     }
@@ -171,11 +168,8 @@ impl EscrowContract {
         milestone_index: u32,
         approver: Address,
     ) -> Result<(), ContractError> {
-        let escrow = MilestoneManager::change_milestone_approved_flag(
-            e,
-            milestone_index,
-            approver,
-        )?;
+        let escrow =
+            MilestoneManager::change_milestone_approved_flag(e, milestone_index, approver)?;
         MilestoneApproved { escrow }.publish(&e);
         Ok(())
     }

@@ -1,9 +1,9 @@
-use soroban_sdk::token::{Client as TokenClient};
+use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use super::validators::escrow::{
-    validate_escrow_property_change_conditions, validate_initialize_escrow_conditions,
-    validate_release_conditions, validate_fund_escrow_conditions
+    validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
+    validate_initialize_escrow_conditions, validate_release_conditions,
 };
 use crate::error::ContractError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
@@ -41,9 +41,9 @@ impl EscrowManager {
         let balance = token_client.balance(&signer);
 
         validate_fund_escrow_conditions(amount, balance, &stored_escrow, &expected_escrow)?;
-        
+
         signer.require_auth();
-        
+
         token_client.transfer(&signer, &e.current_contract_address(), &amount);
         Ok(())
     }
@@ -76,11 +76,12 @@ impl EscrowManager {
                 return Err(ContractError::EscrowBalanceNotEnoughToSendEarnings);
             }
 
-            let (net_share, trustless_fee_share, platform_fee_share) = FeeCalculator::calculate_net_share(
-                milestone.amount as i128,
-                milestone.amount as i128,
-                escrow.platform_fee,
-            )?;
+            let (net_share, trustless_fee_share, platform_fee_share) =
+                FeeCalculator::calculate_net_share(
+                    milestone.amount as i128,
+                    milestone.amount as i128,
+                    escrow.platform_fee,
+                )?;
             let platform_address = escrow.roles.platform_address.clone();
 
             if trustless_fee_share > 0 {
@@ -91,11 +92,7 @@ impl EscrowManager {
                 );
             }
             if platform_fee_share > 0 {
-                token_client.transfer(
-                    &contract_address,
-                    &platform_address,
-                    &platform_fee_share,
-                );
+                token_client.transfer(&contract_address, &platform_address, &platform_fee_share);
             }
 
             let receiver = Self::get_receiver(&milestone);

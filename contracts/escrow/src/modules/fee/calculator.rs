@@ -52,7 +52,8 @@ impl FeeCalculatorTrait for FeeCalculator {
         }
         let (trustless_work_fee, platform_fee, total_fees) =
             Self::calculate_total_fees(total_amount, platform_fee_bps)?;
-        let share_total_fees = SafeMath::safe_mul_div(share_amount, total_fees as u32, total_amount)?;
+        let share_total_fees =
+            SafeMath::safe_mul_div(share_amount, total_fees as u32, total_amount)?;
         let trustless_share_fee = if total_fees == 0 {
             0
         } else {

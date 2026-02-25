@@ -1,13 +1,17 @@
 use soroban_sdk::{Address, Map};
 
 use crate::{
-    core::validators::milestone::validate_and_convert_milestone_index, error::ContractError, storage::types::{Escrow, Milestone, Roles}
+    core::validators::milestone::validate_and_convert_milestone_index,
+    error::ContractError,
+    storage::types::{Escrow, Milestone, Roles},
 };
 
 const MAX_DISTRIBUTIONS: u32 = 50;
 
 #[inline]
-pub fn validate_distributions_size(distributions: &Map<Address, i128>) -> Result<(), ContractError> {
+pub fn validate_distributions_size(
+    distributions: &Map<Address, i128>,
+) -> Result<(), ContractError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
         return Err(ContractError::TooManyDistributions);
     }
@@ -90,10 +94,7 @@ pub fn validate_dispute_flag_change_conditions(
         return Err(ContractError::NoMileStoneDefined);
     }
 
-    let idx = validate_and_convert_milestone_index(
-        milestone_index,
-        escrow.milestones.len(),
-    )?;
+    let idx = validate_and_convert_milestone_index(milestone_index, escrow.milestones.len())?;
 
     let milestone = escrow
         .milestones
