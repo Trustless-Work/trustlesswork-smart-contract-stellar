@@ -23,8 +23,9 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         validate_distributions_size(&distributions)?;
+
+        dispute_resolver.require_auth();
 
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
@@ -101,8 +102,9 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         validate_distributions_size(&distributions)?;
+
+        dispute_resolver.require_auth();
 
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
@@ -191,9 +193,10 @@ impl DisputeManager {
         milestone_index: u32,
         signer: Address,
     ) -> Result<Escrow, ContractError> {
-        signer.require_auth();
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, milestone_index, &signer)?;
+
+        signer.require_auth();
 
         let idx = crate::core::validators::milestone::validate_and_convert_milestone_index(
             milestone_index,
