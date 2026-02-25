@@ -25,6 +25,10 @@ pub fn validate_milestone_status_change_conditions(
         return Err(ContractError::EmptyMilestoneStatus);
     }
 
+    if *milestone_index >= escrow.milestones.len() {
+        return Err(ContractError::MilestoneToUpdateDoesNotExist);
+    }
+
     Ok(())
 }
 
@@ -51,7 +55,6 @@ pub fn validate_milestone_flag_change_conditions(
         return Err(ContractError::NoMilestoneDefined);
     }
 
-    // Check that index doesn't overflow when casting to u32 and is within bounds
     if *milestone_index >= escrow.milestones.len() {
         return Err(ContractError::MilestoneToApproveDoesNotExist);
     }

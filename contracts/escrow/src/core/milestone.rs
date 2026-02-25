@@ -60,7 +60,7 @@ impl MilestoneManager {
 
         let mut milestone_to_update = existing_escrow
             .milestones
-            .get(milestone_index as u32)
+            .get(milestone_index)
             .ok_or(ContractError::InvalidMileStoneIndex)?;
 
         validate_milestone_flag_change_conditions(
@@ -76,7 +76,7 @@ impl MilestoneManager {
 
         existing_escrow
             .milestones
-            .set(milestone_index as u32, milestone_to_update);
+            .set(milestone_index, milestone_to_update);
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &existing_escrow);
