@@ -2,7 +2,7 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map};
 
 use crate::core::escrow::EscrowManager;
-use crate::core::validators::dispute::{validate_distributions_size, validate_withdraw_remaining_funds_conditions};
+use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
 use crate::error::ContractError;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
@@ -23,8 +23,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        validate_distributions_size(&distributions)?;
-
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -50,6 +48,7 @@ impl DisputeManager {
             all_processed,
             current_balance,
             total,
+            &distributions
         )?;
 
         dispute_resolver.require_auth();
@@ -98,8 +97,6 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        validate_distributions_size(&distributions)?;
-        
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -114,7 +111,13 @@ impl DisputeManager {
             total = BasicMath::safe_add(total, amount)?;
         }
 
-        validate_dispute_resolution_conditions(&escrow, &dispute_resolver, current_balance, total)?;
+        validate_dispute_resolution_conditions(
+            &escrow, 
+            &dispute_resolver, 
+            current_balance, 
+            total, 
+            &distributions
+        )?;
 
         dispute_resolver.require_auth();
 

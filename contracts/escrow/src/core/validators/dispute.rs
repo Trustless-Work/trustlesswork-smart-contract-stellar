@@ -8,23 +8,18 @@ use crate::{
 const MAX_DISTRIBUTIONS: u32 = 50;
 
 #[inline]
-pub fn validate_distributions_size(
-    distributions: &Map<Address, i128>,
-) -> Result<(), ContractError> {
-    if distributions.len() > MAX_DISTRIBUTIONS {
-        return Err(ContractError::TooManyDistributions);
-    }
-    Ok(())
-}
-
-#[inline]
 pub fn validate_withdraw_remaining_funds_conditions(
     escrow: &Escrow,
     dispute_resolver: &Address,
     all_processed: bool,
     current_balance: i128,
     total: i128,
+    distributions: &Map<Address, i128>
 ) -> Result<(), ContractError> {
+    if distributions.len() > MAX_DISTRIBUTIONS {
+        return Err(ContractError::TooManyDistributions);
+    }
+
     if dispute_resolver != &escrow.roles.dispute_resolver {
         return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
     }
@@ -50,7 +45,12 @@ pub fn validate_dispute_resolution_conditions(
     dispute_resolver: &Address,
     current_balance: i128,
     total: i128,
+    distributions: &Map<Address, i128>,
 ) -> Result<(), ContractError> {
+    if distributions.len() > MAX_DISTRIBUTIONS {
+        return Err(ContractError::TooManyDistributions);
+    }
+
     if dispute_resolver != &escrow.roles.dispute_resolver {
         return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
     }
