@@ -26,8 +26,6 @@ impl DisputeManager {
     ) -> Result<Escrow, ContractError> {
         validate_distributions_size(&distributions)?;
 
-        dispute_resolver.require_auth();
-
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -50,10 +48,6 @@ impl DisputeManager {
             total = BasicMath::safe_add(total, amount)?;
         }
 
-        let fee_result =
-            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
-
         validate_withdraw_remaining_funds_conditions(
             &escrow,
             &dispute_resolver,
@@ -61,6 +55,12 @@ impl DisputeManager {
             current_balance,
             total,
         )?;
+
+        dispute_resolver.require_auth();
+
+        let fee_result =
+            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
+        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
 
         if fee_result.trustless_work_fee > 0 {
             token_client.transfer(&contract_address, &trustless_work_address, &fee_result.trustless_work_fee);
@@ -72,6 +72,7 @@ impl DisputeManager {
                 &fee_result.platform_fee,
             );
         }
+
         for (addr, amount) in distributions.iter() {
             if amount > 0 {
                 let fee_share =
@@ -100,8 +101,6 @@ impl DisputeManager {
     ) -> Result<Escrow, ContractError> {
         validate_distributions_size(&distributions)?;
 
-        dispute_resolver.require_auth();
-
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -129,6 +128,8 @@ impl DisputeManager {
             current_balance,
             total,
         )?;
+
+        dispute_resolver.require_auth();
 
         let fee_result =
             FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
