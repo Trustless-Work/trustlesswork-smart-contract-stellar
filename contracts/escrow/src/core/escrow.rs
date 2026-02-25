@@ -69,21 +69,28 @@ impl EscrowManager {
         }
 
         let fee_result =
-            FeeCalculator::calculate_standard_fees(escrow.amount as i128, escrow.platform_fee)?;
+            FeeCalculator::calculate_standard_fees(escrow.amount, escrow.platform_fee)?;
 
-        token_client.transfer(
-            &contract_address,
-            trustless_work_address,
-            &fee_result.trustless_work_fee,
-        );
-        token_client.transfer(
+        if fee_result.trustless_work_fee > 0 {
+            token_client.transfer(
+                &contract_address,
+                trustless_work_address,
+                &fee_result.trustless_work_fee,
+            );
+        }
+
+        if fee_result.platform_fee > 0 {
+            token_client.transfer(
             &contract_address,
             &escrow.roles.platform_address,
             &fee_result.platform_fee,
-        );
+            );
+        }
 
         let receiver = Self::get_receiver(&escrow);
-        token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+        if fee_result.receiver_amount > 0 {
+            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+        }
 
         Ok(())
     }
