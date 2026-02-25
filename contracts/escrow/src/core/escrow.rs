@@ -20,8 +20,11 @@ impl EscrowManager {
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
         validate_initialize_escrow_conditions(e, escrow_properties.clone())?;
         e.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
         Ok(escrow_properties)
     }
 
@@ -53,7 +56,10 @@ impl EscrowManager {
         validate_release_conditions(&escrow, release_signer)?;
 
         escrow.flags.released = true;
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         let contract_address = e.current_contract_address();
         let token_client = TokenClient::new(e, &escrow.trustline.address);
@@ -99,8 +105,11 @@ impl EscrowManager {
         )?;
 
         e.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
         Ok(escrow_properties)
     }
 
@@ -141,7 +150,7 @@ impl EscrowManager {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, ContractError> {
         Ok(e.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Escrow)
             .ok_or(ContractError::EscrowNotFound)?)
     }

@@ -83,7 +83,10 @@ impl DisputeManager {
             }
         }
 
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
@@ -150,7 +153,10 @@ impl DisputeManager {
 
         escrow.flags.resolved = true;
         escrow.flags.disputed = false;
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
@@ -161,7 +167,10 @@ impl DisputeManager {
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
 
         escrow.flags.disputed = true;
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
