@@ -1,4 +1,4 @@
-use soroban_sdk::Address;
+use soroban_sdk::{Address, String};
 
 use crate::{
     error::ContractError,
@@ -10,7 +10,12 @@ pub fn validate_milestone_status_change_conditions(
     escrow: &Escrow,
     service_provider: &Address,
     milestone_index: &u32,
+    new_status: &String,
 ) -> Result<(), ContractError> {
+    if new_status.is_empty() {
+        return Err(ContractError::EmptyMilestoneStatus);
+    }
+
     if service_provider != &escrow.roles.service_provider {
         return Err(ContractError::OnlyServiceProviderChangeMilstoneStatus);
     }

@@ -23,6 +23,7 @@ impl MilestoneManager {
             &existing_escrow,
             &service_provider,
             &milestone_index,
+            &new_status,
         )?;
 
         service_provider.require_auth();
