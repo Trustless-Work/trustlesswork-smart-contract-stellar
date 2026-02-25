@@ -1,9 +1,21 @@
-use soroban_sdk::Address;
+use soroban_sdk::{Address, Map};
 
 use crate::{
     error::ContractError,
     storage::types::{Escrow, Roles},
 };
+
+const MAX_DISTRIBUTIONS: u32 = 50;
+
+#[inline]
+pub fn validate_distributions_size(
+    distributions: &Map<Address, i128>,
+) -> Result<(), ContractError> {
+    if distributions.len() > MAX_DISTRIBUTIONS {
+        return Err(ContractError::TooManyDistributions);
+    }
+    Ok(())
+}
 
 #[inline]
 pub fn validate_withdraw_remaining_funds_conditions(
