@@ -726,7 +726,7 @@ fn test_change_milestone_status_and_approved() {
     let new_status = String::from_str(&env, "completed");
     let new_evidence = Some(String::from_str(&env, "New evidence"));
     escrow_approver.change_milestone_status(
-        &(0 as i128),
+        &(0),
         &new_status,
         &new_evidence,
         &service_provider_address,
@@ -740,12 +740,12 @@ fn test_change_milestone_status_and_approved() {
     );
 
     // Change milestone approved (valid case)
-    escrow_approver.approve_milestone(&(0 as i128), &approver_address);
+    escrow_approver.approve_milestone(&(0), &approver_address);
 
     let final_escrow = escrow_approver.get_escrow();
     assert!(final_escrow.milestones.get(0).unwrap().approved);
 
-    let invalid_index = 10 as i128;
+    let invalid_index = 10;
     let new_status = String::from_str(&env, "completed");
     let new_evidence = Some(String::from_str(&env, "New evidence"));
 
@@ -764,7 +764,7 @@ fn test_change_milestone_status_and_approved() {
 
     // Test for `change_status` by invalid service provider
     let result = escrow_approver.try_change_milestone_status(
-        &(0 as i128),
+        &(0),
         &new_status,
         &new_evidence,
         &unauthorized_address,
@@ -772,7 +772,7 @@ fn test_change_milestone_status_and_approved() {
     assert!(result.is_err());
 
     // Test for `change_approved` by invalid approver
-    let result = escrow_approver.try_approve_milestone(&(0 as i128), &unauthorized_address);
+    let result = escrow_approver.try_approve_milestone(&(0), &unauthorized_address);
     assert!(result.is_err());
 }
 
