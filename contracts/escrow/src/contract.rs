@@ -148,7 +148,7 @@ impl EscrowContract {
 
     pub fn change_milestone_status(
         e: Env,
-        milestone_index: i128,
+        milestone_index: u32,
         new_status: String,
         new_evidence: Option<String>,
         service_provider: Address,
@@ -166,7 +166,7 @@ impl EscrowContract {
 
     pub fn approve_milestone(
         e: Env,
-        milestone_index: i128,
+        milestone_index: u32,
         approver: Address,
     ) -> Result<(), ContractError> {
         let escrow =

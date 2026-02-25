@@ -12,7 +12,7 @@ pub struct MilestoneManager;
 impl MilestoneManager {
     pub fn change_milestone_status(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         new_status: String,
         new_evidence: Option<String>,
         service_provider: Address,
@@ -20,11 +20,11 @@ impl MilestoneManager {
         service_provider.require_auth();
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
-        validate_milestone_status_change_conditions(&existing_escrow, &service_provider)?;
+        validate_milestone_status_change_conditions(&existing_escrow, &service_provider, &milestone_index)?;
 
         let mut milestone_to_update = existing_escrow
             .milestones
-            .get(milestone_index as u32)
+            .get(milestone_index)
             .ok_or(ContractError::InvalidMileStoneIndex)?;
 
         if let Some(evidence) = new_evidence {
@@ -35,7 +35,7 @@ impl MilestoneManager {
 
         existing_escrow
             .milestones
-            .set(milestone_index as u32, milestone_to_update);
+            .set(milestone_index, milestone_to_update);
         e.storage()
             .instance()
             .set(&DataKey::Escrow, &existing_escrow);
@@ -45,7 +45,7 @@ impl MilestoneManager {
 
     pub fn change_milestone_approved_flag(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
         approver.require_auth();
@@ -60,6 +60,7 @@ impl MilestoneManager {
             &existing_escrow,
             &milestone_to_update,
             &approver,
+            &milestone_index
         )?;
         milestone_to_update.approved = true;
 
