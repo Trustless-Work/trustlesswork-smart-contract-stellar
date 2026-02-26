@@ -349,10 +349,14 @@ fn test_dispute_resolution_rounding_edge_case() {
 
     let usdc_token = create_usdc_token(&env, &admin);
 
-    // Setup with small amounts that trigger rounding
-    // total = 2, trustless_work_fee (30bps) = 0, platform_fee (300bps) = 0 (due to floor)
-    // Actually, let's use slightly larger small amounts to see some rounding
-    let total = 2i128;
+    // Test rounding bug: with total=100_003 and distributions {50_001, 50_002},
+    // the sum of per-recipient floor(amount * fee / total) is less than the total fee.
+    // Trustless fee (30 bps): floor(100_003 * 30 / 10000) = 300
+    // Platform fee (300 bps): floor(100_003 * 300 / 10000) = 3000
+    // Total fees: 3300
+    // Per-recipient fees sum to 3298 (149+1499 + 150+1500), creating a 2-unit shortfall.
+    // Old "distribute-then-accumulate" logic would attempt to transfer 3300 but only have 3298.
+    let total = 100_003i128;
     let platform_fee = 300; // 3%
 
     usdc_token.1.mint(&approver_address, &total);
@@ -383,7 +387,7 @@ fn test_dispute_resolution_rounding_edge_case() {
         description: String::from_str(&env, "Test"),
         roles,
         amount: total,
-        platform_fee: platform_fee,
+        platform_fee,
         milestones: vec![
             &env,
             Milestone {
@@ -408,10 +412,9 @@ fn test_dispute_resolution_rounding_edge_case() {
     client.dispute_escrow(&approver_address);
 
     let mut distributions = Map::new(&env);
-    distributions.set(approver_address.clone(), 1);
-    distributions.set(service_provider_address.clone(), 1);
+    distributions.set(approver_address.clone(), 50_001);
+    distributions.set(service_provider_address.clone(), 50_002);
 
-    // This should NOT revert
     let result = client.try_resolve_dispute(
         &dispute_resolver_address,
         &trustless_work_address,
@@ -420,7 +423,106 @@ fn test_dispute_resolution_rounding_edge_case() {
 
     assert!(result.is_ok(), "Should handle rounding correctly");
 
-    // Verify all funds were distributed properly
+    let final_balance = usdc_token.0.balance(&client.address);
+    assert_eq!(final_balance, 0, "All funds should be distributed");
+}
+
+#[test]
+fn test_withdraw_remaining_funds_rounding_edge_case() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    // Test rounding bug in withdraw_remaining_funds: with total=100_003 and distributions {50_001, 50_002},
+    // the sum of per-recipient floor(amount * fee / total) is less than the total fee.
+    // Trustless fee (30 bps): floor(100_003 * 30 / 10000) = 300
+    // Platform fee (300 bps): floor(100_003 * 300 / 10000) = 3000
+    // Total fees: 3300
+    // Per-recipient fees sum to 3298 (149+1499 + 150+1500), creating a 2-unit shortfall.
+    // Old "distribute-then-accumulate" logic would attempt to transfer 3300 but only have 3298.
+    let initial_amount = 1_000_000i128;
+    let remaining_amount = 100_003i128;
+    let platform_fee = 300; // 3%
+
+    let roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform: platform.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+        observers: vec![&env],
+    };
+
+    let flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "withdraw_rounding_edge_case"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles,
+        amount: initial_amount,
+        platform_fee,
+        milestones: vec![
+            &env,
+            Milestone {
+                description: String::from_str(&env, "First milestone"),
+                status: String::from_str(&env, "Pending"),
+                evidence: String::from_str(&env, "Initial evidence"),
+                approved: false,
+            },
+        ],
+        flags,
+        trustline,
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+
+    // Fund and release the escrow to set the released flag
+    usdc_token.1.mint(&approver_address, &initial_amount);
+    client.fund_escrow(&approver_address, &escrow_properties, &initial_amount);
+
+    let milestone_indices = vec![&env, 0];
+    client.approve_milestones(&milestone_indices, &approver_address);
+
+    client.release_funds(&release_signer_address, &trustless_work_address);
+
+    // Now add the remaining funds that need to be withdrawn with rounding edge case
+    usdc_token.1.mint(&client.address, &remaining_amount);
+
+    let mut distributions = Map::new(&env);
+    distributions.set(approver_address.clone(), 50_001);
+    distributions.set(service_provider_address.clone(), 50_002);
+
+    let result = client.try_withdraw_remaining_funds(
+        &dispute_resolver_address,
+        &trustless_work_address,
+        &distributions,
+    );
+
+    assert!(result.is_ok(), "Should handle rounding correctly in withdraw_remaining_funds");
+
     let final_balance = usdc_token.0.balance(&client.address);
     assert_eq!(final_balance, 0, "All funds should be distributed");
 }
