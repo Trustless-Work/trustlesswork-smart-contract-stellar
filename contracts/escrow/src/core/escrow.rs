@@ -82,7 +82,7 @@ impl EscrowManager {
         if fee_result.platform_fee > 0 {
             token_client.transfer(
             &contract_address,
-            &escrow.roles.platform_address,
+            &escrow.roles.platform,
             &fee_result.platform_fee,
             );
         }
@@ -96,7 +96,7 @@ impl EscrowManager {
     }
     pub fn change_escrow_properties(
         e: &Env,
-        platform_address: &Address,
+        platform: &Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, ContractError> {
         let existing_escrow = Self::get_escrow(e)?;
@@ -106,11 +106,11 @@ impl EscrowManager {
         validate_escrow_property_change_conditions(
             &existing_escrow,
             &escrow_properties,
-            platform_address,
+            platform,
             contract_balance,
         )?;
 
-        platform_address.require_auth();
+        platform.require_auth();
 
         e.storage()
             .persistent()

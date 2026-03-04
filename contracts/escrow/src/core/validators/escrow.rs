@@ -41,7 +41,7 @@ pub fn validate_release_conditions(
 pub fn validate_escrow_conditions(
     existing_escrow: Option<&Escrow>,
     new_escrow: &Escrow,
-    platform_address: Option<&Address>,
+    platform: Option<&Address>,
     contract_balance: Option<i128>,
     is_init: bool,
 ) -> Result<(), ContractError> {
@@ -74,12 +74,12 @@ pub fn validate_escrow_conditions(
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
         let caller =
-            platform_address.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
-        if caller != &existing.roles.platform_address {
+            platform.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
+        if caller != &existing.roles.platform {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
-        if existing.roles.platform_address != new_escrow.roles.platform_address {
+        if existing.roles.platform != new_escrow.roles.platform {
             return Err(ContractError::PlatformAddressCannotBeChanged);
         }
 
@@ -140,13 +140,13 @@ pub fn validate_escrow_conditions(
 pub fn validate_escrow_property_change_conditions(
     existing_escrow: &Escrow,
     new_escrow: &Escrow,
-    platform_address: &Address,
+    platform: &Address,
     contract_balance: i128,
 ) -> Result<(), ContractError> {
     validate_escrow_conditions(
         Some(existing_escrow),
         new_escrow,
-        Some(platform_address),
+        Some(platform),
         Some(contract_balance),
         false,
     )
