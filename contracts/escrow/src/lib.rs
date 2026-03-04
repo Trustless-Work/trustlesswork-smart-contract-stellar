@@ -29,6 +29,7 @@ mod modules {
 
     pub mod fee {
         pub mod calculator;
+        pub mod distribution;
 
         pub use calculator::*;
     }
@@ -38,6 +39,7 @@ mod modules {
 mod storage {
     pub mod types;
 }
+
 mod tests {
     #[cfg(test)]
     mod test;
