@@ -4,6 +4,7 @@ use soroban_sdk::{Address, Env, Map, String};
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::milestone::validate_and_convert_milestone_index;
 use crate::error::ContractError;
+use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
     math::{BasicArithmetic, BasicMath},
@@ -59,29 +60,17 @@ impl DisputeManager {
 
         let fee_result =
             FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
-
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(&contract_address, &trustless_work_address, &fee_result.trustless_work_fee);
-        }
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform,
-                &fee_result.platform_fee,
-            );
-        }
-
-        for (addr, amount) in distributions.iter() {
-            if amount > 0 {
-                let fee_share =
-                    BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
-                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
-                if net_amount > 0 {
-                    token_client.transfer(&contract_address, &addr, &net_amount);
-                }
-            }
-        }
+            
+        calculate_and_distribute_fees(
+            e,
+            &token_client,
+            &contract_address,
+            &trustless_work_address,
+            &escrow.roles.platform,
+            &fee_result,
+            &distributions,
+            total,
+        )?;
 
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
@@ -131,28 +120,17 @@ impl DisputeManager {
 
         let fee_result =
             FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        let total_fees = BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
-
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(&contract_address, &trustless_work_address, &fee_result.trustless_work_fee);
-        }
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform,
-                &fee_result.platform_fee,
-            );
-        }
-
-        for (addr, amount) in distributions.iter() {
-            if amount > 0 {
-                let fee_share = BasicMath::safe_div(BasicMath::safe_mul(amount, total_fees)?, total)?;
-                let net_amount = BasicMath::safe_sub(amount, fee_share)?;
-                if net_amount > 0 {
-                    token_client.transfer(&contract_address, &addr, &net_amount);
-                }
-            }
-        }
+        
+        calculate_and_distribute_fees(
+            e,
+            &token_client,
+            &contract_address,
+            &trustless_work_address,
+            &escrow.roles.platform,
+            &fee_result,
+            &distributions,
+            total,
+        )?;
 
         let mut updated_milestones = escrow.milestones.clone();
         let mut new_flags = milestone.flags.clone();
