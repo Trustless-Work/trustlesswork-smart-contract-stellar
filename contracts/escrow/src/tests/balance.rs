@@ -24,7 +24,7 @@ fn test_withdraw_remaining_funds_success() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };
@@ -151,7 +151,7 @@ fn test_withdraw_remaining_funds_unauthorized() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };
@@ -218,7 +218,7 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };
@@ -297,7 +297,7 @@ fn test_withdraw_remaining_funds_zero_balance_ok() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };

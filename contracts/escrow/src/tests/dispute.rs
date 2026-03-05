@@ -13,7 +13,7 @@ fn test_dispute_management() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
 
@@ -25,7 +25,7 @@ fn test_dispute_management() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -87,7 +87,7 @@ fn test_dispute_management() {
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
     let result =
-        escrow_approver.try_release_milestone_funds(&release_signer_address, &platform_address, &0);
+        escrow_approver.try_release_milestone_funds(&release_signer_address, &platform, &0);
     assert!(result.is_err());
 
     let _ = escrow_approver.try_dispute_milestone(&0, &approver_address);
@@ -111,7 +111,7 @@ fn test_dispute_resolution_process() {
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -123,7 +123,7 @@ fn test_dispute_resolution_process() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -213,7 +213,7 @@ fn test_dispute_resolution_process() {
         expected_tw_fee
     );
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         expected_platform_fee
     );
     assert_eq!(usdc_token.0.balance(&approver_address), expected_approver);
@@ -250,7 +250,7 @@ fn test_cannot_release_after_dispute_resolved() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };
@@ -330,7 +330,7 @@ fn test_cannot_dispute_resolve_after_released() {
     let roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address: platform.clone(),
+        platform: platform.clone(),
         release_signer: release_signer.clone(),
         dispute_resolver: dispute_resolver.clone(),
     };
@@ -399,7 +399,7 @@ fn test_dispute_milestone() {
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let platform_fee = 3 * 100;
@@ -409,7 +409,7 @@ fn test_dispute_milestone() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -494,7 +494,7 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
     let admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let unauthorized = Address::generate(&env);
@@ -506,7 +506,7 @@ fn test_change_dispute_flag_authorized_and_unauthorized() {
     let roles: Roles = Roles {
         approver: approver.clone(),
         service_provider: service_provider.clone(),
-        platform_address,
+        platform,
         release_signer,
         dispute_resolver,
     };

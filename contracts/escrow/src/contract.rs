@@ -124,13 +124,13 @@ impl EscrowContract {
 
     pub fn extend_contract_ttl(
         e: &Env,
-        platform_address: Address,
+        platform: Address,
         ledgers_to_extend: u32,
     ) -> Result<(), ContractError> {
-        platform_address.require_auth();
+        platform.require_auth();
 
         let escrow = EscrowManager::get_escrow(e)?;
-        if platform_address != escrow.roles.platform_address {
+        if platform != escrow.roles.platform {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
@@ -140,7 +140,7 @@ impl EscrowContract {
             .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
         ExtTtlEvt {
-            platform: platform_address,
+            platform: platform,
             ledgers_to_extend,
         }
         .publish(e);

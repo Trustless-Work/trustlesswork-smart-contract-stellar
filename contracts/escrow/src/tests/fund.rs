@@ -13,7 +13,7 @@ fn test_release_milestone_funds_successful() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -27,7 +27,7 @@ fn test_release_milestone_funds_successful() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -102,7 +102,7 @@ fn test_release_milestone_funds_successful() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );
@@ -128,7 +128,7 @@ fn test_release_milestone_funds_no_milestones() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
 
@@ -141,7 +141,7 @@ fn test_release_milestone_funds_no_milestones() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -179,7 +179,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let platform_fee = 3 * 100;
@@ -190,7 +190,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -245,7 +245,7 @@ fn test_release_milestone_funds_milestones_incomplete() {
     // Try to claim earnings with incomplete milestones (should fail)
     let result = escrow_approver.try_release_milestone_funds(
         &release_signer_address,
-        &platform_address,
+        &platform,
         &(0),
     );
     assert!(
@@ -262,7 +262,7 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -279,7 +279,7 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -345,7 +345,7 @@ fn test_release_milestone_funds_same_receiver_as_provider() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );
@@ -371,7 +371,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let trustless_work_address = Address::generate(&env);
@@ -389,7 +389,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -455,7 +455,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&platform_address),
+        usdc_token.0.balance(&platform),
         platform_commission,
         "Platform commission amount is incorrect"
     );
@@ -488,7 +488,7 @@ fn test_fund_escrow_successful_deposit() {
 
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let amount: i128 = 100_000_000;
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -501,7 +501,7 @@ fn test_fund_escrow_successful_deposit() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -581,7 +581,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
 
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let amount: i128 = 100_000_000;
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -593,7 +593,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };
@@ -675,7 +675,7 @@ fn test_fund_escrow_dispute_flag_error() {
 
     let admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
-    let platform_address = Address::generate(&env);
+    let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -686,7 +686,7 @@ fn test_fund_escrow_dispute_flag_error() {
     let roles: Roles = Roles {
         approver: approver_address.clone(),
         service_provider: service_provider_address.clone(),
-        platform_address: platform_address.clone(),
+        platform: platform.clone(),
         release_signer: release_signer_address.clone(),
         dispute_resolver: dispute_resolver_address.clone(),
     };

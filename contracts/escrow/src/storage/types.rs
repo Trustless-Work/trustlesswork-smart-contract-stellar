@@ -37,7 +37,7 @@ pub struct MilestoneUpdate {
 pub struct Roles {
     pub approver: Address,
     pub service_provider: Address,
-    pub platform_address: Address,
+    pub platform: Address,
     pub release_signer: Address,
     pub dispute_resolver: Address,
 }

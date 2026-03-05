@@ -114,14 +114,14 @@ pub fn validate_dispute_flag_change_conditions(
     let Roles {
         approver,
         service_provider,
-        platform_address,
+        platform,
         release_signer,
         dispute_resolver,
     } = &escrow.roles;
 
     let is_authorized = signer == approver
         || signer == service_provider
-        || signer == platform_address
+        || signer == platform
         || signer == release_signer
         || signer == dispute_resolver
         || signer == &milestone.receiver;
