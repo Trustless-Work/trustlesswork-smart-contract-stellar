@@ -40,9 +40,7 @@ mod storage {
     pub mod types;
 }
 
-mod tests {
-    #[cfg(test)]
-    mod test;
-}
+#[cfg(test)]
+mod tests;
 
 pub use crate::contract::EscrowContract;
