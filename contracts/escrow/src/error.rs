@@ -50,6 +50,9 @@ pub enum ContractError {
     TooManyDistributions = 45,
     MilestoneToUpdateDoesNotExist = 46,
     BatchMilestoneUpdateEmpty = 47,
+    ApproverAlreadyApprovedMilestone = 48,
+    BatchMilestoneApproveEmpty = 49,
+    QuorumCannotBeZero = 50,
 }
 
 // impl fmt::Display for ContractError {

@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -29,13 +29,21 @@ fn test_append_milestones_with_funds() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -90,7 +98,11 @@ fn test_append_milestones_with_funds() {
             description: String::from_str(&env, "Third milestone new"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -163,13 +175,21 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -215,9 +235,9 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     escrow_client.fund_escrow(&approver_address, &initial_escrow_properties, &amount);
 
     // Approve the first milestone
-    escrow_client.approve_milestone(&0, &approver_address);
+    escrow_client.approve_milestones(&vec![&env, 0u32], &approver_address);
     let after_approval = escrow_client.get_escrow();
-    assert!(after_approval.milestones.get(0).unwrap().approved);
+    { let m = after_approval.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.quorum); }
 
     // Build updated properties with a new milestone appended (unapproved)
     let updated_milestones = vec![
@@ -228,7 +248,11 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             description: String::from_str(&env, "Third milestone new"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -249,18 +273,12 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
-    assert!(
-        final_escrow.milestones.get(0).unwrap().approved,
-        "Existing approved milestone should remain approved"
-    );
+    { let m = final_escrow.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.quorum, "Existing approved milestone should remain approved"); }
     assert_eq!(
         final_escrow.milestones.get(1).unwrap(),
         after_approval.milestones.get(1).unwrap()
     );
-    assert!(
-        !final_escrow.milestones.get(2).unwrap().approved,
-        "Appended milestone should start unapproved"
-    );
+    { let m = final_escrow.milestones.get(2).unwrap(); assert!(m.approvals.approval_count < m.approvals.quorum, "Appended milestone should start unapproved"); }
     // Ensure other properties unchanged
     assert_eq!(
         final_escrow.engagement_id,
@@ -306,13 +324,21 @@ fn test_change_milestone_status_and_approved() {
             description: String::from_str(&env, "Milestone 1"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -376,10 +402,10 @@ fn test_change_milestone_status_and_approved() {
     );
 
     // Change milestone approved (valid case)
-    escrow_approver.approve_milestone(&(0), &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
 
     let final_escrow = escrow_approver.get_escrow();
-    assert!(final_escrow.milestones.get(0).unwrap().approved);
+    { let m = final_escrow.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.quorum); }
 
     // Invalid index in batch should fail
     let invalid_updates = vec![
@@ -394,7 +420,7 @@ fn test_change_milestone_status_and_approved() {
         escrow_approver.try_change_milestone_status(&invalid_updates, &service_provider_address);
     assert!(result.is_err());
 
-    let result = escrow_approver.try_approve_milestone(&10u32, &approver_address);
+    let result = escrow_approver.try_approve_milestones(&vec![&env, 10u32], &approver_address);
     assert!(result.is_err());
 
     let unauthorized_address = Address::generate(&env);
@@ -412,8 +438,9 @@ fn test_change_milestone_status_and_approved() {
         escrow_approver.try_change_milestone_status(&unauth_updates, &unauthorized_address);
     assert!(result.is_err());
 
-    // Unauthorized approver should fail
-    let result = escrow_approver.try_approve_milestone(&(0u32), &unauthorized_address);
+    // Milestone 0 is already fully approved (quorum reached), further approval must fail
+    let result =
+        escrow_approver.try_approve_milestones(&vec![&env, 0u32], &unauthorized_address);
     assert!(result.is_err());
 }
 
@@ -438,19 +465,31 @@ fn test_change_milestone_status_batch() {
             description: String::from_str(&env, "Milestone 1"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 1"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 2"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 3"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -557,13 +596,21 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             description: String::from_str(&env, "Milestone 1"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 1"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 2"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -650,7 +697,11 @@ fn test_batch_milestone_status_empty_batch_fails() {
             description: String::from_str(&env, "Milestone 1"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Evidence 1"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -695,4 +746,219 @@ fn test_batch_milestone_status_empty_batch_fails() {
         soroban_sdk::vec![&env];
     let result = escrow_client.try_change_milestone_status(&empty_updates, &service_provider_address);
     assert!(result.is_err());
+}
+
+#[test]
+fn test_quorum_requires_multiple_approvers() {
+    // Verify that a milestone with quorum > 1 is not considered approved
+    // until the required number of unique approvers have voted.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_a = Address::generate(&env);
+    let approver_b = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+    let usdc_token = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+    let platform_fee = 3 * 100;
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone requiring quorum 2"),
+            status: String::from_str(&env, "completed"),
+            evidence: String::from_str(&env, "Evidence"),
+            approvals: MilestoneApprovals {
+                quorum: 2,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+        },
+    ];
+
+    let roles: Roles = Roles {
+        approver: approver_a.clone(),
+        service_provider: service_provider_address.clone(),
+        platform: platform.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+    };
+
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: String::from_str(&env, "quorum_test"),
+        title: String::from_str(&env, "Quorum Test Escrow"),
+        description: String::from_str(&env, "Test quorum approval"),
+        roles: roles.clone(),
+        amount,
+        platform_fee,
+        milestones: milestones.clone(),
+        flags: Flags {
+            disputed: false,
+            released: false,
+            resolved: false,
+        },
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_client = test_data.client;
+    escrow_client.initialize_escrow(&escrow_properties);
+
+    usdc_token.1.mint(&escrow_client.address, &amount);
+
+    // First approval: approval_count becomes 1, quorum is 2 → not yet approved
+    escrow_client.approve_milestones(&vec![&env, 0u32], &approver_a);
+
+    let escrow_after_first = escrow_client.get_escrow();
+    let m = escrow_after_first.milestones.get(0).unwrap();
+    assert_eq!(m.approvals.approval_count, 1);
+    assert!(
+        m.approvals.approval_count < m.approvals.quorum,
+        "Milestone must not be approved yet after only one vote"
+    );
+
+    // Release must fail — quorum not yet reached
+    let result =
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    assert!(result.is_err(), "Release must fail when quorum is not reached");
+
+    // Approver A tries to vote again — must fail
+    let result = escrow_client.try_approve_milestones(&vec![&env, 0u32], &approver_a);
+    assert!(result.is_err(), "Double-voting by the same approver must be rejected");
+
+    // Second approval by a different address: approval_count becomes 2 == quorum
+    escrow_client.approve_milestones(&vec![&env, 0u32], &approver_b);
+
+    let escrow_after_second = escrow_client.get_escrow();
+    let m2 = escrow_after_second.milestones.get(0).unwrap();
+    assert_eq!(m2.approvals.approval_count, 2);
+    assert!(
+        m2.approvals.approval_count >= m2.approvals.quorum,
+        "Milestone must be fully approved once quorum is reached"
+    );
+    assert_eq!(m2.approvals.approvers.len(), 2, "Both approvers must be recorded");
+
+    // Release must now succeed
+    let result =
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    assert!(result.is_ok(), "Release must succeed after quorum is reached");
+}
+
+#[test]
+fn test_batch_approve_milestones_multiple_indices() {
+    // Approve multiple milestones in a single call and verify each is updated.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let usdc_token = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+    let platform_fee = 3 * 100;
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "completed"),
+            evidence: String::from_str(&env, "Evidence 1"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 2"),
+            status: String::from_str(&env, "completed"),
+            evidence: String::from_str(&env, "Evidence 2"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 3"),
+            status: String::from_str(&env, "completed"),
+            evidence: String::from_str(&env, "Evidence 3"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+        },
+    ];
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform: platform.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: service_provider_address.clone(),
+    };
+
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: String::from_str(&env, "batch_approve_test"),
+        title: String::from_str(&env, "Batch Approve Test"),
+        description: String::from_str(&env, "Test batch milestone approval"),
+        roles: roles.clone(),
+        amount,
+        platform_fee,
+        milestones: milestones.clone(),
+        flags: Flags {
+            disputed: false,
+            released: false,
+            resolved: false,
+        },
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_client = test_data.client;
+    escrow_client.initialize_escrow(&escrow_properties);
+
+    // Approve milestones 0 and 2 in a single call, leave 1 unapproved
+    escrow_client.approve_milestones(&vec![&env, 0u32, 2u32], &approver_address);
+
+    let escrow = escrow_client.get_escrow();
+    let m0 = escrow.milestones.get(0).unwrap();
+    let m1 = escrow.milestones.get(1).unwrap();
+    let m2 = escrow.milestones.get(2).unwrap();
+
+    assert_eq!(m0.approvals.approval_count, 1, "Milestone 0 should have 1 approval");
+    assert!(m0.approvals.approval_count >= m0.approvals.quorum, "Milestone 0 should be approved");
+
+    assert_eq!(m1.approvals.approval_count, 0, "Milestone 1 should be untouched");
+    assert!(m1.approvals.approval_count < m1.approvals.quorum, "Milestone 1 should not be approved");
+
+    assert_eq!(m2.approvals.approval_count, 1, "Milestone 2 should have 1 approval");
+    assert!(m2.approvals.approval_count >= m2.approvals.quorum, "Milestone 2 should be approved");
+
+    // Empty batch must fail
+    let empty: soroban_sdk::Vec<u32> = soroban_sdk::vec![&env];
+    let result = escrow_client.try_approve_milestones(&empty, &approver_address);
+    assert!(result.is_err(), "Empty batch must fail");
+
+    // Batch with invalid index must revert entirely
+    let result =
+        escrow_client.try_approve_milestones(&vec![&env, 1u32, 99u32], &approver_address);
+    assert!(result.is_err(), "Batch with invalid index must fail");
 }

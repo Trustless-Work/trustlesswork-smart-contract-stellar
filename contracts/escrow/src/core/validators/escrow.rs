@@ -2,8 +2,14 @@ use soroban_sdk::{Address, Env};
 
 use crate::{
     error::ContractError,
-    storage::types::{DataKey, Escrow},
+    storage::types::{DataKey, Escrow, Milestone},
 };
+
+#[inline]
+fn is_milestone_approved(milestone: &Milestone) -> bool {
+    milestone.approvals.quorum > 0
+        && milestone.approvals.approval_count >= milestone.approvals.quorum
+}
 
 #[inline]
 pub fn validate_release_conditions(
@@ -26,7 +32,7 @@ pub fn validate_release_conditions(
         return Err(ContractError::NoMilestoneDefined);
     }
 
-    if !escrow.milestones.iter().all(|milestone| milestone.approved) {
+    if !escrow.milestones.iter().all(|m| is_milestone_approved(&m)) {
         return Err(ContractError::EscrowNotCompleted);
     }
 
@@ -67,9 +73,12 @@ pub fn validate_escrow_conditions(
         if new_escrow.flags.released
             || new_escrow.flags.disputed
             || new_escrow.flags.resolved
-            || new_escrow.milestones.iter().any(|m| m.approved)
+            || new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0)
         {
             return Err(ContractError::FlagsMustBeFalse);
+        }
+        if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
+            return Err(ContractError::QuorumCannotBeZero);
         }
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
@@ -118,17 +127,24 @@ pub fn validate_escrow_conditions(
             }
 
             for i in old_len..new_len {
-                if new_escrow.milestones.get(i).unwrap().approved {
+                let new_m = new_escrow.milestones.get(i).unwrap();
+                if new_m.approvals.approval_count > 0 {
                     return Err(ContractError::FlagsMustBeFalse);
+                }
+                if new_m.approvals.quorum == 0 {
+                    return Err(ContractError::QuorumCannotBeZero);
                 }
             }
         } else {
-            if existing.milestones.iter().any(|m| m.approved) {
+            if existing.milestones.iter().any(|m| is_milestone_approved(&m)) {
                 return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
             }
 
-            if new_escrow.milestones.iter().any(|m| m.approved) {
+            if new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0) {
                 return Err(ContractError::FlagsMustBeFalse);
+            }
+            if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
+                return Err(ContractError::QuorumCannotBeZero);
             }
         }
     }

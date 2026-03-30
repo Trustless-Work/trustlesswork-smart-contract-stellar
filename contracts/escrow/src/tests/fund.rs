@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -31,7 +31,11 @@ fn test_fund_escrow_successful_deposit() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -129,7 +133,11 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -210,13 +218,21 @@ fn test_release_funds_successful_flow() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -262,8 +278,8 @@ fn test_release_funds_successful_flow() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
-    escrow_approver.approve_milestone(&1, &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 1u32], &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -330,13 +346,21 @@ fn test_release_funds_milestones_incomplete() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false, // Not approved yet
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -380,7 +404,7 @@ fn test_release_funds_milestones_incomplete() {
     usdc_token
         .1
         .mint(&escrow_approver.address, &(amount as i128));
-    escrow_approver.approve_milestone(&0, &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
     let result =
         escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
@@ -415,7 +439,11 @@ fn test_release_funds_same_receiver_as_provider() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -461,7 +489,7 @@ fn test_release_funds_same_receiver_as_provider() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -524,7 +552,11 @@ fn test_release_funds_invalid_receiver_fallback() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -570,7 +602,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         .1
         .mint(&escrow_approver.address, &(amount as i128));
 
-    escrow_approver.approve_milestone(&0, &approver_address);
+    escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
 
     let total_amount = amount as i128;
@@ -647,7 +679,11 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             description: String::from_str(&env, "Milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approved: false,
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
         },
     ];
 
@@ -691,7 +727,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         &service_provider,
     );
 
-    client.approve_milestone(&0, &approver);
+    client.approve_milestones(&vec![&env, 0u32], &approver);
 
     client.release_funds(&release_signer, &trustless_work_address);
 

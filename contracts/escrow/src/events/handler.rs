@@ -37,7 +37,7 @@ pub struct MilestoneStatusChanged {
 
 #[contractevent(topics = ["tw_ms_approve"], data_format = "vec")]
 #[derive(Clone)]
-pub struct MilestoneApproved {
+pub struct MilestonesApproved {
     pub escrow: Escrow,
 }
 

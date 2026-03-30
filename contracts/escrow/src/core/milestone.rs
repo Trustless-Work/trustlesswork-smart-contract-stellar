@@ -4,7 +4,7 @@ use crate::{core::escrow::EscrowManager, storage::types::Escrow};
 use soroban_sdk::{Address, Env, Vec};
 
 use super::validators::milestone::{
-    validate_batch_milestone_status_change, validate_milestone_flag_change_conditions,
+    validate_batch_milestone_approve, validate_batch_milestone_status_change,
 };
 
 pub struct MilestoneManager;
@@ -48,32 +48,29 @@ impl MilestoneManager {
         Ok(existing_escrow)
     }
 
-    pub fn change_milestone_approved_flag(
+    pub fn approve_milestones(
         e: &Env,
-        milestone_index: u32,
+        milestone_indices: Vec<u32>,
         approver: Address,
     ) -> Result<Escrow, ContractError> {
         let mut existing_escrow = EscrowManager::get_escrow(e)?;
 
-        let mut milestone_to_update = existing_escrow
-            .milestones
-            .get(milestone_index)
-            .ok_or(ContractError::InvalidMileStoneIndex)?;
-
-        validate_milestone_flag_change_conditions(
-            &existing_escrow,
-            &milestone_to_update,
-            &approver,
-            &milestone_index,
-        )?;
+        validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
 
         approver.require_auth();
 
-        milestone_to_update.approved = true;
+        for index in milestone_indices.iter() {
+            let mut milestone = existing_escrow
+                .milestones
+                .get(index)
+                .ok_or(ContractError::InvalidMileStoneIndex)?;
 
-        existing_escrow
-            .milestones
-            .set(milestone_index, milestone_to_update);
+            milestone.approvals.approvers.push_back(approver.clone());
+            milestone.approvals.approval_count += 1;
+
+            existing_escrow.milestones.set(index, milestone);
+        }
+
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &existing_escrow);

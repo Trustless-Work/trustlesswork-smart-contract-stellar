@@ -17,11 +17,19 @@ pub struct Escrow {
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MilestoneApprovals {
+    pub quorum: u32,
+    pub approval_count: u32,
+    pub approvers: Vec<Address>,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Milestone {
     pub description: String,
     pub status: String,
     pub evidence: String,
-    pub approved: bool,
+    pub approvals: MilestoneApprovals,
 }
 
 #[contracttype]
