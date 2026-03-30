@@ -1,19 +1,18 @@
-use soroban_sdk::{Address, String};
+use soroban_sdk::{Address, Vec};
 
 use crate::{
     error::ContractError,
-    storage::types::{Escrow, Milestone},
+    storage::types::{Escrow, Milestone, MilestoneStatusUpdate},
 };
 
 #[inline]
-pub fn validate_milestone_status_change_conditions(
+pub fn validate_batch_milestone_status_change(
     escrow: &Escrow,
     service_provider: &Address,
-    milestone_index: &u32,
-    new_status: &String,
+    updates: &Vec<MilestoneStatusUpdate>,
 ) -> Result<(), ContractError> {
-    if new_status.is_empty() {
-        return Err(ContractError::EmptyMilestoneStatus);
+    if updates.is_empty() {
+        return Err(ContractError::BatchMilestoneUpdateEmpty);
     }
 
     if service_provider != &escrow.roles.service_provider {
@@ -24,14 +23,14 @@ pub fn validate_milestone_status_change_conditions(
         return Err(ContractError::NoMilestoneDefined);
     }
 
-    if *milestone_index >= escrow.milestones.len() {
-        return Err(ContractError::MilestoneToUpdateDoesNotExist);
-    }
+    for update in updates.iter() {
+        if update.new_status.is_empty() {
+            return Err(ContractError::EmptyMilestoneStatus);
+        }
 
-    let update = escrow.milestones.get(*milestone_index).unwrap();
-
-    if update.status.is_empty() {
-        return Err(ContractError::EmptyMilestoneStatus);
+        if update.milestone_index >= escrow.milestones.len() {
+            return Err(ContractError::MilestoneToUpdateDoesNotExist);
+        }
     }
 
     Ok(())

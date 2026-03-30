@@ -49,6 +49,7 @@ pub enum ContractError {
     EscrowNotFullyProcessed = 44,
     TooManyDistributions = 45,
     MilestoneToUpdateDoesNotExist = 46,
+    BatchMilestoneUpdateEmpty = 47,
 }
 
 // impl fmt::Display for ContractError {
