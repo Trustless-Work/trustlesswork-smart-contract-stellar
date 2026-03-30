@@ -24,7 +24,7 @@ pub fn validate_release_conditions(
         return Err(ContractError::EscrowAlreadyResolved);
     }
 
-    if release_signer != &escrow.roles.release_signer {
+    if !escrow.roles.release_signers.contains(release_signer) {
         return Err(ContractError::OnlyReleaseSignerCanReleaseEarnings);
     }
 
@@ -58,6 +58,18 @@ pub fn validate_escrow_conditions(
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
     if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
+    }
+    if new_escrow.roles.approvers.is_empty() {
+        return Err(ContractError::ApproversListEmpty);
+    }
+    if new_escrow.roles.service_providers.is_empty() {
+        return Err(ContractError::ServiceProvidersListEmpty);
+    }
+    if new_escrow.roles.release_signers.is_empty() {
+        return Err(ContractError::ReleaseSignersListEmpty);
+    }
+    if new_escrow.roles.dispute_resolvers.is_empty() {
+        return Err(ContractError::DisputeResolversListEmpty);
     }
     if new_escrow.amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);

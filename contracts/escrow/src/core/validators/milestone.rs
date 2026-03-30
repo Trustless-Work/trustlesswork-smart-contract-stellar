@@ -15,7 +15,7 @@ pub fn validate_batch_milestone_status_change(
         return Err(ContractError::BatchMilestoneUpdateEmpty);
     }
 
-    if service_provider != &escrow.roles.service_provider {
+    if !escrow.roles.service_providers.contains(service_provider) {
         return Err(ContractError::OnlyServiceProviderChangeMilstoneStatus);
     }
 
@@ -44,6 +44,10 @@ pub fn validate_batch_milestone_approve(
 ) -> Result<(), ContractError> {
     if milestone_indices.is_empty() {
         return Err(ContractError::BatchMilestoneApproveEmpty);
+    }
+
+    if !escrow.roles.approvers.contains(approver) {
+        return Err(ContractError::UnauthorizedApprover);
     }
 
     if escrow.milestones.is_empty() {

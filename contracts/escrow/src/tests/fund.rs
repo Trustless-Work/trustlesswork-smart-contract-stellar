@@ -40,11 +40,11 @@ fn test_fund_escrow_successful_deposit() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
     };
 
@@ -142,11 +142,11 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
     };
 
@@ -237,11 +237,11 @@ fn test_release_funds_successful_flow() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
     };
 
@@ -365,11 +365,11 @@ fn test_release_funds_milestones_incomplete() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -448,11 +448,11 @@ fn test_release_funds_same_receiver_as_provider() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
     };
 
@@ -561,11 +561,11 @@ fn test_release_funds_invalid_receiver_fallback() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Different receiver address than service provider
     };
 
@@ -665,11 +665,11 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     let platform_fee: u32 = 300; // 3%
 
     let roles = Roles {
-        approver: approver.clone(),
-        service_provider: service_provider.clone(),
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
         platform: platform.clone(),
-        release_signer: release_signer.clone(),
-        dispute_resolver: dispute_resolver.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
     };
 

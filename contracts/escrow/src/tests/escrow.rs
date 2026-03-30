@@ -48,11 +48,11 @@ fn test_initialize_excrow() {
     let engagement_id = String::from_str(&env, "41431");
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -86,10 +86,10 @@ fn test_initialize_excrow() {
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.engagement_id, initialized_escrow.engagement_id);
-    assert_eq!(escrow.roles.approver, escrow_properties.roles.approver);
+    assert_eq!(escrow.roles.approvers, escrow_properties.roles.approvers);
     assert_eq!(
-        escrow.roles.service_provider,
-        escrow_properties.roles.service_provider
+        escrow.roles.service_providers,
+        escrow_properties.roles.service_providers
     );
     assert_eq!(
         escrow.roles.platform,
@@ -99,12 +99,12 @@ fn test_initialize_excrow() {
     assert_eq!(escrow.platform_fee, platform_fee);
     assert_eq!(escrow.milestones, escrow_properties.milestones);
     assert_eq!(
-        escrow.roles.release_signer,
-        escrow_properties.roles.release_signer
+        escrow.roles.release_signers,
+        escrow_properties.roles.release_signers
     );
     assert_eq!(
-        escrow.roles.dispute_resolver,
-        escrow_properties.roles.dispute_resolver
+        escrow.roles.dispute_resolvers,
+        escrow_properties.roles.dispute_resolvers
     );
     assert_eq!(escrow.roles.receiver, escrow_properties.roles.receiver);
     assert_eq!(escrow.receiver_memo, escrow_properties.receiver_memo);
@@ -156,11 +156,11 @@ fn test_update_escrow() {
     let usdc_token = create_usdc_token(&env, &admin);
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -253,12 +253,12 @@ fn test_update_escrow() {
     assert_eq!(escrow.platform_fee, updated_escrow_properties.platform_fee);
     assert_eq!(escrow.milestones, updated_escrow_properties.milestones);
     assert_eq!(
-        escrow.roles.release_signer,
-        updated_escrow_properties.roles.release_signer
+        escrow.roles.release_signers,
+        updated_escrow_properties.roles.release_signers
     );
     assert_eq!(
-        escrow.roles.dispute_resolver,
-        updated_escrow_properties.roles.dispute_resolver
+        escrow.roles.dispute_resolvers,
+        updated_escrow_properties.roles.dispute_resolvers
     );
     assert_eq!(
         escrow.roles.receiver,
@@ -312,11 +312,11 @@ fn test_update_escrow_platform_fee_too_high() {
     };
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -399,11 +399,11 @@ fn test_initialize_escrow_platform_fee_too_high() {
     };
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 

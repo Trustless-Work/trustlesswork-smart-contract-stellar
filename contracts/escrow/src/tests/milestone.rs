@@ -48,11 +48,11 @@ fn test_append_milestones_with_funds() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
     };
 
@@ -194,11 +194,11 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
     };
 
@@ -343,11 +343,11 @@ fn test_change_milestone_status_and_approved() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -496,11 +496,11 @@ fn test_change_milestone_status_batch() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -617,11 +617,11 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -708,11 +708,11 @@ fn test_batch_milestone_status_empty_batch_fails() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -784,11 +784,11 @@ fn test_quorum_requires_multiple_approvers() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_a.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_a.clone(), approver_b.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -906,11 +906,11 @@ fn test_batch_approve_milestones_multiple_indices() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 

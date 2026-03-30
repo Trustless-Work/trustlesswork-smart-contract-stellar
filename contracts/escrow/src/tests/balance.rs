@@ -21,11 +21,11 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     let usdc_token = create_usdc_token(&env, &admin);
 
     let roles = Roles {
-        approver: approver.clone(),
-        service_provider: service_provider.clone(),
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
         platform: platform.clone(),
-        release_signer: release_signer.clone(),
-        dispute_resolver: dispute_resolver.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
     };
 

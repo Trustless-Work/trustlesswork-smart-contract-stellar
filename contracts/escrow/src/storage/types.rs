@@ -43,11 +43,11 @@ pub struct MilestoneStatusUpdate {
 #[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Roles {
-    pub approver: Address,
-    pub service_provider: Address,
+    pub approvers: Vec<Address>,
+    pub service_providers: Vec<Address>,
     pub platform: Address,
-    pub release_signer: Address,
-    pub dispute_resolver: Address,
+    pub release_signers: Vec<Address>,
+    pub dispute_resolvers: Vec<Address>,
     pub receiver: Address,
 }
 
