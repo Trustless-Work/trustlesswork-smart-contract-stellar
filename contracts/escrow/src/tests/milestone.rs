@@ -34,6 +34,8 @@ fn test_append_milestones_with_funds() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -44,6 +46,8 @@ fn test_append_milestones_with_funds() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -103,6 +107,8 @@ fn test_append_milestones_with_funds() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -180,6 +186,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -190,6 +198,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -253,6 +263,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -329,6 +341,8 @@ fn test_change_milestone_status_and_approved() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -339,6 +353,8 @@ fn test_change_milestone_status_and_approved() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -470,6 +486,8 @@ fn test_change_milestone_status_batch() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -480,6 +498,8 @@ fn test_change_milestone_status_batch() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -490,6 +510,8 @@ fn test_change_milestone_status_batch() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -601,6 +623,8 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -611,6 +635,8 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -702,6 +728,8 @@ fn test_batch_milestone_status_empty_batch_fails() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -778,6 +806,8 @@ fn test_quorum_requires_multiple_approvers() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -828,7 +858,7 @@ fn test_quorum_requires_multiple_approvers() {
 
     // Release must fail — quorum not yet reached
     let result =
-        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
     assert!(result.is_err(), "Release must fail when quorum is not reached");
 
     // Approver A tries to vote again — must fail
@@ -849,7 +879,7 @@ fn test_quorum_requires_multiple_approvers() {
 
     // Release must now succeed
     let result =
-        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
     assert!(result.is_ok(), "Release must succeed after quorum is reached");
 }
 
@@ -880,6 +910,8 @@ fn test_batch_approve_milestones_multiple_indices() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -890,6 +922,8 @@ fn test_batch_approve_milestones_multiple_indices() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -900,6 +934,8 @@ fn test_batch_approve_milestones_multiple_indices() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 

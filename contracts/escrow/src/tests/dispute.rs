@@ -35,6 +35,8 @@ fn test_dispute_management() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -86,7 +88,7 @@ fn test_dispute_management() {
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
     let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
     assert!(result.is_err());
 
     let _ = escrow_approver.try_dispute_escrow(&approver_address);
@@ -126,6 +128,8 @@ fn test_dispute_resolution_process() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -297,6 +301,8 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -387,6 +393,8 @@ fn test_resolve_dispute_rounding_edge_case() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 

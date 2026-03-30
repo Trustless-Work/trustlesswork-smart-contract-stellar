@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
     error::ContractError,
@@ -12,14 +12,11 @@ fn is_milestone_approved(milestone: &Milestone) -> bool {
 }
 
 #[inline]
-pub fn validate_release_conditions(
+pub fn validate_release_milestones_conditions(
     escrow: &Escrow,
     release_signer: &Address,
+    milestone_indices: &Vec<u32>,
 ) -> Result<(), ContractError> {
-    if escrow.flags.released {
-        return Err(ContractError::EscrowAlreadyReleased);
-    }
-
     if escrow.flags.resolved {
         return Err(ContractError::EscrowAlreadyResolved);
     }
@@ -28,16 +25,28 @@ pub fn validate_release_conditions(
         return Err(ContractError::OnlyReleaseSignerCanReleaseEarnings);
     }
 
-    if escrow.milestones.is_empty() {
-        return Err(ContractError::NoMilestoneDefined);
-    }
-
-    if !escrow.milestones.iter().all(|m| is_milestone_approved(&m)) {
-        return Err(ContractError::EscrowNotCompleted);
-    }
-
     if escrow.flags.disputed {
         return Err(ContractError::EscrowOpenedForDisputeResolution);
+    }
+
+    if milestone_indices.is_empty() {
+        return Err(ContractError::ReleaseMilestonesEmpty);
+    }
+
+    for index in milestone_indices.iter() {
+        if index >= escrow.milestones.len() {
+            return Err(ContractError::InvalidMileStoneIndex);
+        }
+
+        let milestone = escrow.milestones.get(index).unwrap();
+
+        if !is_milestone_approved(&milestone) {
+            return Err(ContractError::EscrowNotCompleted);
+        }
+
+        if milestone.released {
+            return Err(ContractError::MilestoneAlreadyReleased);
+        }
     }
 
     Ok(())

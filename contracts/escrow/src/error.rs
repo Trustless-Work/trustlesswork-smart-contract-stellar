@@ -51,6 +51,8 @@ pub enum ContractError {
     ServiceProvidersListEmpty = 53,
     ReleaseSignersListEmpty = 54,
     DisputeResolversListEmpty = 55,
+    MilestoneAlreadyReleased = 56,
+    ReleaseMilestonesEmpty = 57,
 }
 
 // impl fmt::Display for ContractError {

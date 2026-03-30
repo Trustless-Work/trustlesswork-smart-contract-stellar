@@ -30,6 +30,8 @@ pub struct Milestone {
     pub status: String,
     pub evidence: String,
     pub approvals: MilestoneApprovals,
+    pub amount: i128,
+    pub released: bool,
 }
 
 #[contracttype]

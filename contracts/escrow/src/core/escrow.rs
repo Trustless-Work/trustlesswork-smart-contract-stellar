@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
-    validate_initialize_escrow_conditions, validate_release_conditions,
+    validate_initialize_escrow_conditions, validate_release_milestones_conditions,
 };
 use crate::error::ContractError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
@@ -49,27 +49,28 @@ impl EscrowManager {
         e: &Env,
         release_signer: &Address,
         trustless_work_address: &Address,
+        milestone_indices: Vec<u32>,
     ) -> Result<(), ContractError> {
         let mut escrow = Self::get_escrow(e)?;
-        validate_release_conditions(&escrow, release_signer)?;
+        validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
 
         release_signer.require_auth();
 
-        escrow.flags.released = true;
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+        let mut total_amount: i128 = 0;
+        for index in milestone_indices.iter() {
+            let milestone = escrow.milestones.get(index).unwrap();
+            total_amount += milestone.amount;
+        }
 
         let contract_address = e.current_contract_address();
         let token_client = TokenClient::new(e, &escrow.trustline.address);
 
-        if token_client.balance(&contract_address) < escrow.amount {
+        if token_client.balance(&contract_address) < total_amount {
             return Err(ContractError::EscrowBalanceNotEnoughToSendEarnings);
         }
 
         let fee_result =
-            FeeCalculator::calculate_standard_fees(escrow.amount, escrow.platform_fee)?;
+            FeeCalculator::calculate_standard_fees(total_amount, escrow.platform_fee)?;
 
         if fee_result.trustless_work_fee > 0 {
             token_client.transfer(
@@ -81,9 +82,9 @@ impl EscrowManager {
 
         if fee_result.platform_fee > 0 {
             token_client.transfer(
-            &contract_address,
-            &escrow.roles.platform,
-            &fee_result.platform_fee,
+                &contract_address,
+                &escrow.roles.platform,
+                &fee_result.platform_fee,
             );
         }
 
@@ -91,6 +92,21 @@ impl EscrowManager {
         if fee_result.receiver_amount > 0 {
             token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
         }
+
+        for index in milestone_indices.iter() {
+            let mut milestone = escrow.milestones.get(index).unwrap();
+            milestone.released = true;
+            escrow.milestones.set(index, milestone);
+        }
+
+        if escrow.milestones.iter().all(|m| m.released) {
+            escrow.flags.released = true;
+        }
+
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(())
     }

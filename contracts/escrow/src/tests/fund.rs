@@ -36,6 +36,8 @@ fn test_fund_escrow_successful_deposit() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -138,6 +140,8 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -223,6 +227,8 @@ fn test_release_funds_successful_flow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 50_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -233,6 +239,8 @@ fn test_release_funds_successful_flow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 50_000_000,
+            released: false,
         },
     ];
 
@@ -280,7 +288,7 @@ fn test_release_funds_successful_flow() {
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     escrow_approver.approve_milestones(&vec![&env, 1u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32, 1u32]);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -351,6 +359,8 @@ fn test_release_funds_milestones_incomplete() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 50_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -361,6 +371,8 @@ fn test_release_funds_milestones_incomplete() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 50_000_000,
+            released: false,
         },
     ];
 
@@ -407,7 +419,7 @@ fn test_release_funds_milestones_incomplete() {
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
     let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32, 1u32]);
     assert!(result.is_err());
 }
 
@@ -444,6 +456,8 @@ fn test_release_funds_same_receiver_as_provider() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -490,7 +504,7 @@ fn test_release_funds_same_receiver_as_provider() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -557,6 +571,8 @@ fn test_release_funds_invalid_receiver_fallback() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -603,7 +619,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -642,6 +658,188 @@ fn test_release_funds_invalid_receiver_fallback() {
         0,
         "Contract should have zero balance after claiming earnings"
     );
+}
+
+#[test]
+fn test_batch_release_partial_then_full() {
+    // Release milestone 0 first, then milestone 1, verifying partial and full release logic.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let receiver_address = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let amount: i128 = 100_000_000;
+    let platform_fee = 5 * 100; // 5%
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Completed"),
+            evidence: String::from_str(&env, "Evidence A"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 40_000_000,
+            released: false,
+        },
+        Milestone {
+            description: String::from_str(&env, "Second milestone"),
+            status: String::from_str(&env, "Completed"),
+            evidence: String::from_str(&env, "Evidence B"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 60_000_000,
+            released: false,
+        },
+    ];
+
+    let roles = Roles {
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
+        receiver: receiver_address.clone(),
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "batch_release_test"),
+        title: String::from_str(&env, "Batch Release Test"),
+        description: String::from_str(&env, "Test batch milestone release"),
+        roles,
+        amount,
+        platform_fee,
+        milestones,
+        flags: Flags { disputed: false, released: false, resolved: false },
+        trustline: Trustline { address: usdc_token.0.address.clone() },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+    usdc_token.1.mint(&client.address, &amount);
+
+    client.approve_milestones(&vec![&env, 0u32], &approver_address);
+    client.approve_milestones(&vec![&env, 1u32], &approver_address);
+
+    // Release only milestone 0
+    client.release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
+
+    let m0_amount: i128 = 40_000_000;
+    let tw_fee_0 = (m0_amount * 30) / 10000;
+    let platform_fee_0 = (m0_amount * platform_fee as i128) / 10000;
+    let receiver_0 = m0_amount - tw_fee_0 - platform_fee_0;
+
+    assert_eq!(usdc_token.0.balance(&trustless_work_address), tw_fee_0);
+    assert_eq!(usdc_token.0.balance(&platform), platform_fee_0);
+    assert_eq!(usdc_token.0.balance(&receiver_address), receiver_0);
+
+    // Escrow should not be fully released yet
+    let escrow_after_first = client.get_escrow();
+    assert!(!escrow_after_first.flags.released);
+    assert!(escrow_after_first.milestones.get(0).unwrap().released);
+    assert!(!escrow_after_first.milestones.get(1).unwrap().released);
+
+    // Trying to release milestone 0 again must fail
+    let result = client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
+    assert!(result.is_err(), "Re-releasing an already released milestone must fail");
+
+    // Release milestone 1
+    client.release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 1u32]);
+
+    let m1_amount: i128 = 60_000_000;
+    let tw_fee_1 = (m1_amount * 30) / 10000;
+    let platform_fee_1 = (m1_amount * platform_fee as i128) / 10000;
+    let receiver_1 = m1_amount - tw_fee_1 - platform_fee_1;
+
+    assert_eq!(usdc_token.0.balance(&trustless_work_address), tw_fee_0 + tw_fee_1);
+    assert_eq!(usdc_token.0.balance(&platform), platform_fee_0 + platform_fee_1);
+    assert_eq!(usdc_token.0.balance(&receiver_address), receiver_0 + receiver_1);
+    assert_eq!(usdc_token.0.balance(&client.address), 0);
+
+    // Now all milestones released — escrow flag should be set
+    let escrow_final = client.get_escrow();
+    assert!(escrow_final.flags.released);
+}
+
+#[test]
+fn test_release_unapproved_milestone_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let receiver_address = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 100_000_000,
+            released: false,
+        },
+    ];
+
+    let roles = Roles {
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
+        receiver: receiver_address.clone(),
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "unapproved_release_test"),
+        title: String::from_str(&env, "Unapproved Release Test"),
+        description: String::from_str(&env, ""),
+        roles,
+        amount: 100_000_000,
+        platform_fee: 300,
+        milestones,
+        flags: Flags { disputed: false, released: false, resolved: false },
+        trustline: Trustline { address: usdc_token.0.address.clone() },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+    usdc_token.1.mint(&client.address, &100_000_000);
+
+    let result = client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
+    assert!(result.is_err(), "Releasing unapproved milestone must fail");
 }
 
 #[test]
@@ -684,6 +882,8 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 1_000_000,
+            released: false,
         },
     ];
 
@@ -729,7 +929,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 
     client.approve_milestones(&vec![&env, 0u32], &approver);
 
-    client.release_funds(&release_signer, &trustless_work_address);
+    client.release_funds(&release_signer, &trustless_work_address, &vec![&env, 0u32]);
 
     // Simulate remaining funds (e.g. from overfunding or rounding leftovers)
     let remaining: i128 = 100_003;

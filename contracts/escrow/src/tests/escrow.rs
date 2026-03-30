@@ -30,6 +30,8 @@ fn test_initialize_excrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -40,6 +42,8 @@ fn test_initialize_excrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -140,6 +144,8 @@ fn test_update_escrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -150,6 +156,8 @@ fn test_update_escrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -205,6 +213,8 @@ fn test_update_escrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
@@ -215,6 +225,8 @@ fn test_update_escrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
@@ -225,6 +237,8 @@ fn test_update_escrow() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -303,6 +317,8 @@ fn test_update_escrow_platform_fee_too_high() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 
@@ -390,6 +406,8 @@ fn test_initialize_escrow_platform_fee_too_high() {
                 approval_count: 0,
                 approvers: vec![&env],
             },
+            amount: 100_000_000,
+            released: false,
         },
     ];
 

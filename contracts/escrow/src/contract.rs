@@ -68,8 +68,9 @@ impl EscrowContract {
         e: &Env,
         release_signer: Address,
         trustless_work_address: Address,
+        milestone_indices: Vec<u32>,
     ) -> Result<(), ContractError> {
-        EscrowManager::release_funds(e, &release_signer, &trustless_work_address)?;
+        EscrowManager::release_funds(e, &release_signer, &trustless_work_address, milestone_indices)?;
         DisEsc { release_signer }.publish(e);
         Ok(())
     }
