@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Map};
 
 use crate::{
     error::ContractError,
-    storage::types::{Escrow, Roles},
+    storage::types::Escrow,
 };
 
 const MAX_DISTRIBUTIONS: u32 = 50;
@@ -20,7 +20,7 @@ pub fn validate_withdraw_remaining_funds_conditions(
         return Err(ContractError::TooManyDistributions);
     }
 
-    if dispute_resolver != &escrow.roles.dispute_resolver {
+    if !escrow.roles.dispute_resolvers.contains(dispute_resolver) {
         return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
@@ -51,7 +51,7 @@ pub fn validate_dispute_resolution_conditions(
         return Err(ContractError::TooManyDistributions);
     }
 
-    if dispute_resolver != &escrow.roles.dispute_resolver {
+    if !escrow.roles.dispute_resolvers.contains(dispute_resolver) {
         return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
@@ -87,28 +87,18 @@ pub fn validate_dispute_flag_change_conditions(
         return Err(ContractError::EscrowAlreadyResolved);
     }
 
-    let Roles {
-        approver,
-        service_provider,
-        platform,
-        release_signer,
-        dispute_resolver,
-        receiver,
-    } = &escrow.roles;
+    if escrow.roles.dispute_resolvers.contains(signer) {
+        return Err(ContractError::DisputeResolverCannotDisputeTheEscrow);
+    }
 
-    let is_authorized = signer == approver
-        || signer == service_provider
-        || signer == platform
-        || signer == release_signer
-        || signer == dispute_resolver
-        || signer == receiver;
+    let is_authorized = escrow.roles.approvers.contains(signer)
+        || escrow.roles.service_providers.contains(signer)
+        || signer == &escrow.roles.platform
+        || escrow.roles.release_signers.contains(signer)
+        || signer == &escrow.roles.receiver;
 
     if !is_authorized {
         return Err(ContractError::UnauthorizedToChangeDisputeFlag);
-    }
-
-    if signer == dispute_resolver {
-        return Err(ContractError::DisputeResolverCannotDisputeTheEscrow);
     }
 
     Ok(())

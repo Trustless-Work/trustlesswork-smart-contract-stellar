@@ -46,6 +46,11 @@ pub enum ContractError {
     ApproverAlreadyApprovedMilestone = 48,
     BatchMilestoneApproveEmpty = 49,
     QuorumCannotBeZero = 50,
+    UnauthorizedApprover = 51,
+    ApproversListEmpty = 52,
+    ServiceProvidersListEmpty = 53,
+    ReleaseSignersListEmpty = 54,
+    DisputeResolversListEmpty = 55,
 }
 
 // impl fmt::Display for ContractError {

@@ -39,11 +39,11 @@ fn test_dispute_management() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -130,11 +130,11 @@ fn test_dispute_resolution_process() {
     ];
 
     let roles: Roles = Roles {
-        approver: approver_address.clone(),
-        service_provider: service_provider_address.clone(),
+        approvers: vec![&env, approver_address.clone()],
+        service_providers: vec![&env, service_provider_address.clone()],
         platform: platform.clone(),
-        release_signer: release_signer_address.clone(),
-        dispute_resolver: dispute_resolver_address.clone(),
+        release_signers: vec![&env, release_signer_address.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
     };
 
@@ -278,11 +278,11 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let usdc_token = create_usdc_token(&env, &admin);
 
     let roles = Roles {
-        approver: approver.clone(),
-        service_provider: service_provider.clone(),
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
         platform: platform.clone(),
-        release_signer: release_signer.clone(),
-        dispute_resolver: dispute_resolver.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
     };
 
@@ -368,11 +368,11 @@ fn test_resolve_dispute_rounding_edge_case() {
     let platform_fee: u32 = 300; // 3%
 
     let roles = Roles {
-        approver: approver.clone(),
-        service_provider: service_provider.clone(),
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
         platform: platform.clone(),
-        release_signer: release_signer.clone(),
-        dispute_resolver: dispute_resolver.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
     };
 
