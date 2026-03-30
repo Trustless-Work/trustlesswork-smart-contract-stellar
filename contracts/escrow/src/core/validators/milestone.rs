@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Vec};
 
 use crate::{
     error::ContractError,
-    storage::types::{Escrow, Milestone, MilestoneStatusUpdate},
+    storage::types::{Escrow, MilestoneStatusUpdate},
 };
 
 #[inline]
@@ -37,30 +37,35 @@ pub fn validate_batch_milestone_status_change(
 }
 
 #[inline]
-pub fn validate_milestone_flag_change_conditions(
+pub fn validate_batch_milestone_approve(
     escrow: &Escrow,
-    milestone: &Milestone,
     approver: &Address,
-    milestone_index: &u32,
+    milestone_indices: &Vec<u32>,
 ) -> Result<(), ContractError> {
-    if approver != &escrow.roles.approver {
-        return Err(ContractError::OnlyApproverChangeMilstoneFlag);
-    }
-
-    if milestone.approved {
-        return Err(ContractError::MilestoneHasAlreadyBeenApproved);
-    }
-
-    if milestone.status.is_empty() {
-        return Err(ContractError::EmptyMilestoneStatus);
+    if milestone_indices.is_empty() {
+        return Err(ContractError::BatchMilestoneApproveEmpty);
     }
 
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
     }
 
-    if *milestone_index >= escrow.milestones.len() {
-        return Err(ContractError::MilestoneToApproveDoesNotExist);
+    for index in milestone_indices.iter() {
+        if index >= escrow.milestones.len() {
+            return Err(ContractError::MilestoneToApproveDoesNotExist);
+        }
+
+        let milestone = escrow.milestones.get(index).unwrap();
+
+        if milestone.approvals.quorum > 0
+            && milestone.approvals.approval_count >= milestone.approvals.quorum
+        {
+            return Err(ContractError::MilestoneHasAlreadyBeenApproved);
+        }
+
+        if milestone.approvals.approvers.contains(approver) {
+            return Err(ContractError::ApproverAlreadyApprovedMilestone);
+        }
     }
 
     Ok(())
