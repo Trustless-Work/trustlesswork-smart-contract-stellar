@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, MilestoneStatusUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -680,10 +680,15 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     client.fund_escrow(&approver, &escrow_properties, &escrow_amount);
 
     client.change_milestone_status(
-        &0,
-        &String::from_str(&env, "Completed"),
-        &Some(String::from_str(&env, "Done")),
-        &service_provider
+        &vec![
+            &env,
+            MilestoneStatusUpdate {
+                milestone_index: 0,
+                new_status: String::from_str(&env, "Completed"),
+                new_evidence: Some(String::from_str(&env, "Done")),
+            },
+        ],
+        &service_provider,
     );
 
     client.approve_milestone(&0, &approver);
