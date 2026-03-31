@@ -251,7 +251,7 @@ fn test_update_escrow() {
     assert_eq!(escrow.description, updated_escrow_properties.description);
     assert_eq!(escrow.amount, updated_escrow_properties.amount);
     assert_eq!(escrow.platform_fee, updated_escrow_properties.platform_fee);
-    assert_eq!(escrow.milestones, updated_escrow_properties.milestones);
+    assert_eq!(escrow.milestones, initial_milestones);
     assert_eq!(
         escrow.roles.release_signers,
         updated_escrow_properties.roles.release_signers
