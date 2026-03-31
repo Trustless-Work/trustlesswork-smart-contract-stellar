@@ -10,7 +10,6 @@ pub struct Escrow {
     pub amount: i128,
     pub platform_fee: u32,
     pub milestones: Vec<Milestone>,
-    pub flags: Flags,
     pub trustline: Trustline,
     pub receiver_memo: u32,
 }
