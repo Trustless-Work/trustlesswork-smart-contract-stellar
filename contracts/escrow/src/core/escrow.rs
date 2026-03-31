@@ -97,7 +97,7 @@ impl EscrowManager {
     }
     pub fn change_escrow_properties(
         e: &Env,
-        platform: &Address,
+        admin: &Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, ContractError> {
         let existing_escrow = Self::get_escrow(e)?;
@@ -107,11 +107,11 @@ impl EscrowManager {
         validate_escrow_property_change_conditions(
             &existing_escrow,
             &escrow_properties,
-            platform,
+            admin,
             contract_balance,
         )?;
 
-        platform.require_auth();
+        admin.require_auth();
 
         let mut escrow_to_save = escrow_properties;
         escrow_to_save.milestones = existing_escrow.milestones.clone();
@@ -127,12 +127,12 @@ impl EscrowManager {
 
     pub fn add_milestones(
         e: &Env,
-        platform: &Address,
+        admin: &Address,
         new_milestones: Vec<Milestone>,
     ) -> Result<Escrow, ContractError> {
         let mut existing_escrow = Self::get_escrow(e)?;
-        validate_add_milestones_conditions(&existing_escrow, platform, &new_milestones)?;
-        platform.require_auth();
+        validate_add_milestones_conditions(&existing_escrow, admin, &new_milestones)?;
+        admin.require_auth();
         for milestone in new_milestones.iter() {
             existing_escrow.milestones.push_back(milestone);
         }

@@ -11,6 +11,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -27,6 +28,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let milestones = vec![

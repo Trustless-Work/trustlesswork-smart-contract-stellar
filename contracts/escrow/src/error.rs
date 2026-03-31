@@ -21,7 +21,6 @@ pub enum ContractError {
     Overflow = 17,
     Underflow = 18,
     DivisionError = 19,
-    MilestoneApprovedCantChangeEscrowProperties = 22,
     EscrowAlreadyResolved = 24,
     TooManyEscrowsRequested = 25,
     UnauthorizedToChangeDisputeFlag = 26,
@@ -51,6 +50,9 @@ pub enum ContractError {
     ServiceProvidersListEmpty = 53,
     ReleaseSignersListEmpty = 54,
     DisputeResolversListEmpty = 55,
+    OnlyAdminAddressExecuteThisFunction = 56,
+    AdminAddressCannotBeChanged = 57,
+    AdminAddressOverlapsWithOtherRole = 58,
 }
 
 // impl fmt::Display for ContractError {
