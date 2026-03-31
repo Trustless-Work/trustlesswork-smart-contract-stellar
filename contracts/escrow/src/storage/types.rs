@@ -31,8 +31,7 @@ pub struct Milestone {
     pub evidence: String,
     pub approvals: MilestoneApprovals,
     pub amount: i128,
-    pub released: bool,
-    pub disputed: bool,
+    pub flags: Flags,
 }
 
 #[contracttype]
@@ -56,7 +55,7 @@ pub struct Roles {
 }
 
 #[contracttype]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Flags {
     pub disputed: bool,
     pub released: bool,

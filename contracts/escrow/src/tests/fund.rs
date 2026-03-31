@@ -38,8 +38,7 @@ fn test_fund_escrow_successful_deposit() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -145,8 +144,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -235,8 +233,7 @@ fn test_release_funds_successful_flow() {
                 approvers: vec![&env],
             },
             amount: 50_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -248,8 +245,7 @@ fn test_release_funds_successful_flow() {
                 approvers: vec![&env],
             },
             amount: 50_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -371,8 +367,7 @@ fn test_release_funds_milestones_incomplete() {
                 approvers: vec![&env],
             },
             amount: 50_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -384,8 +379,7 @@ fn test_release_funds_milestones_incomplete() {
                 approvers: vec![&env],
             },
             amount: 50_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -472,8 +466,7 @@ fn test_release_funds_same_receiver_as_provider() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -590,8 +583,7 @@ fn test_release_funds_invalid_receiver_fallback() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -713,8 +705,7 @@ fn test_batch_release_partial_then_full() {
                 approvers: vec![&env],
             },
             amount: 40_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -726,8 +717,7 @@ fn test_batch_release_partial_then_full() {
                 approvers: vec![&env],
             },
             amount: 60_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -778,8 +768,8 @@ fn test_batch_release_partial_then_full() {
     // Escrow should not be fully released yet
     let escrow_after_first = client.get_escrow();
     assert!(!escrow_after_first.flags.released);
-    assert!(escrow_after_first.milestones.get(0).unwrap().released);
-    assert!(!escrow_after_first.milestones.get(1).unwrap().released);
+    assert!(escrow_after_first.milestones.get(0).unwrap().flags.released);
+    assert!(!escrow_after_first.milestones.get(1).unwrap().flags.released);
 
     // Trying to release milestone 0 again must fail
     let result = client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
@@ -832,8 +822,7 @@ fn test_release_unapproved_milestone_fails() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -912,8 +901,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
                 approvers: vec![&env],
             },
             amount: 1_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 

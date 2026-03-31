@@ -141,7 +141,7 @@ impl DisputeManager {
 
         for index in milestone_indices.iter() {
             let mut milestone = escrow.milestones.get(index).unwrap();
-            milestone.disputed = true;
+            milestone.flags.disputed = true;
             escrow.milestones.set(index, milestone);
         }
 

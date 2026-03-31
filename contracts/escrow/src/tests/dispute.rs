@@ -37,8 +37,7 @@ fn test_dispute_management() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -133,8 +132,7 @@ fn test_dispute_resolution_process() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -310,8 +308,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -405,8 +402,7 @@ fn test_resolve_dispute_rounding_edge_case() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -499,8 +495,7 @@ fn test_dispute_milestones_batch() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 40_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -508,8 +503,7 @@ fn test_dispute_milestones_batch() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 30_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -517,8 +511,7 @@ fn test_dispute_milestones_batch() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 30_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -552,9 +545,9 @@ fn test_dispute_milestones_batch() {
 
     let escrow = client.get_escrow();
     assert!(escrow.flags.disputed, "Escrow-level disputed flag must be set");
-    assert!(escrow.milestones.get(0).unwrap().disputed, "Milestone 0 must be disputed");
-    assert!(!escrow.milestones.get(1).unwrap().disputed, "Milestone 1 must NOT be disputed");
-    assert!(escrow.milestones.get(2).unwrap().disputed, "Milestone 2 must be disputed");
+    assert!(escrow.milestones.get(0).unwrap().flags.disputed, "Milestone 0 must be disputed");
+    assert!(!escrow.milestones.get(1).unwrap().flags.disputed, "Milestone 1 must NOT be disputed");
+    assert!(escrow.milestones.get(2).unwrap().flags.disputed, "Milestone 2 must be disputed");
 }
 
 #[test]
@@ -580,8 +573,7 @@ fn test_dispute_milestones_invalid_index_reverts() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -638,8 +630,7 @@ fn test_dispute_milestones_already_disputed_reverts() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -700,8 +691,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 

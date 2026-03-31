@@ -96,11 +96,11 @@ impl EscrowManager {
 
         for index in milestone_indices.iter() {
             let mut milestone = escrow.milestones.get(index).unwrap();
-            milestone.released = true;
+            milestone.flags.released = true;
             escrow.milestones.set(index, milestone);
         }
 
-        if escrow.milestones.iter().all(|m| m.released) {
+        if escrow.milestones.iter().all(|m| m.flags.released) {
             escrow.flags.released = true;
         }
 

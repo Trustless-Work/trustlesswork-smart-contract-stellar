@@ -43,8 +43,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 

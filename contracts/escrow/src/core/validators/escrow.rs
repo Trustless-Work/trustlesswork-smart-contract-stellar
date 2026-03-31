@@ -44,7 +44,7 @@ pub fn validate_release_milestones_conditions(
             return Err(EscrowError::EscrowNotCompleted);
         }
 
-        if milestone.released {
+        if milestone.flags.released {
             return Err(EscrowError::MilestoneAlreadyReleased);
         }
     }
@@ -188,7 +188,7 @@ pub fn validate_add_milestones_conditions(
         if milestone.approvals.quorum == 0 {
             return Err(EscrowError::QuorumCannotBeZero);
         }
-        if milestone.approvals.approval_count > 0 || milestone.released {
+        if milestone.approvals.approval_count > 0 || milestone.flags.released {
             return Err(EscrowError::FlagsMustBeFalse);
         }
     }

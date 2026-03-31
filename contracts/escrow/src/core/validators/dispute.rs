@@ -109,11 +109,11 @@ pub fn validate_batch_milestone_dispute_conditions(
 
         let milestone = escrow.milestones.get(index).unwrap();
 
-        if milestone.disputed {
+        if milestone.flags.disputed {
             return Err(EscrowError::MilestoneAlreadyDisputed);
         }
 
-        if milestone.released {
+        if milestone.flags.released {
             return Err(EscrowError::MilestoneAlreadyReleased);
         }
     }

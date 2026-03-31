@@ -32,8 +32,7 @@ fn test_initialize_excrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -45,8 +44,7 @@ fn test_initialize_excrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -150,8 +148,7 @@ fn test_update_escrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -163,8 +160,7 @@ fn test_update_escrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -222,8 +218,7 @@ fn test_update_escrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
@@ -235,8 +230,7 @@ fn test_update_escrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
@@ -248,8 +242,7 @@ fn test_update_escrow() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -330,8 +323,7 @@ fn test_update_escrow_platform_fee_too_high() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -422,8 +414,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
                 approvers: vec![&env],
             },
             amount: 100_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
@@ -504,8 +495,7 @@ fn test_admin_role_overlap() {
                 approvers: vec![&env],
             },
             amount: 1_000_000,
-            released: false,
-            disputed: false,
+            flags: Flags { disputed: false, released: false, resolved: false },
         },
     ];
 
