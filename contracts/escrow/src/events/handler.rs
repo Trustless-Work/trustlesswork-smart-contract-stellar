@@ -61,6 +61,12 @@ pub struct MilestonesAdded {
     pub escrow: Escrow,
 }
 
+#[contractevent(topics = ["tw_ms_dispute"], data_format = "vec")]
+#[derive(Clone)]
+pub struct MilestonesDisputed {
+    pub escrow: Escrow,
+}
+
 // Admin / TTL
 #[contractevent(topics = ["tw_ttl_extend"], data_format = "vec")]
 #[derive(Clone)]

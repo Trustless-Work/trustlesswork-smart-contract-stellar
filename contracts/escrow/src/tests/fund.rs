@@ -39,6 +39,7 @@ fn test_fund_escrow_successful_deposit() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -145,6 +146,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -234,6 +236,7 @@ fn test_release_funds_successful_flow() {
             },
             amount: 50_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -246,6 +249,7 @@ fn test_release_funds_successful_flow() {
             },
             amount: 50_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -368,6 +372,7 @@ fn test_release_funds_milestones_incomplete() {
             },
             amount: 50_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -380,6 +385,7 @@ fn test_release_funds_milestones_incomplete() {
             },
             amount: 50_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -467,6 +473,7 @@ fn test_release_funds_same_receiver_as_provider() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -584,6 +591,7 @@ fn test_release_funds_invalid_receiver_fallback() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -706,6 +714,7 @@ fn test_batch_release_partial_then_full() {
             },
             amount: 40_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -718,6 +727,7 @@ fn test_batch_release_partial_then_full() {
             },
             amount: 60_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -823,6 +833,7 @@ fn test_release_unapproved_milestone_fails() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -902,6 +913,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             },
             amount: 1_000_000,
             released: false,
+            disputed: false,
         },
     ];
 

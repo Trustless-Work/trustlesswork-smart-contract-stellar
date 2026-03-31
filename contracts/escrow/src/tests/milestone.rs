@@ -37,6 +37,7 @@ fn test_append_milestones_with_funds() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -49,6 +50,7 @@ fn test_append_milestones_with_funds() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -109,6 +111,7 @@ fn test_append_milestones_with_funds() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -176,6 +179,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -188,6 +192,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -252,6 +257,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -318,6 +324,7 @@ fn test_change_milestone_status_and_approved() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -330,6 +337,7 @@ fn test_change_milestone_status_and_approved() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -465,6 +473,7 @@ fn test_change_milestone_status_batch() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -477,6 +486,7 @@ fn test_change_milestone_status_batch() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -489,6 +499,7 @@ fn test_change_milestone_status_batch() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -604,6 +615,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -616,6 +628,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -711,6 +724,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -791,6 +805,7 @@ fn test_quorum_requires_multiple_approvers() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -897,6 +912,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -909,6 +925,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -921,6 +938,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -1014,6 +1032,7 @@ fn test_add_milestones() {
             },
             amount: 50_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -1056,6 +1075,7 @@ fn test_add_milestones() {
             },
             amount: 25_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -1068,6 +1088,7 @@ fn test_add_milestones() {
             },
             amount: 25_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -1108,6 +1129,7 @@ fn test_add_milestones() {
             },
             amount: 10_000_000,
             released: true,
+            disputed: false,
         },
     ];
     let result = client.try_add_milestones(&escrow_admin, &already_released);
@@ -1127,6 +1149,7 @@ fn test_add_milestones() {
             },
             amount: 10_000_000,
             released: false,
+            disputed: false,
         },
     ];
     let result = client.try_add_milestones(&escrow_admin, &bad_quorum);

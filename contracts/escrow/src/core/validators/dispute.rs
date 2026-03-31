@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Map};
+use soroban_sdk::{Address, Map, Vec};
 
 use crate::{
     error::EscrowError,
@@ -69,6 +69,53 @@ pub fn validate_dispute_resolution_conditions(
 
     if total <= 0 {
         return Err(EscrowError::TotalAmountCannotBeZero);
+    }
+
+    Ok(())
+}
+
+#[inline]
+pub fn validate_batch_milestone_dispute_conditions(
+    escrow: &Escrow,
+    signer: &Address,
+    milestone_indices: &Vec<u32>,
+) -> Result<(), EscrowError> {
+    if milestone_indices.is_empty() {
+        return Err(EscrowError::BatchMilestoneDisputeEmpty);
+    }
+
+    if escrow.flags.resolved {
+        return Err(EscrowError::EscrowAlreadyResolved);
+    }
+
+    if escrow.roles.dispute_resolvers.contains(signer) {
+        return Err(EscrowError::DisputeResolverCannotDisputeTheEscrow);
+    }
+
+    let is_authorized = escrow.roles.approvers.contains(signer)
+        || escrow.roles.service_providers.contains(signer)
+        || signer == &escrow.roles.platform
+        || escrow.roles.release_signers.contains(signer)
+        || signer == &escrow.roles.receiver;
+
+    if !is_authorized {
+        return Err(EscrowError::UnauthorizedToChangeDisputeFlag);
+    }
+
+    for index in milestone_indices.iter() {
+        if index >= escrow.milestones.len() {
+            return Err(EscrowError::InvalidMilestoneIndex);
+        }
+
+        let milestone = escrow.milestones.get(index).unwrap();
+
+        if milestone.disputed {
+            return Err(EscrowError::MilestoneAlreadyDisputed);
+        }
+
+        if milestone.released {
+            return Err(EscrowError::MilestoneAlreadyReleased);
+        }
     }
 
     Ok(())

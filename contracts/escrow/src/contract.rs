@@ -4,7 +4,7 @@ use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError};
 use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
-    MilestonesAdded, MilestonesApproved, MilestoneStatusChanged,
+    MilestonesAdded, MilestonesApproved, MilestoneStatusChanged, MilestonesDisputed,
 };
 use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneStatusUpdate};
 
@@ -197,6 +197,16 @@ impl EscrowContract {
             distributions,
         )?;
         DisputeResolved { escrow }.publish(&e);
+        Ok(())
+    }
+
+    pub fn dispute_milestones(
+        e: Env,
+        signer: Address,
+        milestone_indices: Vec<u32>,
+    ) -> Result<(), EscrowError> {
+        let escrow = DisputeManager::dispute_milestones(&e, signer, milestone_indices)?;
+        MilestonesDisputed { escrow }.publish(&e);
         Ok(())
     }
 

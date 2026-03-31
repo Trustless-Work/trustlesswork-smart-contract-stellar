@@ -44,6 +44,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 

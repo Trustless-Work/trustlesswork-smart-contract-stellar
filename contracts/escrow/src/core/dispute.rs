@@ -1,5 +1,5 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Map};
+use soroban_sdk::{Address, Env, Map, Vec};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
@@ -12,7 +12,8 @@ use crate::modules::{
 use crate::storage::types::{DataKey, Escrow};
 
 use super::validators::dispute::{
-    validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
+    validate_batch_milestone_dispute_conditions, validate_dispute_flag_change_conditions,
+    validate_dispute_resolution_conditions,
 };
 
 pub struct DisputeManager;
@@ -120,6 +121,31 @@ impl DisputeManager {
 
         escrow.flags.resolved = true;
         escrow.flags.disputed = false;
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+
+        Ok(escrow)
+    }
+
+    pub fn dispute_milestones(
+        e: &Env,
+        signer: Address,
+        milestone_indices: Vec<u32>,
+    ) -> Result<Escrow, EscrowError> {
+        let mut escrow = EscrowManager::get_escrow(e)?;
+        validate_batch_milestone_dispute_conditions(&escrow, &signer, &milestone_indices)?;
+
+        signer.require_auth();
+
+        for index in milestone_indices.iter() {
+            let mut milestone = escrow.milestones.get(index).unwrap();
+            milestone.disputed = true;
+            escrow.milestones.set(index, milestone);
+        }
+
+        escrow.flags.disputed = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()

@@ -33,6 +33,7 @@ fn test_initialize_excrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -45,6 +46,7 @@ fn test_initialize_excrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -149,6 +151,7 @@ fn test_update_escrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -161,6 +164,7 @@ fn test_update_escrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -219,6 +223,7 @@ fn test_update_escrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
@@ -231,6 +236,7 @@ fn test_update_escrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
@@ -243,6 +249,7 @@ fn test_update_escrow() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -324,6 +331,7 @@ fn test_update_escrow_platform_fee_too_high() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -415,6 +423,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
             },
             amount: 100_000_000,
             released: false,
+            disputed: false,
         },
     ];
 
@@ -496,6 +505,7 @@ fn test_admin_role_overlap() {
             },
             amount: 1_000_000,
             released: false,
+            disputed: false,
         },
     ];
 

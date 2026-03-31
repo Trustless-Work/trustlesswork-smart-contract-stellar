@@ -45,6 +45,8 @@ pub enum EscrowError {
     ReleaseMilestonesEmpty = 40,
     MilestoneAlreadyReleased = 41,
     InvalidMilestoneIndex = 42,
+    BatchMilestoneDisputeEmpty = 43,
+    MilestoneAlreadyDisputed = 44,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

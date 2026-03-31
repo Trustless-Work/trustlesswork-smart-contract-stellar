@@ -32,6 +32,7 @@ pub struct Milestone {
     pub approvals: MilestoneApprovals,
     pub amount: i128,
     pub released: bool,
+    pub disputed: bool,
 }
 
 #[contracttype]
