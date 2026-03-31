@@ -77,16 +77,16 @@ impl EscrowContract {
 
     pub fn update_escrow(
         e: &Env,
-        plataform_address: Address,
+        admin_address: Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, ContractError> {
         let updated_escrow = EscrowManager::change_escrow_properties(
             e,
-            &plataform_address,
+            &admin_address,
             escrow_properties.clone(),
         )?;
         ChgEsc {
-            platform: plataform_address,
+            platform: admin_address,
             engagement_id: escrow_properties.engagement_id.clone(),
             new_escrow_properties: updated_escrow.clone(),
         }
@@ -96,11 +96,11 @@ impl EscrowContract {
 
     pub fn add_milestones(
         e: &Env,
-        platform_address: Address,
+        admin_address: Address,
         new_milestones: Vec<Milestone>,
     ) -> Result<Escrow, ContractError> {
         let updated_escrow =
-            EscrowManager::add_milestones(e, &platform_address, new_milestones)?;
+            EscrowManager::add_milestones(e, &admin_address, new_milestones)?;
         MilestonesAdded {
             escrow: updated_escrow.clone(),
         }
@@ -132,15 +132,15 @@ impl EscrowContract {
 
     pub fn extend_contract_ttl(
         e: &Env,
-        platform: Address,
+        admin: Address,
         ledgers_to_extend: u32,
     ) -> Result<(), ContractError> {
         let escrow = EscrowManager::get_escrow(e)?;
-        if platform != escrow.roles.platform {
-            return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+        if admin != escrow.roles.admin {
+            return Err(ContractError::OnlyAdminAddressExecuteThisFunction);
         }
 
-        platform.require_auth();
+        admin.require_auth();
 
         let min_ledgers = 17280u32;
         e.storage()
@@ -148,7 +148,7 @@ impl EscrowContract {
             .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
         ExtTtlEvt {
-            platform: platform,
+            platform: admin,
             ledgers_to_extend,
         }
         .publish(e);

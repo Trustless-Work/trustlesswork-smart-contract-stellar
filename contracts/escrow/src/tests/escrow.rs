@@ -12,6 +12,7 @@ fn test_initialize_excrow() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let amount: i128 = 100_000_000;
     let service_provider_address = Address::generate(&env);
@@ -58,6 +59,7 @@ fn test_initialize_excrow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -124,6 +126,7 @@ fn test_update_escrow() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -170,6 +173,7 @@ fn test_update_escrow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -257,7 +261,7 @@ fn test_update_escrow() {
 
     // Update escrow properties
     let _updated_escrow =
-        escrow_approver.update_escrow(&platform, &updated_escrow_properties);
+        escrow_approver.update_escrow(&escrow_admin, &updated_escrow_properties);
 
     // Verify updated escrow properties
     let escrow = escrow_approver.get_escrow();
@@ -283,10 +287,10 @@ fn test_update_escrow() {
         updated_escrow_properties.receiver_memo
     );
 
-    // Try to update escrow properties without platform address (should fail)
-    let non_platform = Address::generate(&env);
+    // Try to update escrow properties without admin address (should fail)
+    let non_admin = Address::generate(&env);
     let result =
-        escrow_approver.try_update_escrow(&non_platform, &updated_escrow_properties);
+        escrow_approver.try_update_escrow(&non_admin, &updated_escrow_properties);
     assert!(result.is_err());
 }
 
@@ -297,6 +301,7 @@ fn test_update_escrow_platform_fee_too_high() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -334,6 +339,7 @@ fn test_update_escrow_platform_fee_too_high() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -373,7 +379,7 @@ fn test_update_escrow_platform_fee_too_high() {
         receiver_memo: 0,
     };
 
-    let res = client.try_update_escrow(&platform, &invalid_update);
+    let res = client.try_update_escrow(&escrow_admin, &invalid_update);
     assert!(
         res.is_err(),
         "Update should fail with platform fee > 99% cap"
@@ -387,6 +393,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -423,6 +430,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -451,4 +459,103 @@ fn test_initialize_escrow_platform_fee_too_high() {
         res.is_err(),
         "Initialization should fail with platform fee > 99% cap"
     );
+}
+
+#[test]
+fn test_admin_role_overlap() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let receiver_address = Address::generate(&env);
+
+    let (token_client, _admin_client) = create_usdc_token(&env, &admin);
+    let trustline = Trustline {
+        address: token_client.address.clone(),
+    };
+    let flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, "e"),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 1_000_000,
+            released: false,
+        },
+    ];
+
+    let make_escrow = |escrow_admin: Address| -> Escrow {
+        Escrow {
+            engagement_id: String::from_str(&env, "overlap_test"),
+            title: String::from_str(&env, "Escrow"),
+            description: String::from_str(&env, "Desc"),
+            roles: Roles {
+                approvers: vec![&env, approver_address.clone()],
+                service_providers: vec![&env, service_provider_address.clone()],
+                platform: platform.clone(),
+                release_signers: vec![&env, release_signer_address.clone()],
+                dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
+                receiver: receiver_address.clone(),
+                admin: escrow_admin,
+            },
+            amount: 1_000_000,
+            platform_fee: 300,
+            milestones: milestones.clone(),
+            flags: flags.clone(),
+            trustline: trustline.clone(),
+            receiver_memo: 0,
+        }
+    };
+
+    // admin == approver must fail
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(approver_address.clone()));
+    assert!(res.is_err(), "Init must fail when admin == approver");
+
+    // admin == service_provider must fail
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(service_provider_address.clone()));
+    assert!(res.is_err(), "Init must fail when admin == service_provider");
+
+    // admin == release_signer must fail
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(release_signer_address.clone()));
+    assert!(res.is_err(), "Init must fail when admin == release_signer");
+
+    // admin == receiver must fail
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(receiver_address.clone()));
+    assert!(res.is_err(), "Init must fail when admin == receiver");
+
+    // admin == dispute_resolver must fail
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(dispute_resolver_address.clone()));
+    assert!(res.is_err(), "Init must fail when admin == dispute_resolver");
+
+    // distinct admin must succeed
+    let escrow_admin = Address::generate(&env);
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&make_escrow(escrow_admin));
+    assert!(res.is_ok(), "Init must succeed with distinct admin");
 }

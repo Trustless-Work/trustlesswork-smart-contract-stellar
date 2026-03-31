@@ -11,6 +11,7 @@ fn test_dispute_management() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -47,6 +48,7 @@ fn test_dispute_management() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -103,6 +105,7 @@ fn test_dispute_resolution_process() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -140,6 +143,7 @@ fn test_dispute_resolution_process() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -271,6 +275,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -288,6 +293,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let milestones = vec![
@@ -355,6 +361,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -380,6 +387,7 @@ fn test_resolve_dispute_rounding_edge_case() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let milestones = vec![

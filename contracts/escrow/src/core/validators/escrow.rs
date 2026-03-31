@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
     error::ContractError,
-    storage::types::{DataKey, Escrow, Milestone},
+    storage::types::{DataKey, Escrow, Milestone, Roles},
 };
 
 #[inline]
@@ -53,10 +53,23 @@ pub fn validate_release_milestones_conditions(
 }
 
 #[inline]
+fn validate_admin_role_overlap(roles: &Roles) -> Result<(), ContractError> {
+    if roles.approvers.contains(&roles.admin)
+        || roles.service_providers.contains(&roles.admin)
+        || roles.release_signers.contains(&roles.admin)
+        || roles.dispute_resolvers.contains(&roles.admin)
+        || roles.admin == roles.receiver
+    {
+        return Err(ContractError::AdminAddressOverlapsWithOtherRole);
+    }
+    Ok(())
+}
+
+#[inline]
 pub fn validate_escrow_conditions(
     existing_escrow: Option<&Escrow>,
     new_escrow: &Escrow,
-    platform: Option<&Address>,
+    admin: Option<&Address>,
     contract_balance: Option<i128>,
     is_init: bool,
 ) -> Result<(), ContractError> {
@@ -101,16 +114,21 @@ pub fn validate_escrow_conditions(
         if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
             return Err(ContractError::QuorumCannotBeZero);
         }
+        validate_admin_role_overlap(&new_escrow.roles)?;
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
         let caller =
-            platform.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
-        if caller != &existing.roles.platform {
-            return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+            admin.ok_or(ContractError::OnlyAdminAddressExecuteThisFunction)?;
+        if caller != &existing.roles.admin {
+            return Err(ContractError::OnlyAdminAddressExecuteThisFunction);
+        }
+
+        if existing.roles.admin != new_escrow.roles.admin {
+            return Err(ContractError::AdminAddressCannotBeChanged);
         }
 
         if existing.roles.platform != new_escrow.roles.platform {
-            return Err(ContractError::PlatformAddressCannotBeChanged);
+            return Err(ContractError::AdminAddressCannotBeChanged);
         }
 
         if existing.flags.disputed {
@@ -136,6 +154,7 @@ pub fn validate_escrow_conditions(
                 return Err(ContractError::EscrowPropertiesMismatch);
             }
         }
+        validate_admin_role_overlap(&new_escrow.roles)?;
     }
 
     Ok(())
@@ -144,11 +163,11 @@ pub fn validate_escrow_conditions(
 #[inline]
 pub fn validate_add_milestones_conditions(
     existing_escrow: &Escrow,
-    platform: &Address,
+    admin: &Address,
     new_milestones: &Vec<Milestone>,
 ) -> Result<(), ContractError> {
-    if platform != &existing_escrow.roles.platform {
-        return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+    if admin != &existing_escrow.roles.admin {
+        return Err(ContractError::OnlyAdminAddressExecuteThisFunction);
     }
     if existing_escrow.flags.disputed {
         return Err(ContractError::EscrowOpenedForDisputeResolution);
@@ -180,13 +199,13 @@ pub fn validate_add_milestones_conditions(
 pub fn validate_escrow_property_change_conditions(
     existing_escrow: &Escrow,
     new_escrow: &Escrow,
-    platform: &Address,
+    admin: &Address,
     contract_balance: i128,
 ) -> Result<(), ContractError> {
     validate_escrow_conditions(
         Some(existing_escrow),
         new_escrow,
-        Some(platform),
+        Some(admin),
         Some(contract_balance),
         false,
     )

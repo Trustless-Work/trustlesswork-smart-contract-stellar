@@ -12,6 +12,7 @@ fn test_append_milestones_with_funds() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -58,6 +59,7 @@ fn test_append_milestones_with_funds() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -110,7 +112,7 @@ fn test_append_milestones_with_funds() {
         },
     ];
 
-    escrow_approver.add_milestones(&platform, &new_milestones_to_add);
+    escrow_approver.add_milestones(&escrow_admin, &new_milestones_to_add);
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.milestones.len(), 3);
@@ -149,6 +151,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
 
     let approver_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
@@ -195,6 +198,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -251,7 +255,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         },
     ];
 
-    escrow_client.add_milestones(&platform, &new_milestones_to_add);
+    escrow_client.add_milestones(&escrow_admin, &new_milestones_to_add);
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
@@ -293,6 +297,7 @@ fn test_change_milestone_status_and_approved() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
@@ -335,6 +340,7 @@ fn test_change_milestone_status_and_approved() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -438,6 +444,7 @@ fn test_change_milestone_status_batch() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
@@ -492,6 +499,7 @@ fn test_change_milestone_status_batch() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -575,6 +583,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
@@ -617,6 +626,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -680,6 +690,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
@@ -710,6 +721,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -757,6 +769,7 @@ fn test_quorum_requires_multiple_approvers() {
     let approver_b = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -788,6 +801,7 @@ fn test_quorum_requires_multiple_approvers() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let escrow_properties: Escrow = Escrow {
@@ -862,6 +876,7 @@ fn test_batch_approve_milestones_multiple_indices() {
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -916,6 +931,7 @@ fn test_batch_approve_milestones_multiple_indices() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let escrow_properties: Escrow = Escrow {
@@ -975,6 +991,7 @@ fn test_add_milestones() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -1011,6 +1028,7 @@ fn test_add_milestones() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
+            admin: escrow_admin.clone(),
         },
         amount: 100_000_000,
         platform_fee: 300,
@@ -1053,7 +1071,7 @@ fn test_add_milestones() {
         },
     ];
 
-    client.add_milestones(&platform, &to_add);
+    client.add_milestones(&escrow_admin, &to_add);
 
     let escrow = client.get_escrow();
     assert_eq!(escrow.milestones.len(), 3, "Should have 3 milestones after adding 2");
@@ -1069,11 +1087,11 @@ fn test_add_milestones() {
 
     // Unauthorized caller must fail
     let result = client.try_add_milestones(&non_platform, &to_add);
-    assert!(result.is_err(), "Non-platform address must not add milestones");
+    assert!(result.is_err(), "Non-admin address must not add milestones");
 
     // Empty list must fail
     let empty: soroban_sdk::Vec<Milestone> = soroban_sdk::vec![&env];
-    let result = client.try_add_milestones(&platform, &empty);
+    let result = client.try_add_milestones(&escrow_admin, &empty);
     assert!(result.is_err(), "Empty milestone list must fail");
 
     // Milestone with released=true must fail
@@ -1092,7 +1110,7 @@ fn test_add_milestones() {
             released: true,
         },
     ];
-    let result = client.try_add_milestones(&platform, &already_released);
+    let result = client.try_add_milestones(&escrow_admin, &already_released);
     assert!(result.is_err(), "Milestone with released=true must fail");
 
     // Milestone with quorum 0 must fail
@@ -1111,7 +1129,7 @@ fn test_add_milestones() {
             released: false,
         },
     ];
-    let result = client.try_add_milestones(&platform, &bad_quorum);
+    let result = client.try_add_milestones(&escrow_admin, &bad_quorum);
     assert!(result.is_err(), "Milestone with quorum 0 must fail");
 
     // update_escrow must NOT change milestones
@@ -1127,7 +1145,7 @@ fn test_add_milestones() {
         trustline: escrow_base.trustline.clone(),
         receiver_memo: 0,
     };
-    client.update_escrow(&platform, &updated_escrow_props);
+    client.update_escrow(&escrow_admin, &updated_escrow_props);
 
     let after_update = client.get_escrow();
     assert_eq!(

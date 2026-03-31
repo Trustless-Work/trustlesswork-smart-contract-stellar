@@ -51,6 +51,7 @@ pub struct Roles {
     pub release_signers: Vec<Address>,
     pub dispute_resolvers: Vec<Address>,
     pub receiver: Address,
+    pub admin: Address,
 }
 
 #[contracttype]

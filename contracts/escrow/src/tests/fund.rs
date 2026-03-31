@@ -11,6 +11,7 @@ fn test_fund_escrow_successful_deposit() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -48,6 +49,7 @@ fn test_fund_escrow_successful_deposit() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -113,6 +115,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -152,6 +155,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -201,6 +205,7 @@ fn test_release_funds_successful_flow() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -251,6 +256,7 @@ fn test_release_funds_successful_flow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -334,6 +340,7 @@ fn test_release_funds_milestones_incomplete() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -383,6 +390,7 @@ fn test_release_funds_milestones_incomplete() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -429,6 +437,7 @@ fn test_release_funds_same_receiver_as_provider() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -468,6 +477,7 @@ fn test_release_funds_same_receiver_as_provider() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -543,6 +553,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -583,6 +594,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Different receiver address than service provider
+        admin: escrow_admin.clone(),
     };
 
     let flags: Flags = Flags {
@@ -667,6 +679,7 @@ fn test_batch_release_partial_then_full() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -715,6 +728,7 @@ fn test_batch_release_partial_then_full() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let escrow_properties = Escrow {
@@ -785,6 +799,7 @@ fn test_release_unapproved_milestone_fails() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver_address = Address::generate(&env);
     let service_provider_address = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -818,6 +833,7 @@ fn test_release_unapproved_milestone_fails() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let escrow_properties = Escrow {
@@ -848,6 +864,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
     let approver = Address::generate(&env);
     let service_provider = Address::generate(&env);
     let platform = Address::generate(&env);
@@ -869,6 +886,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
+        admin: escrow_admin.clone(),
     };
 
     let milestones = vec![
