@@ -1,5 +1,5 @@
 use crate::{
-    error::ContractError,
+    error::EscrowError,
     modules::{
         math::{BasicArithmetic, BasicMath},
         math::{SafeArithmetic, SafeMath},
@@ -20,7 +20,7 @@ pub trait FeeCalculatorTrait {
     fn calculate_standard_fees(
         total_amount: i128,
         platform_fee_bps: u32,
-    ) -> Result<StandardFeeResult, ContractError>;
+    ) -> Result<StandardFeeResult, EscrowError>;
 }
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl FeeCalculatorTrait for FeeCalculator {
     fn calculate_standard_fees(
         total_amount: i128,
         platform_fee_bps: u32,
-    ) -> Result<StandardFeeResult, ContractError> {
+    ) -> Result<StandardFeeResult, EscrowError> {
         let trustless_work_fee = SafeMath::safe_mul_div(
             total_amount,
             TRUSTLESS_WORK_FEE_BPS,

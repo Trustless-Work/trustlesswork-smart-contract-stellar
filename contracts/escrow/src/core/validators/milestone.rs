@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Vec};
 
 use crate::{
-    error::ContractError,
+    error::MilestoneError,
     storage::types::{Escrow, MilestoneStatusUpdate},
 };
 
@@ -10,26 +10,26 @@ pub fn validate_batch_milestone_status_change(
     escrow: &Escrow,
     service_provider: &Address,
     updates: &Vec<MilestoneStatusUpdate>,
-) -> Result<(), ContractError> {
+) -> Result<(), MilestoneError> {
     if updates.is_empty() {
-        return Err(ContractError::BatchMilestoneUpdateEmpty);
+        return Err(MilestoneError::BatchMilestoneUpdateEmpty);
     }
 
     if !escrow.roles.service_providers.contains(service_provider) {
-        return Err(ContractError::OnlyServiceProviderChangeMilstoneStatus);
+        return Err(MilestoneError::OnlyServiceProviderCanChangeMilestoneStatus);
     }
 
     if escrow.milestones.is_empty() {
-        return Err(ContractError::NoMilestoneDefined);
+        return Err(MilestoneError::NoMilestoneDefined);
     }
 
     for update in updates.iter() {
         if update.new_status.is_empty() {
-            return Err(ContractError::EmptyMilestoneStatus);
+            return Err(MilestoneError::EmptyMilestoneStatus);
         }
 
         if update.milestone_index >= escrow.milestones.len() {
-            return Err(ContractError::MilestoneToUpdateDoesNotExist);
+            return Err(MilestoneError::MilestoneToUpdateDoesNotExist);
         }
     }
 
@@ -41,22 +41,22 @@ pub fn validate_batch_milestone_approve(
     escrow: &Escrow,
     approver: &Address,
     milestone_indices: &Vec<u32>,
-) -> Result<(), ContractError> {
+) -> Result<(), MilestoneError> {
     if milestone_indices.is_empty() {
-        return Err(ContractError::BatchMilestoneApproveEmpty);
+        return Err(MilestoneError::BatchMilestoneApproveEmpty);
     }
 
     if !escrow.roles.approvers.contains(approver) {
-        return Err(ContractError::UnauthorizedApprover);
+        return Err(MilestoneError::UnauthorizedApprover);
     }
 
     if escrow.milestones.is_empty() {
-        return Err(ContractError::NoMilestoneDefined);
+        return Err(MilestoneError::NoMilestoneDefined);
     }
 
     for index in milestone_indices.iter() {
         if index >= escrow.milestones.len() {
-            return Err(ContractError::MilestoneToApproveDoesNotExist);
+            return Err(MilestoneError::MilestoneToApproveDoesNotExist);
         }
 
         let milestone = escrow.milestones.get(index).unwrap();
@@ -64,11 +64,11 @@ pub fn validate_batch_milestone_approve(
         if milestone.approvals.quorum > 0
             && milestone.approvals.approval_count >= milestone.approvals.quorum
         {
-            return Err(ContractError::MilestoneHasAlreadyBeenApproved);
+            return Err(MilestoneError::MilestoneHasAlreadyBeenApproved);
         }
 
         if milestone.approvals.approvers.contains(approver) {
-            return Err(ContractError::ApproverAlreadyApprovedMilestone);
+            return Err(MilestoneError::ApproverAlreadyApprovedMilestone);
         }
     }
 
