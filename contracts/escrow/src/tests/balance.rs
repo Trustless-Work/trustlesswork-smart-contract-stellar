@@ -55,11 +55,6 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         amount: 50_000_000,
         platform_fee: 100, // 1%
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
-            resolved: false,
-        },
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },

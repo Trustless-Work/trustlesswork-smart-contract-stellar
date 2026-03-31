@@ -62,12 +62,6 @@ fn test_initialize_excrow() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -80,7 +74,6 @@ fn test_initialize_excrow() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones,
-        flags,
         trustline,
         receiver_memo: 0,
     };
@@ -176,12 +169,6 @@ fn test_update_escrow() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -195,7 +182,6 @@ fn test_update_escrow() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -254,7 +240,6 @@ fn test_update_escrow() {
         amount: amount * 2,
         platform_fee: platform_fee * 2,
         milestones: new_milestones.clone(),
-        flags,
         trustline,
         receiver_memo: 0,
     };
@@ -342,12 +327,6 @@ fn test_update_escrow_platform_fee_too_high() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let initial_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_valid"),
         title: String::from_str(&env, "Escrow"),
@@ -356,7 +335,6 @@ fn test_update_escrow_platform_fee_too_high() {
         amount,
         platform_fee: platform_fee_valid,
         milestones: milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -374,7 +352,6 @@ fn test_update_escrow_platform_fee_too_high() {
         amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -433,12 +410,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let invalid_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_invalid_init"),
         title: String::from_str(&env, "Escrow"),
@@ -447,7 +418,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
         amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
-        flags,
         trustline,
         receiver_memo: 0,
     };
@@ -477,11 +447,6 @@ fn test_admin_role_overlap() {
     let (token_client, _admin_client) = create_usdc_token(&env, &admin);
     let trustline = Trustline {
         address: token_client.address.clone(),
-    };
-    let flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
     };
     let milestones = vec![
         &env,
@@ -516,7 +481,6 @@ fn test_admin_role_overlap() {
             amount: 1_000_000,
             platform_fee: 300,
             milestones: milestones.clone(),
-            flags: flags.clone(),
             trustline: trustline.clone(),
             receiver_memo: 0,
         }

@@ -62,12 +62,6 @@ fn test_append_milestones_with_funds() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: token_client.address.clone(),
     };
@@ -81,7 +75,6 @@ fn test_append_milestones_with_funds() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -134,7 +127,6 @@ fn test_append_milestones_with_funds() {
     assert!(escrow.roles == initial_escrow_properties.roles);
     assert_eq!(escrow.amount, initial_escrow_properties.amount);
     assert_eq!(escrow.platform_fee, initial_escrow_properties.platform_fee);
-    assert!(escrow.flags == initial_escrow_properties.flags);
     assert!(escrow.trustline == initial_escrow_properties.trustline);
     assert_eq!(
         escrow.receiver_memo,
@@ -201,12 +193,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: token_client.address.clone(),
     };
@@ -220,7 +206,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -281,7 +266,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         final_escrow.platform_fee,
         initial_escrow_properties.platform_fee
     );
-    assert!(final_escrow.flags == initial_escrow_properties.flags);
     assert!(final_escrow.trustline == initial_escrow_properties.trustline);
     assert_eq!(
         final_escrow.receiver_memo,
@@ -343,12 +327,6 @@ fn test_change_milestone_status_and_approved() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -362,7 +340,6 @@ fn test_change_milestone_status_and_approved() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -502,12 +479,6 @@ fn test_change_milestone_status_batch() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -520,7 +491,6 @@ fn test_change_milestone_status_batch() {
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -629,12 +599,6 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -647,7 +611,6 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -724,12 +687,6 @@ fn test_batch_milestone_status_empty_batch_fails() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -742,7 +699,6 @@ fn test_batch_milestone_status_empty_batch_fails() {
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
-        flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
     };
@@ -812,11 +768,6 @@ fn test_quorum_requires_multiple_approvers() {
         amount,
         platform_fee,
         milestones: milestones.clone(),
-        flags: Flags {
-            disputed: false,
-            released: false,
-            resolved: false,
-        },
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -942,11 +893,6 @@ fn test_batch_approve_milestones_multiple_indices() {
         amount,
         platform_fee,
         milestones: milestones.clone(),
-        flags: Flags {
-            disputed: false,
-            released: false,
-            resolved: false,
-        },
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -1033,7 +979,6 @@ fn test_add_milestones() {
         amount: 100_000_000,
         platform_fee: 300,
         milestones: initial_milestones.clone(),
-        flags: Flags { disputed: false, released: false, resolved: false },
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0,
     };
@@ -1141,7 +1086,6 @@ fn test_add_milestones() {
         amount: escrow_base.amount,
         platform_fee: escrow_base.platform_fee,
         milestones: initial_milestones.clone(), // pass only 1 milestone — should be ignored
-        flags: escrow_base.flags.clone(),
         trustline: escrow_base.trustline.clone(),
         receiver_memo: 0,
     };

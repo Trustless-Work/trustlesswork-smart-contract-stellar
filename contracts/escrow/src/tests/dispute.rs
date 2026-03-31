@@ -51,12 +51,6 @@ fn test_dispute_management() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -69,7 +63,6 @@ fn test_dispute_management() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
         trustline,
         receiver_memo: 0,
     };
@@ -80,12 +73,12 @@ fn test_dispute_management() {
     escrow_approver.initialize_escrow(&escrow_properties);
 
     let escrow = escrow_approver.get_escrow();
-    assert!(!escrow.flags.disputed);
+    assert!(!escrow.milestones.iter().any(|m| m.flags.disputed));
 
     escrow_approver.dispute_escrow(&approver_address);
 
     let escrow_after_change = escrow_approver.get_escrow();
-    assert!(escrow_after_change.flags.disputed);
+    assert!(escrow_after_change.milestones.iter().any(|m| m.flags.disputed));
 
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
@@ -96,7 +89,7 @@ fn test_dispute_management() {
     let _ = escrow_approver.try_dispute_escrow(&approver_address);
 
     let escrow_after_second_change = escrow_approver.get_escrow();
-    assert!(escrow_after_second_change.flags.disputed);
+    assert!(escrow_after_second_change.milestones.iter().any(|m| m.flags.disputed));
 }
 
 #[test]
@@ -146,12 +139,6 @@ fn test_dispute_resolution_process() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -165,7 +152,6 @@ fn test_dispute_resolution_process() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
         trustline,
         receiver_memo: 0,
     };
@@ -182,7 +168,7 @@ fn test_dispute_resolution_process() {
     escrow_approver.dispute_escrow(&approver_address);
 
     let escrow_with_dispute = escrow_approver.get_escrow();
-    assert!(escrow_with_dispute.flags.disputed);
+    assert!(escrow_with_dispute.milestones.iter().any(|m| m.flags.disputed));
 
     // Try to resolve dispute with incorrect dispute resolver (should fail)
     let mut wrong_dist = Map::new(&env);
@@ -231,8 +217,8 @@ fn test_dispute_resolution_process() {
 
     // Verify dispute was resolved
     let escrow_after_resolution = escrow_approver.get_escrow();
-    assert!(!escrow_after_resolution.flags.disputed);
-    assert!(escrow_after_resolution.flags.resolved);
+    assert!(!escrow_after_resolution.milestones.iter().any(|m| m.flags.disputed));
+    assert!(escrow_after_resolution.milestones.iter().any(|m| m.flags.resolved));
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -320,11 +306,6 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         amount: 10_000_000,
         platform_fee: 0,
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
-            resolved: false,
-        },
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -339,7 +320,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
 
     let updated_escrow = escrow_client_1.get_escrow();
     assert!(
-        updated_escrow.flags.disputed,
+        updated_escrow.milestones.iter().any(|m| m.flags.disputed),
         "Dispute flag should be set to true for authorized address"
     );
 
@@ -414,11 +395,6 @@ fn test_resolve_dispute_rounding_edge_case() {
         amount: total,
         platform_fee,
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
-            resolved: false,
-        },
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -468,8 +444,8 @@ fn test_resolve_dispute_rounding_edge_case() {
 
     // Verify dispute was resolved
     let escrow = client.get_escrow();
-    assert!(escrow.flags.resolved);
-    assert!(!escrow.flags.disputed);
+    assert!(escrow.milestones.iter().any(|m| m.flags.resolved));
+    assert!(!escrow.milestones.iter().any(|m| m.flags.disputed));
 }
 
 #[test]
@@ -531,7 +507,6 @@ fn test_dispute_milestones_batch() {
         amount: 100_000_000,
         platform_fee: 300,
         milestones,
-        flags: Flags { disputed: false, released: false, resolved: false },
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0,
     };
@@ -544,7 +519,7 @@ fn test_dispute_milestones_batch() {
     client.dispute_milestones(&approver, &vec![&env, 0u32, 2u32]);
 
     let escrow = client.get_escrow();
-    assert!(escrow.flags.disputed, "Escrow-level disputed flag must be set");
+    assert!(escrow.milestones.iter().any(|m| m.flags.disputed), "Escrow-level disputed flag must be set");
     assert!(escrow.milestones.get(0).unwrap().flags.disputed, "Milestone 0 must be disputed");
     assert!(!escrow.milestones.get(1).unwrap().flags.disputed, "Milestone 1 must NOT be disputed");
     assert!(escrow.milestones.get(2).unwrap().flags.disputed, "Milestone 2 must be disputed");
@@ -593,7 +568,6 @@ fn test_dispute_milestones_invalid_index_reverts() {
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
-        flags: Flags { disputed: false, released: false, resolved: false },
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0,
     };
@@ -650,7 +624,6 @@ fn test_dispute_milestones_already_disputed_reverts() {
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
-        flags: Flags { disputed: false, released: false, resolved: false },
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0,
     };
@@ -711,7 +684,6 @@ fn test_dispute_milestones_unauthorized_reverts() {
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
-        flags: Flags { disputed: false, released: false, resolved: false },
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0,
     };
