@@ -1,7 +1,7 @@
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, Vec};
 
-use crate::error::ContractError;
+use crate::error::EscrowError;
 use super::StandardFeeResult;
 use crate::modules::math::{BasicArithmetic, BasicMath};
 
@@ -14,7 +14,7 @@ pub fn calculate_and_distribute_fees(
     fee_result: &StandardFeeResult,
     distributions: &Map<Address, i128>,
     total: i128,
-) -> Result<(), ContractError> {
+) -> Result<(), EscrowError> {
     let mut actual_trustless_fees = 0i128;
     let mut actual_platform_fees = 0i128;
     let mut net_distributions: Vec<(Address, i128)> = Vec::new(e);

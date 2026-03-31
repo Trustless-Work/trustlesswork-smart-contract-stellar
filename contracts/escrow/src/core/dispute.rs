@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env, Map};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
-use crate::error::ContractError;
+use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
@@ -23,7 +23,7 @@ impl DisputeManager {
         dispute_resolver: Address,
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, ContractError> {
+    ) -> Result<Escrow, EscrowError> {
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -38,7 +38,7 @@ impl DisputeManager {
         let mut total: i128 = 0;
         for (_addr, amount) in distributions.iter() {
             if amount <= 0 {
-                return Err(ContractError::AmountsToBeTransferredShouldBePositive);
+                return Err(EscrowError::AmountsToBeTransferredShouldBePositive);
             }
             total = BasicMath::safe_add(total, amount)?;
         }
@@ -55,7 +55,7 @@ impl DisputeManager {
         dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
+
         calculate_and_distribute_fees(
             e,
             &token_client,
@@ -80,7 +80,7 @@ impl DisputeManager {
         dispute_resolver: Address,
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, ContractError> {
+    ) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -90,23 +90,23 @@ impl DisputeManager {
         let mut total: i128 = 0;
         for (_addr, amount) in distributions.iter() {
             if amount <= 0 {
-                return Err(ContractError::AmountsToBeTransferredShouldBePositive);
+                return Err(EscrowError::AmountsToBeTransferredShouldBePositive);
             }
             total = BasicMath::safe_add(total, amount)?;
         }
 
         validate_dispute_resolution_conditions(
-            &escrow, 
-            &dispute_resolver, 
-            current_balance, 
-            total, 
+            &escrow,
+            &dispute_resolver,
+            current_balance,
+            total,
             &distributions
         )?;
 
         dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
+
         calculate_and_distribute_fees(
             e,
             &token_client,
@@ -128,7 +128,7 @@ impl DisputeManager {
         Ok(escrow)
     }
 
-    pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, ContractError> {
+    pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
 

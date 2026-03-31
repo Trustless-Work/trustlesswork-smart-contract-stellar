@@ -1,4 +1,4 @@
-use crate::error::ContractError;
+use crate::error::MilestoneError;
 use crate::storage::types::{DataKey, MilestoneStatusUpdate};
 use crate::{core::escrow::EscrowManager, storage::types::Escrow};
 use soroban_sdk::{Address, Env, Vec};
@@ -14,8 +14,9 @@ impl MilestoneManager {
         e: &Env,
         updates: Vec<MilestoneStatusUpdate>,
         service_provider: Address,
-    ) -> Result<Escrow, ContractError> {
-        let mut existing_escrow = EscrowManager::get_escrow(e)?;
+    ) -> Result<Escrow, MilestoneError> {
+        let mut existing_escrow = EscrowManager::get_escrow(e)
+            .map_err(|_| MilestoneError::EscrowNotFound)?;
 
         validate_batch_milestone_status_change(&existing_escrow, &service_provider, &updates)?;
 
@@ -25,7 +26,7 @@ impl MilestoneManager {
             let mut milestone_to_update = existing_escrow
                 .milestones
                 .get(update.milestone_index)
-                .ok_or(ContractError::InvalidMileStoneIndex)?;
+                .ok_or(MilestoneError::InvalidMilestoneIndex)?;
 
             if let Some(evidence) = update.new_evidence {
                 milestone_to_update.evidence = evidence;
@@ -52,8 +53,9 @@ impl MilestoneManager {
         e: &Env,
         milestone_indices: Vec<u32>,
         approver: Address,
-    ) -> Result<Escrow, ContractError> {
-        let mut existing_escrow = EscrowManager::get_escrow(e)?;
+    ) -> Result<Escrow, MilestoneError> {
+        let mut existing_escrow = EscrowManager::get_escrow(e)
+            .map_err(|_| MilestoneError::EscrowNotFound)?;
 
         validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
 
@@ -63,7 +65,7 @@ impl MilestoneManager {
             let mut milestone = existing_escrow
                 .milestones
                 .get(index)
-                .ok_or(ContractError::InvalidMileStoneIndex)?;
+                .ok_or(MilestoneError::InvalidMilestoneIndex)?;
 
             milestone.approvals.approvers.push_back(approver.clone());
             milestone.approvals.approval_count += 1;

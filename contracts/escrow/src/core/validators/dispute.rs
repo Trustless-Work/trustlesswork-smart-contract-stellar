@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Map};
 
 use crate::{
-    error::ContractError,
+    error::EscrowError,
     storage::types::Escrow,
 };
 
@@ -15,25 +15,25 @@ pub fn validate_withdraw_remaining_funds_conditions(
     current_balance: i128,
     total: i128,
     distributions: &Map<Address, i128>
-) -> Result<(), ContractError> {
+) -> Result<(), EscrowError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
-        return Err(ContractError::TooManyDistributions);
+        return Err(EscrowError::TooManyDistributions);
     }
 
     if !escrow.roles.dispute_resolvers.contains(dispute_resolver) {
-        return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
+        return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
     if !all_processed {
-        return Err(ContractError::EscrowNotFullyProcessed);
+        return Err(EscrowError::EscrowNotFullyProcessed);
     }
 
     if total <= 0 {
-        return Err(ContractError::TotalAmountCannotBeZero);
+        return Err(EscrowError::TotalAmountCannotBeZero);
     }
 
     if current_balance < total {
-        return Err(ContractError::InsufficientFundsForResolution);
+        return Err(EscrowError::InsufficientFundsForResolution);
     }
 
     Ok(())
@@ -46,29 +46,29 @@ pub fn validate_dispute_resolution_conditions(
     current_balance: i128,
     total: i128,
     distributions: &Map<Address, i128>,
-) -> Result<(), ContractError> {
+) -> Result<(), EscrowError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
-        return Err(ContractError::TooManyDistributions);
+        return Err(EscrowError::TooManyDistributions);
     }
 
     if !escrow.roles.dispute_resolvers.contains(dispute_resolver) {
-        return Err(ContractError::OnlyDisputeResolverCanExecuteThisFunction);
+        return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
     if !escrow.flags.disputed {
-        return Err(ContractError::EscrowNotInDispute);
+        return Err(EscrowError::EscrowNotInDispute);
     }
 
     if current_balance < total {
-        return Err(ContractError::InsufficientFundsForResolution);
+        return Err(EscrowError::InsufficientFundsForResolution);
     }
 
     if total != current_balance {
-        return Err(ContractError::DistributionsMustEqualEscrowBalance);
+        return Err(EscrowError::DistributionsMustEqualEscrowBalance);
     }
 
     if total <= 0 {
-        return Err(ContractError::TotalAmountCannotBeZero);
+        return Err(EscrowError::TotalAmountCannotBeZero);
     }
 
     Ok(())
@@ -78,17 +78,17 @@ pub fn validate_dispute_resolution_conditions(
 pub fn validate_dispute_flag_change_conditions(
     escrow: &Escrow,
     signer: &Address,
-) -> Result<(), ContractError> {
+) -> Result<(), EscrowError> {
     if escrow.flags.disputed {
-        return Err(ContractError::EscrowAlreadyInDispute);
+        return Err(EscrowError::EscrowAlreadyInDispute);
     }
 
     if escrow.flags.resolved {
-        return Err(ContractError::EscrowAlreadyResolved);
+        return Err(EscrowError::EscrowAlreadyResolved);
     }
 
     if escrow.roles.dispute_resolvers.contains(signer) {
-        return Err(ContractError::DisputeResolverCannotDisputeTheEscrow);
+        return Err(EscrowError::DisputeResolverCannotDisputeTheEscrow);
     }
 
     let is_authorized = escrow.roles.approvers.contains(signer)
@@ -98,7 +98,7 @@ pub fn validate_dispute_flag_change_conditions(
         || signer == &escrow.roles.receiver;
 
     if !is_authorized {
-        return Err(ContractError::UnauthorizedToChangeDisputeFlag);
+        return Err(EscrowError::UnauthorizedToChangeDisputeFlag);
     }
 
     Ok(())
