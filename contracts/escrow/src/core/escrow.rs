@@ -100,10 +100,6 @@ impl EscrowManager {
             escrow.milestones.set(index, milestone);
         }
 
-        if escrow.milestones.iter().all(|m| m.flags.released) {
-            escrow.flags.released = true;
-        }
-
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()

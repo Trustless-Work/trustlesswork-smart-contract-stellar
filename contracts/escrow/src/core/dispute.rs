@@ -28,11 +28,10 @@ impl DisputeManager {
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
-        let mut all_processed = true;
-        let flags = &escrow.flags;
-        if !(flags.released || flags.resolved || flags.disputed) {
-            all_processed = false;
-        }
+        let all_processed = escrow
+            .milestones
+            .iter()
+            .all(|m| m.flags.released || m.flags.resolved || m.flags.disputed);
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
@@ -119,8 +118,14 @@ impl DisputeManager {
             total,
         )?;
 
-        escrow.flags.resolved = true;
-        escrow.flags.disputed = false;
+        for i in 0..escrow.milestones.len() {
+            let mut milestone = escrow.milestones.get(i).unwrap();
+            if milestone.flags.disputed {
+                milestone.flags.resolved = true;
+                milestone.flags.disputed = false;
+                escrow.milestones.set(i, milestone);
+            }
+        }
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()
@@ -145,7 +150,6 @@ impl DisputeManager {
             escrow.milestones.set(index, milestone);
         }
 
-        escrow.flags.disputed = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()
@@ -160,7 +164,13 @@ impl DisputeManager {
 
         signer.require_auth();
 
-        escrow.flags.disputed = true;
+        for i in 0..escrow.milestones.len() {
+            let mut milestone = escrow.milestones.get(i).unwrap();
+            if !milestone.flags.disputed {
+                milestone.flags.disputed = true;
+                escrow.milestones.set(i, milestone);
+            }
+        }
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()

@@ -17,7 +17,7 @@ pub fn validate_release_milestones_conditions(
     release_signer: &Address,
     milestone_indices: &Vec<u32>,
 ) -> Result<(), EscrowError> {
-    if escrow.flags.resolved {
+    if escrow.milestones.iter().any(|m| m.flags.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
@@ -25,7 +25,7 @@ pub fn validate_release_milestones_conditions(
         return Err(EscrowError::OnlyReleaseSignerCanReleaseEarnings);
     }
 
-    if escrow.flags.disputed {
+    if escrow.milestones.iter().any(|m| m.flags.disputed) {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
 
@@ -104,11 +104,12 @@ pub fn validate_escrow_conditions(
         if new_escrow.milestones.len() > 50 {
             return Err(EscrowError::TooManyMilestones);
         }
-        if new_escrow.flags.released
-            || new_escrow.flags.disputed
-            || new_escrow.flags.resolved
-            || new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0)
-        {
+        if new_escrow.milestones.iter().any(|m| {
+            m.approvals.approval_count > 0
+                || m.flags.released
+                || m.flags.disputed
+                || m.flags.resolved
+        }) {
             return Err(EscrowError::FlagsMustBeFalse);
         }
         if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
@@ -131,12 +132,8 @@ pub fn validate_escrow_conditions(
             return Err(EscrowError::AdminAddressCannotBeChanged);
         }
 
-        if existing.flags.disputed {
+        if existing.milestones.iter().any(|m| m.flags.disputed) {
             return Err(EscrowError::EscrowOpenedForDisputeResolution);
-        }
-
-        if new_escrow.flags.released || new_escrow.flags.disputed || new_escrow.flags.resolved {
-            return Err(EscrowError::FlagsMustBeFalse);
         }
 
         let has_funds = contract_balance.unwrap_or(0) > 0;
@@ -147,7 +144,6 @@ pub fn validate_escrow_conditions(
                 || existing.roles != new_escrow.roles
                 || existing.amount != new_escrow.amount
                 || existing.platform_fee != new_escrow.platform_fee
-                || existing.flags != new_escrow.flags
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
             {
@@ -169,13 +165,13 @@ pub fn validate_add_milestones_conditions(
     if admin != &existing_escrow.roles.admin {
         return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
     }
-    if existing_escrow.flags.disputed {
+    if existing_escrow.milestones.iter().any(|m| m.flags.disputed) {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
-    if existing_escrow.flags.released {
+    if existing_escrow.milestones.iter().all(|m| m.flags.released) {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
-    if existing_escrow.flags.resolved {
+    if existing_escrow.milestones.iter().any(|m| m.flags.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
     if new_milestones.is_empty() {

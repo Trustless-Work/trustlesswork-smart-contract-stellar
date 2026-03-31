@@ -55,7 +55,7 @@ pub fn validate_dispute_resolution_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
-    if !escrow.flags.disputed {
+    if !escrow.milestones.iter().any(|m| m.flags.disputed) {
         return Err(EscrowError::EscrowNotInDispute);
     }
 
@@ -84,7 +84,7 @@ pub fn validate_batch_milestone_dispute_conditions(
         return Err(EscrowError::BatchMilestoneDisputeEmpty);
     }
 
-    if escrow.flags.resolved {
+    if escrow.milestones.iter().any(|m| m.flags.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
@@ -126,11 +126,11 @@ pub fn validate_dispute_flag_change_conditions(
     escrow: &Escrow,
     signer: &Address,
 ) -> Result<(), EscrowError> {
-    if escrow.flags.disputed {
+    if escrow.milestones.iter().all(|m| m.flags.disputed) {
         return Err(EscrowError::EscrowAlreadyInDispute);
     }
 
-    if escrow.flags.resolved {
+    if escrow.milestones.iter().any(|m| m.flags.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
