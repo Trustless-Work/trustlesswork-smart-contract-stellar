@@ -2,12 +2,13 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
-    validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
-    validate_initialize_escrow_conditions, validate_release_milestones_conditions,
+    validate_add_milestones_conditions, validate_escrow_property_change_conditions,
+    validate_fund_escrow_conditions, validate_initialize_escrow_conditions,
+    validate_release_milestones_conditions,
 };
 use crate::error::ContractError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone};
 
 pub struct EscrowManager;
 
@@ -128,13 +129,36 @@ impl EscrowManager {
 
         platform.require_auth();
 
+        let mut escrow_to_save = escrow_properties;
+        escrow_to_save.milestones = existing_escrow.milestones.clone();
+
         e.storage()
             .persistent()
-            .set(&DataKey::Escrow, &escrow_properties);
+            .set(&DataKey::Escrow, &escrow_to_save);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
-        Ok(escrow_properties)
+        Ok(escrow_to_save)
+    }
+
+    pub fn add_milestones(
+        e: &Env,
+        platform: &Address,
+        new_milestones: Vec<Milestone>,
+    ) -> Result<Escrow, ContractError> {
+        let mut existing_escrow = Self::get_escrow(e)?;
+        validate_add_milestones_conditions(&existing_escrow, platform, &new_milestones)?;
+        platform.require_auth();
+        for milestone in new_milestones.iter() {
+            existing_escrow.milestones.push_back(milestone);
+        }
+        e.storage()
+            .persistent()
+            .set(&DataKey::Escrow, &existing_escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+        Ok(existing_escrow)
     }
 
     pub fn get_multiple_escrow_balances(

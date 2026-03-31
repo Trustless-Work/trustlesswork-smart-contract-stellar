@@ -83,14 +83,14 @@ pub fn validate_escrow_conditions(
     if new_escrow.amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
-    if new_escrow.milestones.is_empty() {
-        return Err(ContractError::NoMilestoneDefined);
-    }
-    if new_escrow.milestones.len() > 50 {
-        return Err(ContractError::TooManyMilestones);
-    }
 
     if is_init {
+        if new_escrow.milestones.is_empty() {
+            return Err(ContractError::NoMilestoneDefined);
+        }
+        if new_escrow.milestones.len() > 50 {
+            return Err(ContractError::TooManyMilestones);
+        }
         if new_escrow.flags.released
             || new_escrow.flags.disputed
             || new_escrow.flags.resolved
@@ -135,41 +135,44 @@ pub fn validate_escrow_conditions(
             {
                 return Err(ContractError::EscrowPropertiesMismatch);
             }
-
-            let old_len = existing.milestones.len();
-            let new_len = new_escrow.milestones.len();
-            if new_len < old_len {
-                return Err(ContractError::EscrowPropertiesMismatch);
-            }
-            for i in 0..old_len {
-                if existing.milestones.get(i).unwrap() != new_escrow.milestones.get(i).unwrap() {
-                    return Err(ContractError::EscrowPropertiesMismatch);
-                }
-            }
-
-            for i in old_len..new_len {
-                let new_m = new_escrow.milestones.get(i).unwrap();
-                if new_m.approvals.approval_count > 0 {
-                    return Err(ContractError::FlagsMustBeFalse);
-                }
-                if new_m.approvals.quorum == 0 {
-                    return Err(ContractError::QuorumCannotBeZero);
-                }
-            }
-        } else {
-            if existing.milestones.iter().any(|m| is_milestone_approved(&m)) {
-                return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
-            }
-
-            if new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0) {
-                return Err(ContractError::FlagsMustBeFalse);
-            }
-            if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
-                return Err(ContractError::QuorumCannotBeZero);
-            }
         }
     }
 
+    Ok(())
+}
+
+#[inline]
+pub fn validate_add_milestones_conditions(
+    existing_escrow: &Escrow,
+    platform: &Address,
+    new_milestones: &Vec<Milestone>,
+) -> Result<(), ContractError> {
+    if platform != &existing_escrow.roles.platform {
+        return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
+    }
+    if existing_escrow.flags.disputed {
+        return Err(ContractError::EscrowOpenedForDisputeResolution);
+    }
+    if existing_escrow.flags.released {
+        return Err(ContractError::EscrowAlreadyReleased);
+    }
+    if existing_escrow.flags.resolved {
+        return Err(ContractError::EscrowAlreadyResolved);
+    }
+    if new_milestones.is_empty() {
+        return Err(ContractError::NoMilestoneDefined);
+    }
+    if existing_escrow.milestones.len() + new_milestones.len() > 50 {
+        return Err(ContractError::TooManyMilestones);
+    }
+    for milestone in new_milestones.iter() {
+        if milestone.approvals.quorum == 0 {
+            return Err(ContractError::QuorumCannotBeZero);
+        }
+        if milestone.approvals.approval_count > 0 || milestone.released {
+            return Err(ContractError::FlagsMustBeFalse);
+        }
+    }
     Ok(())
 }
 

@@ -4,9 +4,9 @@ use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::ContractError;
 use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
-    MilestonesApproved, MilestoneStatusChanged,
+    MilestonesAdded, MilestonesApproved, MilestoneStatusChanged,
 };
-use crate::storage::types::{AddressBalance, DataKey, Escrow, MilestoneStatusUpdate};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneStatusUpdate};
 
 #[contract]
 pub struct EscrowContract;
@@ -89,6 +89,20 @@ impl EscrowContract {
             platform: plataform_address,
             engagement_id: escrow_properties.engagement_id.clone(),
             new_escrow_properties: updated_escrow.clone(),
+        }
+        .publish(e);
+        Ok(updated_escrow)
+    }
+
+    pub fn add_milestones(
+        e: &Env,
+        platform_address: Address,
+        new_milestones: Vec<Milestone>,
+    ) -> Result<Escrow, ContractError> {
+        let updated_escrow =
+            EscrowManager::add_milestones(e, &platform_address, new_milestones)?;
+        MilestonesAdded {
+            escrow: updated_escrow.clone(),
         }
         .publish(e);
         Ok(updated_escrow)

@@ -93,11 +93,9 @@ fn test_append_milestones_with_funds() {
     token_admin.mint(&approver_address, &amount);
     escrow_approver.fund_escrow(&approver_address, &initial_escrow_properties, &amount);
 
-    // Build updated properties with milestones appended, all other fields identical
-    let updated_milestones = vec![
+    // Add a new milestone via add_milestones
+    let new_milestones_to_add = vec![
         &env,
-        initial_escrow_properties.milestones.get(0).unwrap(),
-        initial_escrow_properties.milestones.get(1).unwrap(),
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
             status: String::from_str(&env, "Pending"),
@@ -112,20 +110,7 @@ fn test_append_milestones_with_funds() {
         },
     ];
 
-    let updated_escrow_properties: Escrow = Escrow {
-        engagement_id: engagement_id.clone(),
-        title: String::from_str(&env, "Test Escrow"),
-        description: String::from_str(&env, "Test Escrow Description"),
-        roles: roles.clone(),
-        amount: amount,
-        platform_fee: platform_fee,
-        milestones: updated_milestones.clone(),
-        flags: flags.clone(),
-        trustline: trustline.clone(),
-        receiver_memo: 0,
-    };
-
-    escrow_approver.update_escrow(&platform, &updated_escrow_properties);
+    escrow_approver.add_milestones(&platform, &new_milestones_to_add);
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.milestones.len(), 3);
@@ -249,11 +234,9 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     let after_approval = escrow_client.get_escrow();
     { let m = after_approval.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.quorum); }
 
-    // Build updated properties with a new milestone appended (unapproved)
-    let updated_milestones = vec![
+    // Add a new milestone via add_milestones
+    let new_milestones_to_add = vec![
         &env,
-        after_approval.milestones.get(0).unwrap(),
-        after_approval.milestones.get(1).unwrap(),
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
             status: String::from_str(&env, "Pending"),
@@ -268,20 +251,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         },
     ];
 
-    let updated_escrow_properties: Escrow = Escrow {
-        engagement_id: engagement_id.clone(),
-        title: String::from_str(&env, "Test Escrow Approved"),
-        description: String::from_str(&env, "Test Escrow Description"),
-        roles: roles.clone(),
-        amount: amount,
-        platform_fee: platform_fee,
-        milestones: updated_milestones.clone(),
-        flags: flags.clone(),
-        trustline: trustline.clone(),
-        receiver_memo: 0,
-    };
-
-    escrow_client.update_escrow(&platform, &updated_escrow_properties);
+    escrow_client.add_milestones(&platform, &new_milestones_to_add);
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
@@ -997,4 +967,173 @@ fn test_batch_approve_milestones_multiple_indices() {
     let result =
         escrow_client.try_approve_milestones(&vec![&env, 1u32, 99u32], &approver_address);
     assert!(result.is_err(), "Batch with invalid index must fail");
+}
+
+#[test]
+fn test_add_milestones() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let non_platform = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 50_000_000,
+            released: false,
+        },
+    ];
+
+    let escrow_base = Escrow {
+        engagement_id: String::from_str(&env, "add_milestones_test"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            receiver: service_provider.clone(),
+        },
+        amount: 100_000_000,
+        platform_fee: 300,
+        milestones: initial_milestones.clone(),
+        flags: Flags { disputed: false, released: false, resolved: false },
+        trustline: Trustline { address: usdc_token.0.address.clone() },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_base);
+
+    // Add new milestones
+    let to_add = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 2"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 25_000_000,
+            released: false,
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 3"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 25_000_000,
+            released: false,
+        },
+    ];
+
+    client.add_milestones(&platform, &to_add);
+
+    let escrow = client.get_escrow();
+    assert_eq!(escrow.milestones.len(), 3, "Should have 3 milestones after adding 2");
+    assert_eq!(
+        escrow.milestones.get(0).unwrap().description,
+        String::from_str(&env, "Milestone 1"),
+        "Original milestone must be preserved"
+    );
+    assert_eq!(
+        escrow.milestones.get(2).unwrap().description,
+        String::from_str(&env, "Milestone 3")
+    );
+
+    // Unauthorized caller must fail
+    let result = client.try_add_milestones(&non_platform, &to_add);
+    assert!(result.is_err(), "Non-platform address must not add milestones");
+
+    // Empty list must fail
+    let empty: soroban_sdk::Vec<Milestone> = soroban_sdk::vec![&env];
+    let result = client.try_add_milestones(&platform, &empty);
+    assert!(result.is_err(), "Empty milestone list must fail");
+
+    // Milestone with released=true must fail
+    let already_released = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Already released"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 10_000_000,
+            released: true,
+        },
+    ];
+    let result = client.try_add_milestones(&platform, &already_released);
+    assert!(result.is_err(), "Milestone with released=true must fail");
+
+    // Milestone with quorum 0 must fail
+    let bad_quorum = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Bad"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 0,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+            amount: 10_000_000,
+            released: false,
+        },
+    ];
+    let result = client.try_add_milestones(&platform, &bad_quorum);
+    assert!(result.is_err(), "Milestone with quorum 0 must fail");
+
+    // update_escrow must NOT change milestones
+    let updated_escrow_props = Escrow {
+        engagement_id: String::from_str(&env, "add_milestones_test"),
+        title: String::from_str(&env, "Updated Title"),
+        description: String::from_str(&env, "Updated Desc"),
+        roles: escrow_base.roles.clone(),
+        amount: escrow_base.amount,
+        platform_fee: escrow_base.platform_fee,
+        milestones: initial_milestones.clone(), // pass only 1 milestone — should be ignored
+        flags: escrow_base.flags.clone(),
+        trustline: escrow_base.trustline.clone(),
+        receiver_memo: 0,
+    };
+    client.update_escrow(&platform, &updated_escrow_props);
+
+    let after_update = client.get_escrow();
+    assert_eq!(
+        after_update.milestones.len(),
+        3,
+        "update_escrow must not overwrite milestones"
+    );
+    assert_eq!(after_update.title, String::from_str(&env, "Updated Title"));
 }
