@@ -180,7 +180,7 @@ pub fn validate_escrow_conditions(
         }
 
         if existing.roles.platform != new_escrow.roles.platform {
-            return Err(EscrowError::AdminAddressCannotBeChanged);
+            return Err(EscrowError::PlatformAddressCannotBeChanged);
         }
 
         if existing.milestones.iter().any(|m| m.dispute.is_disputed) {

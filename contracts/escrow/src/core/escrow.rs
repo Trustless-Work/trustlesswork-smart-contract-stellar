@@ -107,6 +107,7 @@ impl EscrowManager {
 
         Ok(())
     }
+
     pub fn change_escrow_properties(
         e: &Env,
         admin: &Address,

@@ -55,7 +55,7 @@ impl DisputeManager {
         dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
+
         calculate_and_distribute_fees(
             e,
             &token_client,
@@ -96,17 +96,17 @@ impl DisputeManager {
         }
 
         validate_dispute_resolution_conditions(
-            &escrow, 
-            &dispute_resolver, 
-            current_balance, 
-            total, 
+            &escrow,
+            &dispute_resolver,
+            current_balance,
+            total,
             &distributions
         )?;
 
         dispute_resolver.require_auth();
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
+
         calculate_and_distribute_fees(
             e,
             &token_client,
