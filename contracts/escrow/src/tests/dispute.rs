@@ -32,7 +32,7 @@ fn test_dispute_management() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -115,7 +115,7 @@ fn test_dispute_resolution_process() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -278,7 +278,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -362,7 +362,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -449,21 +449,21 @@ fn test_dispute_milestones_batch() {
             description: String::from_str(&env, "Milestone 1"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 40_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 30_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 30_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
@@ -521,7 +521,7 @@ fn test_dispute_milestones_invalid_index_reverts() {
             description: String::from_str(&env, "Only milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
@@ -574,7 +574,7 @@ fn test_dispute_milestones_already_disputed_reverts() {
             description: String::from_str(&env, "Milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
@@ -631,7 +631,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
             description: String::from_str(&env, "Milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];

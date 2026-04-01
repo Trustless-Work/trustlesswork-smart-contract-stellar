@@ -33,7 +33,7 @@ fn test_fund_escrow_successful_deposit() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -127,7 +127,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -204,7 +204,7 @@ fn test_release_funds_successful_flow() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 50_000_000,
@@ -214,7 +214,7 @@ fn test_release_funds_successful_flow() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 50_000_000,
@@ -324,7 +324,7 @@ fn test_release_funds_milestones_incomplete() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 50_000_000,
@@ -334,7 +334,7 @@ fn test_release_funds_milestones_incomplete() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 50_000_000,
@@ -409,7 +409,7 @@ fn test_release_funds_same_receiver_as_provider() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -514,7 +514,7 @@ fn test_release_funds_invalid_receiver_fallback() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -624,7 +624,7 @@ fn test_batch_release_partial_then_full() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Evidence A"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 40_000_000,
@@ -634,7 +634,7 @@ fn test_batch_release_partial_then_full() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Evidence B"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 60_000_000,
@@ -734,7 +734,7 @@ fn test_release_unapproved_milestone_fails() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
@@ -807,7 +807,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 1_000_000,

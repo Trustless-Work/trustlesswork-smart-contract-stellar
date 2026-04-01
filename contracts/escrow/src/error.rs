@@ -40,7 +40,7 @@ pub enum EscrowError {
     DisputeResolversListEmpty = 35,
     NoMilestoneDefined = 36,
     TooManyMilestones = 37,
-    QuorumCannotBeZero = 38,
+    TargetCannotBeZero = 38,
     PlatformAddressCannotBeChanged = 39,
     ReleaseMilestonesEmpty = 40,
     MilestoneAlreadyReleased = 41,

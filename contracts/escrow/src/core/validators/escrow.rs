@@ -7,8 +7,8 @@ use crate::{
 
 #[inline]
 fn is_milestone_approved(milestone: &Milestone) -> bool {
-    milestone.approvals.quorum > 0
-        && milestone.approvals.approval_count >= milestone.approvals.quorum
+    milestone.approvals.target > 0
+        && milestone.approvals.approval_count >= milestone.approvals.target
 }
 
 #[inline]
@@ -163,8 +163,8 @@ pub fn validate_escrow_conditions(
         }) {
             return Err(EscrowError::FlagsMustBeFalse);
         }
-        if new_escrow.milestones.iter().any(|m| m.approvals.quorum == 0) {
-            return Err(EscrowError::QuorumCannotBeZero);
+        if new_escrow.milestones.iter().any(|m| m.approvals.target == 0) {
+            return Err(EscrowError::TargetCannotBeZero);
         }
         validate_admin_role_overlap(&new_escrow.roles)?;
     } else {
@@ -232,8 +232,8 @@ pub fn validate_add_milestones_conditions(
         return Err(EscrowError::TooManyMilestones);
     }
     for milestone in new_milestones.iter() {
-        if milestone.approvals.quorum == 0 {
-            return Err(EscrowError::QuorumCannotBeZero);
+        if milestone.approvals.target == 0 {
+            return Err(EscrowError::TargetCannotBeZero);
         }
         if milestone.approvals.approval_count > 0 || milestone.released {
             return Err(EscrowError::FlagsMustBeFalse);

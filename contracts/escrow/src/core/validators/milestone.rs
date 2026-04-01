@@ -61,8 +61,8 @@ pub fn validate_batch_milestone_approve(
 
         let milestone = escrow.milestones.get(index).unwrap();
 
-        if milestone.approvals.quorum > 0
-            && milestone.approvals.approval_count >= milestone.approvals.quorum
+        if milestone.approvals.target > 0
+            && milestone.approvals.approval_count >= milestone.approvals.target
         {
             return Err(MilestoneError::MilestoneHasAlreadyBeenApproved);
         }
