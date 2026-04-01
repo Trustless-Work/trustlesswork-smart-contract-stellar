@@ -55,7 +55,7 @@ fn test_initialize_excrow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -155,7 +155,7 @@ fn test_update_escrow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -300,7 +300,7 @@ fn test_update_escrow_platform_fee_too_high() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let initial_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_valid"),
@@ -377,7 +377,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let invalid_escrow: Escrow = Escrow {
         engagement_id: String::from_str(&env, "pf_invalid_init"),
@@ -441,7 +441,7 @@ fn test_admin_role_overlap() {
                 release_signers: vec![&env, release_signer_address.clone()],
                 dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
                 receiver: receiver_address.clone(),
-                admin: escrow_admin},
+                admin: escrow_admin, observers: vec![&env]},
             amount: 1_000_000,
             platform_fee: 300,
             milestones: milestones.clone(),
@@ -521,6 +521,7 @@ fn test_role_limit_exceeded() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,
@@ -592,6 +593,7 @@ fn test_duplicate_address_in_role() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,
@@ -639,6 +641,7 @@ fn test_dispute_resolver_role_overlap() {
             dispute_resolvers,
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,

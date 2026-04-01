@@ -47,7 +47,7 @@ fn test_fund_escrow_successful_deposit() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -141,7 +141,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -228,7 +228,7 @@ fn test_release_funds_successful_flow() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -348,7 +348,7 @@ fn test_release_funds_milestones_incomplete() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -423,7 +423,7 @@ fn test_release_funds_same_receiver_as_provider() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -528,7 +528,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Different receiver address than service provider
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -648,7 +648,7 @@ fn test_batch_release_partial_then_full() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let escrow_properties = Escrow {
         engagement_id: String::from_str(&env, "batch_release_test"),
@@ -748,7 +748,7 @@ fn test_release_unapproved_milestone_fails() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let escrow_properties = Escrow {
         engagement_id: String::from_str(&env, "unapproved_release_test"),
@@ -798,7 +798,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let milestones = vec![
         &env,

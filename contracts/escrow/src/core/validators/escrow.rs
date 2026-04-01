@@ -84,6 +84,7 @@ fn validate_role_limits(roles: &Roles) -> Result<(), EscrowError> {
         || roles.service_providers.len() > MAX_ROLE_MEMBERS
         || roles.release_signers.len() > MAX_ROLE_MEMBERS
         || roles.dispute_resolvers.len() > MAX_ROLE_MEMBERS
+        || roles.observers.len() > MAX_ROLE_MEMBERS
     {
         return Err(EscrowError::RoleLimitExceeded);
     }
@@ -91,6 +92,7 @@ fn validate_role_limits(roles: &Roles) -> Result<(), EscrowError> {
         || has_duplicate_addresses(&roles.service_providers)
         || has_duplicate_addresses(&roles.release_signers)
         || has_duplicate_addresses(&roles.dispute_resolvers)
+        || has_duplicate_addresses(&roles.observers)
     {
         return Err(EscrowError::DuplicateAddressInRole);
     }

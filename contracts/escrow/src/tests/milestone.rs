@@ -55,7 +55,7 @@ fn test_append_milestones_with_funds() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: token_client.address.clone()};
@@ -177,7 +177,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: token_client.address.clone()};
@@ -302,7 +302,7 @@ fn test_change_milestone_status_and_approved() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -442,7 +442,7 @@ fn test_change_milestone_status_batch() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -553,7 +553,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -634,7 +634,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -702,7 +702,7 @@ fn test_quorum_requires_multiple_approvers() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "quorum_test"),
@@ -818,7 +818,7 @@ fn test_batch_approve_milestones_multiple_indices() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "batch_approve_test"),
@@ -905,7 +905,7 @@ fn test_add_milestones() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
-            admin: escrow_admin.clone()},
+            admin: escrow_admin.clone(), observers: vec![&env]},
         amount: 100_000_000,
         platform_fee: 300,
         milestones: initial_milestones.clone(),

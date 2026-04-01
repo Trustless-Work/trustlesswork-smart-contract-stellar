@@ -46,7 +46,7 @@ fn test_dispute_management() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -129,7 +129,7 @@ fn test_dispute_resolution_process() {
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone()};
@@ -269,7 +269,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let milestones = vec![
         &env,
@@ -353,7 +353,7 @@ fn test_resolve_dispute_rounding_edge_case() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
-        admin: escrow_admin.clone()};
+        admin: escrow_admin.clone(), observers: vec![&env]};
 
     let milestones = vec![
         &env,
@@ -479,7 +479,7 @@ fn test_dispute_milestones_batch() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
-            admin: escrow_admin.clone()},
+            admin: escrow_admin.clone(), observers: vec![&env]},
         amount: 100_000_000,
         platform_fee: 300,
         milestones,
@@ -537,7 +537,7 @@ fn test_dispute_milestones_invalid_index_reverts() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
-            admin: escrow_admin.clone()},
+            admin: escrow_admin.clone(), observers: vec![&env]},
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
@@ -590,7 +590,7 @@ fn test_dispute_milestones_already_disputed_reverts() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
-            admin: escrow_admin.clone()},
+            admin: escrow_admin.clone(), observers: vec![&env]},
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
@@ -647,7 +647,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
-            admin: escrow_admin.clone()},
+            admin: escrow_admin.clone(), observers: vec![&env]},
         amount: 100_000_000,
         platform_fee: 0,
         milestones,
