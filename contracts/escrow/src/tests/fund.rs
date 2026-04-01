@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -50,12 +50,6 @@ fn test_fund_escrow_successful_deposit() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -69,7 +63,12 @@ fn test_fund_escrow_successful_deposit() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -154,12 +153,6 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -173,7 +166,12 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -251,12 +249,6 @@ fn test_release_funds_successful_flow() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -270,7 +262,12 @@ fn test_release_funds_successful_flow() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -381,12 +378,6 @@ fn test_release_funds_milestones_incomplete() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -399,7 +390,12 @@ fn test_release_funds_milestones_incomplete() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: incomplete_milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -466,12 +462,6 @@ fn test_release_funds_same_receiver_as_provider() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -485,7 +475,12 @@ fn test_release_funds_same_receiver_as_provider() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -581,12 +576,6 @@ fn test_release_funds_invalid_receiver_fallback() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -600,7 +589,12 @@ fn test_release_funds_invalid_receiver_fallback() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -709,11 +703,12 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         amount: escrow_amount,
         platform_fee,
         milestones: milestones.clone(),
-        flags: Flags {
-            disputed: false,
-            released: false,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
             resolved: false,
         },
+        released: false,
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },

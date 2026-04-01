@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -49,12 +49,6 @@ fn test_dispute_management() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -67,7 +61,12 @@ fn test_dispute_management() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -78,12 +77,12 @@ fn test_dispute_management() {
     escrow_approver.initialize_escrow(&escrow_properties);
 
     let escrow = escrow_approver.get_escrow();
-    assert!(!escrow.flags.disputed);
+    assert!(!escrow.dispute.is_disputed);
 
-    escrow_approver.dispute_escrow(&approver_address);
+    escrow_approver.dispute_escrow(&approver_address, &String::from_str(&env, "Work not done"));
 
     let escrow_after_change = escrow_approver.get_escrow();
-    assert!(escrow_after_change.flags.disputed);
+    assert!(escrow_after_change.dispute.is_disputed);
 
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
@@ -91,10 +90,10 @@ fn test_dispute_management() {
         escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
     assert!(result.is_err());
 
-    let _ = escrow_approver.try_dispute_escrow(&approver_address);
+    let _ = escrow_approver.try_dispute_escrow(&approver_address, &String::from_str(&env, "Again"));
 
     let escrow_after_second_change = escrow_approver.get_escrow();
-    assert!(escrow_after_second_change.flags.disputed);
+    assert!(escrow_after_second_change.dispute.is_disputed);
 }
 
 #[test]
@@ -142,12 +141,6 @@ fn test_dispute_resolution_process() {
         admin: escrow_admin.clone(),
     };
 
-    let flags: Flags = Flags {
-        disputed: false,
-        released: false,
-        resolved: false,
-    };
-
     let trustline: Trustline = Trustline {
         address: usdc_token.0.address.clone(),
     };
@@ -161,7 +154,12 @@ fn test_dispute_resolution_process() {
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
-        flags,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
         trustline,
         receiver_memo: 0,
     };
@@ -175,10 +173,10 @@ fn test_dispute_resolution_process() {
         .0
         .transfer(&approver_address, &escrow_approver.address, &amount);
 
-    escrow_approver.dispute_escrow(&approver_address);
+    escrow_approver.dispute_escrow(&approver_address, &String::from_str(&env, "Dispute reason"));
 
     let escrow_with_dispute = escrow_approver.get_escrow();
-    assert!(escrow_with_dispute.flags.disputed);
+    assert!(escrow_with_dispute.dispute.is_disputed);
 
     // Try to resolve dispute with incorrect dispute resolver (should fail)
     let mut wrong_dist = Map::new(&env);
@@ -227,8 +225,8 @@ fn test_dispute_resolution_process() {
 
     // Verify dispute was resolved
     let escrow_after_resolution = escrow_approver.get_escrow();
-    assert!(!escrow_after_resolution.flags.disputed);
-    assert!(escrow_after_resolution.flags.resolved);
+    assert!(!escrow_after_resolution.dispute.is_disputed);
+    assert!(escrow_after_resolution.dispute.resolved);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -314,11 +312,12 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         amount: 10_000_000,
         platform_fee: 0,
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
             resolved: false,
         },
+        released: false,
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -329,11 +328,11 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let escrow_client_1 = test_data.client;
 
     escrow_client_1.initialize_escrow(&escrow_base);
-    escrow_client_1.dispute_escrow(&approver);
+    escrow_client_1.dispute_escrow(&approver, &String::from_str(&env, "Valid reason"));
 
     let updated_escrow = escrow_client_1.get_escrow();
     assert!(
-        updated_escrow.flags.disputed,
+        updated_escrow.dispute.is_disputed,
         "Dispute flag should be set to true for authorized address"
     );
 
@@ -341,7 +340,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let escrow_client_2 = test_data.client;
 
     escrow_client_2.initialize_escrow(&escrow_base);
-    let result = escrow_client_2.try_dispute_escrow(&unauthorized);
+    let result = escrow_client_2.try_dispute_escrow(&unauthorized, &String::from_str(&env, "Unauthorized"));
 
     assert!(
         result.is_err(),
@@ -406,11 +405,12 @@ fn test_resolve_dispute_rounding_edge_case() {
         amount: total,
         platform_fee,
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
             resolved: false,
         },
+        released: false,
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -426,7 +426,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     usdc_token.1.mint(&client.address, &total);
 
     // Put escrow in dispute
-    client.dispute_escrow(&approver);
+    client.dispute_escrow(&approver, &String::from_str(&env, "Rounding test dispute"));
 
     // Distributions that trigger the rounding mismatch
     let mut distributions = Map::new(&env);
@@ -460,6 +460,78 @@ fn test_resolve_dispute_rounding_edge_case() {
 
     // Verify dispute was resolved
     let escrow = client.get_escrow();
-    assert!(escrow.flags.resolved);
-    assert!(!escrow.flags.disputed);
+    assert!(escrow.dispute.resolved);
+    assert!(!escrow.dispute.is_disputed);
+}
+
+#[test]
+fn test_dispute_reason_is_stored() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        receiver: service_provider.clone(),
+        admin: escrow_admin.clone(),
+    };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                quorum: 1,
+                approval_count: 0,
+                approvers: vec![&env],
+            },
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "reason_test"),
+        title: String::from_str(&env, "Reason Test Escrow"),
+        description: String::from_str(&env, "Test that dispute reason is stored"),
+        roles,
+        amount: 1_000_000,
+        platform_fee: 100,
+        milestones,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+
+    let reason = String::from_str(&env, "Service provider did not deliver on time");
+    client.dispute_escrow(&approver, &reason);
+
+    let escrow = client.get_escrow();
+    assert!(escrow.dispute.is_disputed);
+    assert_eq!(escrow.dispute.reason, reason);
 }

@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -53,11 +53,12 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         amount: 50_000_000,
         platform_fee: 100, // 1%
         milestones,
-        flags: Flags {
-            disputed: false,
-            released: false,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
             resolved: false,
         },
+        released: false,
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
