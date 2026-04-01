@@ -42,6 +42,9 @@ pub enum EscrowError {
     TooManyMilestones = 37,
     QuorumCannotBeZero = 38,
     PlatformAddressCannotBeChanged = 39,
+    RoleLimitExceeded = 40,
+    DuplicateAddressInRole = 41,
+    DisputeResolverOverlapsWithOtherRole = 42,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
