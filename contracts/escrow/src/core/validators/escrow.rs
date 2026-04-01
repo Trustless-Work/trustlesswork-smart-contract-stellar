@@ -16,11 +16,11 @@ pub fn validate_release_conditions(
     escrow: &Escrow,
     release_signer: &Address,
 ) -> Result<(), EscrowError> {
-    if escrow.flags.released {
+    if escrow.released {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
 
-    if escrow.flags.resolved {
+    if escrow.dispute.resolved {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
@@ -36,7 +36,7 @@ pub fn validate_release_conditions(
         return Err(EscrowError::EscrowNotCompleted);
     }
 
-    if escrow.flags.disputed {
+    if escrow.dispute.is_disputed {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
 
@@ -95,9 +95,9 @@ pub fn validate_escrow_conditions(
         if new_escrow.milestones.len() > 50 {
             return Err(EscrowError::TooManyMilestones);
         }
-        if new_escrow.flags.released
-            || new_escrow.flags.disputed
-            || new_escrow.flags.resolved
+        if new_escrow.released
+            || new_escrow.dispute.is_disputed
+            || new_escrow.dispute.resolved
             || new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0)
         {
             return Err(EscrowError::FlagsMustBeFalse);
@@ -122,11 +122,11 @@ pub fn validate_escrow_conditions(
             return Err(EscrowError::PlatformAddressCannotBeChanged);
         }
 
-        if existing.flags.disputed {
+        if existing.dispute.is_disputed {
             return Err(EscrowError::EscrowOpenedForDisputeResolution);
         }
 
-        if new_escrow.flags.released || new_escrow.flags.disputed || new_escrow.flags.resolved {
+        if new_escrow.released || new_escrow.dispute.is_disputed || new_escrow.dispute.resolved {
             return Err(EscrowError::FlagsMustBeFalse);
         }
 
@@ -138,7 +138,6 @@ pub fn validate_escrow_conditions(
                 || existing.roles != new_escrow.roles
                 || existing.amount != new_escrow.amount
                 || existing.platform_fee != new_escrow.platform_fee
-                || existing.flags != new_escrow.flags
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
             {
@@ -160,13 +159,13 @@ pub fn validate_add_milestones_conditions(
     if admin != &existing_escrow.roles.admin {
         return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
     }
-    if existing_escrow.flags.disputed {
+    if existing_escrow.dispute.is_disputed {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
-    if existing_escrow.flags.released {
+    if existing_escrow.released {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
-    if existing_escrow.flags.resolved {
+    if existing_escrow.dispute.resolved {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
     if new_milestones.is_empty() {

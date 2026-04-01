@@ -10,7 +10,8 @@ pub struct Escrow {
     pub amount: i128,
     pub platform_fee: u32,
     pub milestones: Vec<Milestone>,
-    pub flags: Flags,
+    pub dispute: Dispute,
+    pub released: bool,
     pub trustline: Trustline,
     pub receiver_memo: u32,
 }
@@ -53,10 +54,10 @@ pub struct Roles {
 }
 
 #[contracttype]
-#[derive(Clone, PartialEq, Eq)]
-pub struct Flags {
-    pub disputed: bool,
-    pub released: bool,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Dispute {
+    pub is_disputed: bool,
+    pub reason: String,
     pub resolved: bool,
 }
 

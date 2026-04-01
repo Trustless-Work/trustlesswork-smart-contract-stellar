@@ -56,7 +56,7 @@ impl EscrowManager {
 
         release_signer.require_auth();
 
-        escrow.flags.released = true;
+        escrow.released = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()
@@ -116,6 +116,8 @@ impl EscrowManager {
 
         let mut escrow_to_save = escrow_properties;
         escrow_to_save.milestones = existing_escrow.milestones.clone();
+        escrow_to_save.dispute = existing_escrow.dispute.clone();
+        escrow_to_save.released = existing_escrow.released;
 
         e.storage()
             .persistent()

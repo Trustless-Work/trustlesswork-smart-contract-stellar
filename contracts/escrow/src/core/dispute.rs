@@ -1,5 +1,5 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Map};
+use soroban_sdk::{Address, Env, Map, String};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
@@ -27,11 +27,7 @@ impl DisputeManager {
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
-        let mut all_processed = true;
-        let flags = &escrow.flags;
-        if !(flags.released || flags.resolved || flags.disputed) {
-            all_processed = false;
-        }
+        let all_processed = escrow.released || escrow.dispute.resolved || escrow.dispute.is_disputed;
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
@@ -118,8 +114,8 @@ impl DisputeManager {
             total,
         )?;
 
-        escrow.flags.resolved = true;
-        escrow.flags.disputed = false;
+        escrow.dispute.resolved = true;
+        escrow.dispute.is_disputed = false;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()
@@ -128,13 +124,14 @@ impl DisputeManager {
         Ok(escrow)
     }
 
-    pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, EscrowError> {
+    pub fn dispute_escrow(e: &Env, signer: Address, reason: String) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
 
         signer.require_auth();
 
-        escrow.flags.disputed = true;
+        escrow.dispute.is_disputed = true;
+        escrow.dispute.reason = reason;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()

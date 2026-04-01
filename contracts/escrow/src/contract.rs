@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Symbol, Val, Vec};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError};
@@ -199,8 +199,8 @@ impl EscrowContract {
         Ok(())
     }
 
-    pub fn dispute_escrow(e: Env, signer: Address) -> Result<(), EscrowError> {
-        let escrow = DisputeManager::dispute_escrow(&e, signer)?;
+    pub fn dispute_escrow(e: Env, signer: Address, reason: String) -> Result<(), EscrowError> {
+        let escrow = DisputeManager::dispute_escrow(&e, signer, reason)?;
         EscrowDisputed { escrow }.publish(&e);
         Ok(())
     }

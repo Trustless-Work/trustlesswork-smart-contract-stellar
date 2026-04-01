@@ -55,7 +55,7 @@ pub fn validate_dispute_resolution_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
-    if !escrow.flags.disputed {
+    if !escrow.dispute.is_disputed {
         return Err(EscrowError::EscrowNotInDispute);
     }
 
@@ -79,11 +79,11 @@ pub fn validate_dispute_flag_change_conditions(
     escrow: &Escrow,
     signer: &Address,
 ) -> Result<(), EscrowError> {
-    if escrow.flags.disputed {
+    if escrow.dispute.is_disputed {
         return Err(EscrowError::EscrowAlreadyInDispute);
     }
 
-    if escrow.flags.resolved {
+    if escrow.dispute.resolved {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
