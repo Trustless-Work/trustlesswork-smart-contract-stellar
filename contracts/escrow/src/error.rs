@@ -47,6 +47,9 @@ pub enum EscrowError {
     InvalidMilestoneIndex = 42,
     BatchMilestoneDisputeEmpty = 43,
     MilestoneAlreadyDisputed = 44,
+    RoleLimitExceeded = 45,
+    DuplicateAddressInRole = 46,
+    DisputeResolverOverlapsWithOtherRole = 47,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

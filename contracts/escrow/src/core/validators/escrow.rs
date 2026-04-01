@@ -66,6 +66,52 @@ fn validate_admin_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
 }
 
 #[inline]
+fn has_duplicate_addresses(list: &Vec<Address>) -> bool {
+    for i in 0..list.len() {
+        for j in (i + 1)..list.len() {
+            if list.get(i).unwrap() == list.get(j).unwrap() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[inline]
+fn validate_role_limits(roles: &Roles) -> Result<(), EscrowError> {
+    const MAX_ROLE_MEMBERS: u32 = 5;
+    if roles.approvers.len() > MAX_ROLE_MEMBERS
+        || roles.service_providers.len() > MAX_ROLE_MEMBERS
+        || roles.release_signers.len() > MAX_ROLE_MEMBERS
+        || roles.dispute_resolvers.len() > MAX_ROLE_MEMBERS
+    {
+        return Err(EscrowError::RoleLimitExceeded);
+    }
+    if has_duplicate_addresses(&roles.approvers)
+        || has_duplicate_addresses(&roles.service_providers)
+        || has_duplicate_addresses(&roles.release_signers)
+        || has_duplicate_addresses(&roles.dispute_resolvers)
+    {
+        return Err(EscrowError::DuplicateAddressInRole);
+    }
+    Ok(())
+}
+
+#[inline]
+fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
+    for resolver in roles.dispute_resolvers.iter() {
+        if roles.approvers.contains(&resolver)
+            || roles.service_providers.contains(&resolver)
+            || roles.release_signers.contains(&resolver)
+            || resolver == roles.receiver
+        {
+            return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
+        }
+    }
+    Ok(())
+}
+
+#[inline]
 pub fn validate_escrow_conditions(
     existing_escrow: Option<&Escrow>,
     new_escrow: &Escrow,
@@ -96,6 +142,9 @@ pub fn validate_escrow_conditions(
     if new_escrow.amount <= 0 {
         return Err(EscrowError::AmountCannotBeZero);
     }
+
+    validate_role_limits(&new_escrow.roles)?;
+    validate_dispute_resolver_role_overlap(&new_escrow.roles)?;
 
     if is_init {
         if new_escrow.milestones.is_empty() {
