@@ -48,6 +48,7 @@ fn test_fund_escrow_successful_deposit() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -151,6 +152,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -247,6 +249,7 @@ fn test_release_funds_successful_flow() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -376,6 +379,7 @@ fn test_release_funds_milestones_incomplete() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -460,6 +464,7 @@ fn test_release_funds_same_receiver_as_provider() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -574,6 +579,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: _receiver_address.clone(), // Different receiver address than service provider
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -679,6 +685,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let milestones = vec![

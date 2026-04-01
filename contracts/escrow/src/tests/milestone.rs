@@ -56,6 +56,7 @@ fn test_append_milestones_with_funds() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -189,6 +190,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: receiver_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -325,6 +327,7 @@ fn test_change_milestone_status_and_approved() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -479,6 +482,7 @@ fn test_change_milestone_status_batch() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -601,6 +605,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -693,6 +698,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -770,6 +776,7 @@ fn test_quorum_requires_multiple_approvers() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let escrow_properties: Escrow = Escrow {
@@ -895,6 +902,7 @@ fn test_batch_approve_milestones_multiple_indices() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let escrow_properties: Escrow = Escrow {
@@ -991,6 +999,7 @@ fn test_add_milestones() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 300,

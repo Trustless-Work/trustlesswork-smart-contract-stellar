@@ -47,6 +47,7 @@ fn test_dispute_management() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -139,6 +140,7 @@ fn test_dispute_resolution_process() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -288,6 +290,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let milestones = vec![
@@ -381,6 +384,7 @@ fn test_resolve_dispute_rounding_edge_case() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let milestones = vec![
@@ -487,6 +491,7 @@ fn test_dispute_reason_is_stored() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let milestones = vec![

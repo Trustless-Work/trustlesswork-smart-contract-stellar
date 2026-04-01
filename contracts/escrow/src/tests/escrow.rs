@@ -56,6 +56,7 @@ fn test_initialize_excrow() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -165,6 +166,7 @@ fn test_update_escrow() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -327,6 +329,7 @@ fn test_update_escrow_platform_fee_too_high() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let initial_escrow: Escrow = Escrow {
@@ -420,6 +423,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
+    observers: vec![&env],
     };
 
     let invalid_escrow: Escrow = Escrow {
@@ -493,6 +497,7 @@ fn test_admin_role_overlap() {
                 dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
                 receiver: receiver_address.clone(),
                 admin: escrow_admin,
+            observers: vec![&env],
             },
             amount: 1_000_000,
             platform_fee: 300,
@@ -579,6 +584,7 @@ fn test_role_limit_exceeded() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,
@@ -644,6 +650,7 @@ fn test_duplicate_address_in_role() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,
@@ -700,6 +707,7 @@ fn test_dispute_resolver_role_overlap() {
             dispute_resolvers,
             receiver: receiver.clone(),
             admin: escrow_admin.clone(),
+        observers: vec![&env],
         },
         amount: 100_000_000,
         platform_fee: 0,
