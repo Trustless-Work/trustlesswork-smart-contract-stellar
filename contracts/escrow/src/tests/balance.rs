@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, MilestoneApprovals, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -28,8 +28,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
-        admin: escrow_admin.clone(),
-    };
+        admin: escrow_admin.clone()};
 
     let milestones = vec![
         &env,
@@ -40,11 +39,9 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             approvals: MilestoneApprovals {
                 quorum: 1,
                 approval_count: 0,
-                approvers: vec![&env],
-            },
+                approvers: vec![&env]},
             amount: 100_000_000,
-            flags: Flags { disputed: false, released: false, resolved: false },
-        },
+            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
 
     let escrow_base = Escrow {
@@ -56,10 +53,8 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         platform_fee: 100, // 1%
         milestones,
         trustline: Trustline {
-            address: usdc_token.0.address.clone(),
-        },
-        receiver_memo: 0,
-    };
+            address: usdc_token.0.address.clone()},
+        receiver_memo: 0};
 
     // Deploy two escrow contracts of the same code and initialize both
     let c1 = create_escrow_contract(&env).client;
