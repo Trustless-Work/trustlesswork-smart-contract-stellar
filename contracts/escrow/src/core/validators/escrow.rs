@@ -17,7 +17,7 @@ pub fn validate_release_milestones_conditions(
     release_signer: &Address,
     milestone_indices: &Vec<u32>,
 ) -> Result<(), EscrowError> {
-    if escrow.milestones.iter().any(|m| m.flags.resolved) {
+    if escrow.milestones.iter().any(|m| m.dispute.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
 
@@ -25,7 +25,7 @@ pub fn validate_release_milestones_conditions(
         return Err(EscrowError::OnlyReleaseSignerCanReleaseEarnings);
     }
 
-    if escrow.milestones.iter().any(|m| m.flags.disputed) {
+    if escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
 
@@ -44,7 +44,7 @@ pub fn validate_release_milestones_conditions(
             return Err(EscrowError::EscrowNotCompleted);
         }
 
-        if milestone.flags.released {
+        if milestone.released {
             return Err(EscrowError::MilestoneAlreadyReleased);
         }
     }
@@ -106,9 +106,9 @@ pub fn validate_escrow_conditions(
         }
         if new_escrow.milestones.iter().any(|m| {
             m.approvals.approval_count > 0
-                || m.flags.released
-                || m.flags.disputed
-                || m.flags.resolved
+                || m.released
+                || m.dispute.is_disputed
+                || m.dispute.resolved
         }) {
             return Err(EscrowError::FlagsMustBeFalse);
         }
@@ -132,7 +132,7 @@ pub fn validate_escrow_conditions(
             return Err(EscrowError::AdminAddressCannotBeChanged);
         }
 
-        if existing.milestones.iter().any(|m| m.flags.disputed) {
+        if existing.milestones.iter().any(|m| m.dispute.is_disputed) {
             return Err(EscrowError::EscrowOpenedForDisputeResolution);
         }
 
@@ -165,13 +165,13 @@ pub fn validate_add_milestones_conditions(
     if admin != &existing_escrow.roles.admin {
         return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
     }
-    if existing_escrow.milestones.iter().any(|m| m.flags.disputed) {
+    if existing_escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
-    if existing_escrow.milestones.iter().all(|m| m.flags.released) {
+    if existing_escrow.milestones.iter().all(|m| m.released) {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
-    if existing_escrow.milestones.iter().any(|m| m.flags.resolved) {
+    if existing_escrow.milestones.iter().any(|m| m.dispute.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
     if new_milestones.is_empty() {
@@ -184,7 +184,7 @@ pub fn validate_add_milestones_conditions(
         if milestone.approvals.quorum == 0 {
             return Err(EscrowError::QuorumCannotBeZero);
         }
-        if milestone.approvals.approval_count > 0 || milestone.flags.released {
+        if milestone.approvals.approval_count > 0 || milestone.released {
             return Err(EscrowError::FlagsMustBeFalse);
         }
     }

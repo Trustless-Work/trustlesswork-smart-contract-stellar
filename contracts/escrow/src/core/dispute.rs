@@ -1,5 +1,5 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Map, Vec};
+use soroban_sdk::{Address, Env, Map, String, Vec};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
@@ -31,7 +31,7 @@ impl DisputeManager {
         let all_processed = escrow
             .milestones
             .iter()
-            .all(|m| m.flags.released || m.flags.resolved || m.flags.disputed);
+            .all(|m| m.released || m.dispute.resolved || m.dispute.is_disputed);
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
@@ -120,9 +120,9 @@ impl DisputeManager {
 
         for i in 0..escrow.milestones.len() {
             let mut milestone = escrow.milestones.get(i).unwrap();
-            if milestone.flags.disputed {
-                milestone.flags.resolved = true;
-                milestone.flags.disputed = false;
+            if milestone.dispute.is_disputed {
+                milestone.dispute.resolved = true;
+                milestone.dispute.is_disputed = false;
                 escrow.milestones.set(i, milestone);
             }
         }
@@ -138,6 +138,7 @@ impl DisputeManager {
         e: &Env,
         signer: Address,
         milestone_indices: Vec<u32>,
+        reason: String,
     ) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_batch_milestone_dispute_conditions(&escrow, &signer, &milestone_indices)?;
@@ -146,7 +147,8 @@ impl DisputeManager {
 
         for index in milestone_indices.iter() {
             let mut milestone = escrow.milestones.get(index).unwrap();
-            milestone.flags.disputed = true;
+            milestone.dispute.is_disputed = true;
+            milestone.dispute.reason = reason.clone();
             escrow.milestones.set(index, milestone);
         }
 
@@ -158,7 +160,7 @@ impl DisputeManager {
         Ok(escrow)
     }
 
-    pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, EscrowError> {
+    pub fn dispute_escrow(e: &Env, signer: Address, reason: String) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
 
@@ -166,8 +168,9 @@ impl DisputeManager {
 
         for i in 0..escrow.milestones.len() {
             let mut milestone = escrow.milestones.get(i).unwrap();
-            if !milestone.flags.disputed {
-                milestone.flags.disputed = true;
+            if !milestone.dispute.is_disputed {
+                milestone.dispute.is_disputed = true;
+                milestone.dispute.reason = reason.clone();
                 escrow.milestones.set(i, milestone);
             }
         }

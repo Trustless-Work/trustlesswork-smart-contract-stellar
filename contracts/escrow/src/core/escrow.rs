@@ -96,7 +96,7 @@ impl EscrowManager {
 
         for index in milestone_indices.iter() {
             let mut milestone = escrow.milestones.get(index).unwrap();
-            milestone.flags.released = true;
+            milestone.released = true;
             escrow.milestones.set(index, milestone);
         }
 
