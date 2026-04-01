@@ -39,7 +39,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },

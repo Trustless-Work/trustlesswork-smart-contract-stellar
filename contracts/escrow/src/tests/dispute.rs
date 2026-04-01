@@ -32,7 +32,7 @@ fn test_dispute_management() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -125,7 +125,7 @@ fn test_dispute_resolution_process() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -300,7 +300,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -394,7 +394,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -501,7 +501,7 @@ fn test_dispute_reason_is_stored() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },

@@ -27,7 +27,7 @@ fn test_initialize_excrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -37,7 +37,7 @@ fn test_initialize_excrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -139,7 +139,7 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -149,7 +149,7 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -205,7 +205,7 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -215,7 +215,7 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -225,7 +225,7 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -309,7 +309,7 @@ fn test_update_escrow_platform_fee_too_high() {
             status: String::from_str(&env, "pending"),
             evidence: String::from_str(&env, "e"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -403,7 +403,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
             status: String::from_str(&env, "pending"),
             evidence: String::from_str(&env, "e"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -477,7 +477,7 @@ fn test_admin_role_overlap() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "e"),
             approvals: MilestoneApprovals {
-                quorum: 1,
+                target: 1,
                 approval_count: 0,
                 approvers: vec![&env],
             },
@@ -569,7 +569,7 @@ fn test_role_limit_exceeded() {
         description: String::from_str(&env, "M1"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
     };
 
     let make_escrow = |approvers: soroban_sdk::Vec<Address>| Escrow {
@@ -660,7 +660,7 @@ fn test_duplicate_address_in_role() {
                 description: String::from_str(&env, "M1"),
                 status: String::from_str(&env, "Pending"),
                 evidence: String::from_str(&env, ""),
-                approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+                approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
             },
         ],
         dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
@@ -692,7 +692,7 @@ fn test_dispute_resolver_role_overlap() {
         description: String::from_str(&env, "M1"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { quorum: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
     };
 
     let make_escrow = |dispute_resolvers: soroban_sdk::Vec<Address>| Escrow {
