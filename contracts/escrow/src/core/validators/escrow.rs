@@ -2,7 +2,7 @@ use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
     error::EscrowError,
-    storage::types::{DataKey, Escrow, Milestone, Roles},
+    storage::types::{DataKey, Escrow, Milestone, MilestoneUpdate, Roles},
 };
 
 #[inline]
@@ -208,11 +208,16 @@ pub fn validate_escrow_conditions(
 }
 
 #[inline]
-pub fn validate_add_milestones_conditions(
+pub fn validate_manage_milestones_conditions(
     existing_escrow: &Escrow,
     admin: &Address,
     new_milestones: &Vec<Milestone>,
+    milestone_updates: &Vec<MilestoneUpdate>,
+    contract_balance: i128,
 ) -> Result<(), EscrowError> {
+    if new_milestones.is_empty() && milestone_updates.is_empty() {
+        return Err(EscrowError::NoMilestoneDefined);
+    }
     if admin != &existing_escrow.roles.admin {
         return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
     }
@@ -225,18 +230,27 @@ pub fn validate_add_milestones_conditions(
     if existing_escrow.milestones.iter().any(|m| m.dispute.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
-    if new_milestones.is_empty() {
-        return Err(EscrowError::NoMilestoneDefined);
-    }
-    if existing_escrow.milestones.len() + new_milestones.len() > 50 {
-        return Err(EscrowError::TooManyMilestones);
-    }
-    for milestone in new_milestones.iter() {
-        if milestone.approvals.target == 0 {
-            return Err(EscrowError::TargetCannotBeZero);
+    if !new_milestones.is_empty() {
+        if existing_escrow.milestones.len() + new_milestones.len() > 50 {
+            return Err(EscrowError::TooManyMilestones);
         }
-        if milestone.approvals.approval_count > 0 || milestone.released {
-            return Err(EscrowError::FlagsMustBeFalse);
+        for milestone in new_milestones.iter() {
+            if milestone.approvals.target == 0 {
+                return Err(EscrowError::TargetCannotBeZero);
+            }
+            if milestone.approvals.approval_count > 0 || milestone.released {
+                return Err(EscrowError::FlagsMustBeFalse);
+            }
+        }
+    }
+    if !milestone_updates.is_empty() {
+        if contract_balance <= 0 {
+            return Err(EscrowError::MilestoneUpdateRequiresFunds);
+        }
+        for update in milestone_updates.iter() {
+            if update.index >= existing_escrow.milestones.len() {
+                return Err(EscrowError::InvalidMilestoneIndex);
+            }
         }
     }
     Ok(())

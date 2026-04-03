@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, MilestoneUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -81,7 +81,7 @@ fn test_append_milestones_with_funds() {
     token_admin.mint(&approver_address, &amount);
     escrow_approver.fund_escrow(&approver_address, &initial_escrow_properties, &amount);
 
-    // Add a new milestone via add_milestones
+    // Add a new milestone via manage_milestones
     let new_milestones_to_add = vec![
         &env,
         Milestone {
@@ -96,7 +96,7 @@ fn test_append_milestones_with_funds() {
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
 
-    escrow_approver.add_milestones(&escrow_admin, &new_milestones_to_add);
+    escrow_approver.manage_milestones(&escrow_admin, &new_milestones_to_add, &vec![&env]);
 
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.milestones.len(), 3);
@@ -207,7 +207,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     let after_approval = escrow_client.get_escrow();
     { let m = after_approval.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.target); }
 
-    // Add a new milestone via add_milestones
+    // Add a new milestone via manage_milestones
     let new_milestones_to_add = vec![
         &env,
         Milestone {
@@ -222,7 +222,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
 
-    escrow_client.add_milestones(&escrow_admin, &new_milestones_to_add);
+    escrow_client.manage_milestones(&escrow_admin, &new_milestones_to_add, &vec![&env]);
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
@@ -865,7 +865,7 @@ fn test_batch_approve_milestones_multiple_indices() {
 }
 
 #[test]
-fn test_add_milestones() {
+fn test_manage_milestones() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -878,7 +878,7 @@ fn test_add_milestones() {
     let dispute_resolver = Address::generate(&env);
     let non_platform = Address::generate(&env);
 
-    let usdc_token = create_usdc_token(&env, &admin);
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
 
     let initial_milestones = vec![
         &env,
@@ -895,7 +895,7 @@ fn test_add_milestones() {
     ];
 
     let escrow_base = Escrow {
-        engagement_id: String::from_str(&env, "add_milestones_test"),
+        engagement_id: String::from_str(&env, "manage_milestones_test"),
         title: String::from_str(&env, "Test"),
         description: String::from_str(&env, "Desc"),
         roles: Roles {
@@ -909,14 +909,14 @@ fn test_add_milestones() {
         amount: 100_000_000,
         platform_fee: 300,
         milestones: initial_milestones.clone(),
-        trustline: Trustline { address: usdc_token.0.address.clone() },
+        trustline: Trustline { address: token_client.address.clone() },
         receiver_memo: 0};
 
     let test_data = create_escrow_contract(&env);
     let client = test_data.client;
     client.initialize_escrow(&escrow_base);
 
-    // Add new milestones
+    // Add new milestones (no funds required)
     let to_add = vec![
         &env,
         Milestone {
@@ -941,7 +941,8 @@ fn test_add_milestones() {
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
 
-    client.add_milestones(&escrow_admin, &to_add);
+    let no_updates: soroban_sdk::Vec<MilestoneUpdate> = soroban_sdk::vec![&env];
+    client.manage_milestones(&escrow_admin, &to_add, &no_updates);
 
     let escrow = client.get_escrow();
     assert_eq!(escrow.milestones.len(), 3, "Should have 3 milestones after adding 2");
@@ -956,13 +957,13 @@ fn test_add_milestones() {
     );
 
     // Unauthorized caller must fail
-    let result = client.try_add_milestones(&non_platform, &to_add);
-    assert!(result.is_err(), "Non-admin address must not add milestones");
+    let result = client.try_manage_milestones(&non_platform, &to_add, &no_updates);
+    assert!(result.is_err(), "Non-admin address must not manage milestones");
 
-    // Empty list must fail
-    let empty: soroban_sdk::Vec<Milestone> = soroban_sdk::vec![&env];
-    let result = client.try_add_milestones(&escrow_admin, &empty);
-    assert!(result.is_err(), "Empty milestone list must fail");
+    // Both lists empty must fail
+    let empty_milestones: soroban_sdk::Vec<Milestone> = soroban_sdk::vec![&env];
+    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &no_updates);
+    assert!(result.is_err(), "Both lists empty must fail");
 
     // Milestone with released=true must fail
     let already_released = vec![
@@ -978,7 +979,7 @@ fn test_add_milestones() {
             amount: 10_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: true},
     ];
-    let result = client.try_add_milestones(&escrow_admin, &already_released);
+    let result = client.try_manage_milestones(&escrow_admin, &already_released, &no_updates);
     assert!(result.is_err(), "Milestone with released=true must fail");
 
     // Milestone with target 0 must fail
@@ -995,27 +996,69 @@ fn test_add_milestones() {
             amount: 10_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
     ];
-    let result = client.try_add_milestones(&escrow_admin, &bad_target);
+    let result = client.try_manage_milestones(&escrow_admin, &bad_target, &no_updates);
     assert!(result.is_err(), "Milestone with target 0 must fail");
 
-    // update_escrow must NOT change milestones
+    // update_escrow must NOT change milestones (no funds yet)
     let updated_escrow_props = Escrow {
-        engagement_id: String::from_str(&env, "add_milestones_test"),
+        engagement_id: String::from_str(&env, "manage_milestones_test"),
         title: String::from_str(&env, "Updated Title"),
         description: String::from_str(&env, "Updated Desc"),
         roles: escrow_base.roles.clone(),
         amount: escrow_base.amount,
         platform_fee: escrow_base.platform_fee,
-        milestones: initial_milestones.clone(), // pass only 1 milestone — should be ignored
+        milestones: initial_milestones.clone(),
         trustline: escrow_base.trustline.clone(),
         receiver_memo: 0};
     client.update_escrow(&escrow_admin, &updated_escrow_props);
 
-    let after_update = client.get_escrow();
+    let after_escrow_update = client.get_escrow();
     assert_eq!(
-        after_update.milestones.len(),
+        after_escrow_update.milestones.len(),
         3,
         "update_escrow must not overwrite milestones"
     );
-    assert_eq!(after_update.title, String::from_str(&env, "Updated Title"));
+    assert_eq!(after_escrow_update.title, String::from_str(&env, "Updated Title"));
+
+    // Updating description/amount without funds must fail
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: Some(String::from_str(&env, "Updated Milestone 1")),
+            new_amount: Some(60_000_000i128),
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &updates);
+    assert!(result.is_err(), "Updating milestone without funds must fail");
+
+    // Fund the escrow, then update description and amount
+    token_admin.mint(&approver, &100_000_000i128);
+    let current_escrow = client.get_escrow();
+    client.fund_escrow(&approver, &current_escrow, &100_000_000i128);
+
+    client.manage_milestones(&escrow_admin, &empty_milestones, &updates);
+    let after_update = client.get_escrow();
+    assert_eq!(
+        after_update.milestones.get(0).unwrap().description,
+        String::from_str(&env, "Updated Milestone 1"),
+        "Description must be updated after funding"
+    );
+    assert_eq!(
+        after_update.milestones.get(0).unwrap().amount,
+        60_000_000i128,
+        "Amount must be updated after funding"
+    );
+
+    // Invalid milestone index must fail
+    let bad_index = vec![
+        &env,
+        MilestoneUpdate {
+            index: 99,
+            new_description: Some(String::from_str(&env, "Bad")),
+            new_amount: None,
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &bad_index);
+    assert!(result.is_err(), "Invalid milestone index must fail");
 }

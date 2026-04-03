@@ -43,6 +43,14 @@ pub struct MilestoneStatusUpdate {
 }
 
 #[contracttype]
+#[derive(Clone)]
+pub struct MilestoneUpdate {
+    pub index: u32,
+    pub new_description: Option<String>,
+    pub new_amount: Option<i128>,
+}
+
+#[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Roles {
     pub approvers: Vec<Address>,
