@@ -244,8 +244,8 @@ pub fn validate_manage_milestones_conditions(
         }
     }
     if !milestone_updates.is_empty() {
-        if contract_balance <= 0 {
-            return Err(EscrowError::MilestoneUpdateRequiresFunds);
+        if contract_balance > 0 {
+            return Err(EscrowError::MilestoneUpdateNotAllowedWithFunds);
         }
         for update in milestone_updates.iter() {
             if update.index >= existing_escrow.milestones.len() {

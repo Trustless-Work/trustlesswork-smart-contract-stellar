@@ -999,6 +999,40 @@ fn test_manage_milestones() {
     let result = client.try_manage_milestones(&escrow_admin, &bad_target, &no_updates);
     assert!(result.is_err(), "Milestone with target 0 must fail");
 
+    // Updating description/amount without funds must succeed
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: Some(String::from_str(&env, "Updated Milestone 1")),
+            new_amount: Some(60_000_000i128),
+        },
+    ];
+    client.manage_milestones(&escrow_admin, &empty_milestones, &updates);
+    let after_update = client.get_escrow();
+    assert_eq!(
+        after_update.milestones.get(0).unwrap().description,
+        String::from_str(&env, "Updated Milestone 1"),
+        "Description must be updated when escrow has no funds"
+    );
+    assert_eq!(
+        after_update.milestones.get(0).unwrap().amount,
+        60_000_000i128,
+        "Amount must be updated when escrow has no funds"
+    );
+
+    // Invalid milestone index must fail
+    let bad_index = vec![
+        &env,
+        MilestoneUpdate {
+            index: 99,
+            new_description: Some(String::from_str(&env, "Bad")),
+            new_amount: None,
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &bad_index);
+    assert!(result.is_err(), "Invalid milestone index must fail");
+
     // update_escrow must NOT change milestones (no funds yet)
     let updated_escrow_props = Escrow {
         engagement_id: String::from_str(&env, "manage_milestones_test"),
@@ -1020,45 +1054,11 @@ fn test_manage_milestones() {
     );
     assert_eq!(after_escrow_update.title, String::from_str(&env, "Updated Title"));
 
-    // Updating description/amount without funds must fail
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0,
-            new_description: Some(String::from_str(&env, "Updated Milestone 1")),
-            new_amount: Some(60_000_000i128),
-        },
-    ];
-    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &updates);
-    assert!(result.is_err(), "Updating milestone without funds must fail");
-
-    // Fund the escrow, then update description and amount
+    // Fund the escrow — updating must now fail
     token_admin.mint(&approver, &100_000_000i128);
     let current_escrow = client.get_escrow();
     client.fund_escrow(&approver, &current_escrow, &100_000_000i128);
 
-    client.manage_milestones(&escrow_admin, &empty_milestones, &updates);
-    let after_update = client.get_escrow();
-    assert_eq!(
-        after_update.milestones.get(0).unwrap().description,
-        String::from_str(&env, "Updated Milestone 1"),
-        "Description must be updated after funding"
-    );
-    assert_eq!(
-        after_update.milestones.get(0).unwrap().amount,
-        60_000_000i128,
-        "Amount must be updated after funding"
-    );
-
-    // Invalid milestone index must fail
-    let bad_index = vec![
-        &env,
-        MilestoneUpdate {
-            index: 99,
-            new_description: Some(String::from_str(&env, "Bad")),
-            new_amount: None,
-        },
-    ];
-    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &bad_index);
-    assert!(result.is_err(), "Invalid milestone index must fail");
+    let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &updates);
+    assert!(result.is_err(), "Updating milestones must fail when escrow has funds");
 }
