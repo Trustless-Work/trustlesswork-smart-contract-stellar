@@ -54,10 +54,10 @@ pub struct EscrowDisputed {
     pub escrow: Escrow,
 }
 
-// Milestones added
-#[contractevent(topics = ["tw_ms_add"], data_format = "vec")]
+// Milestones managed (add or update)
+#[contractevent(topics = ["tw_ms_manage"], data_format = "vec")]
 #[derive(Clone)]
-pub struct MilestonesAdded {
+pub struct MilestonesManaged {
     pub escrow: Escrow,
 }
 

@@ -2,13 +2,13 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
-    validate_add_milestones_conditions, validate_escrow_property_change_conditions,
-    validate_fund_escrow_conditions, validate_initialize_escrow_conditions,
+    validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
+    validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_conditions,
 };
 use crate::error::EscrowError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
 
 pub struct EscrowManager;
 
@@ -128,17 +128,37 @@ impl EscrowManager {
         Ok(escrow_to_save)
     }
 
-    pub fn add_milestones(
+    pub fn manage_milestones(
         e: &Env,
         admin: &Address,
         new_milestones: Vec<Milestone>,
+        milestone_updates: Vec<MilestoneUpdate>,
     ) -> Result<Escrow, EscrowError> {
         let mut existing_escrow = Self::get_escrow(e)?;
-        validate_add_milestones_conditions(&existing_escrow, admin, &new_milestones)?;
+        let token_client = TokenClient::new(e, &existing_escrow.trustline.address);
+        let contract_balance = token_client.balance(&e.current_contract_address());
+
+        validate_manage_milestones_conditions(
+            &existing_escrow,
+            admin,
+            &new_milestones,
+            &milestone_updates,
+            contract_balance,
+        )?;
         admin.require_auth();
+
+        for update in milestone_updates.iter() {
+            let mut milestone = existing_escrow.milestones.get(update.index).unwrap();
+            if let Some(desc) = update.new_description {
+                milestone.description = desc;
+            }
+            existing_escrow.milestones.set(update.index, milestone);
+        }
+
         for milestone in new_milestones.iter() {
             existing_escrow.milestones.push_back(milestone);
         }
+
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &existing_escrow);
