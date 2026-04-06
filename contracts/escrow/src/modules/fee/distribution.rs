@@ -45,6 +45,23 @@ pub fn calculate_and_distribute_fees(
         }
     }
 
+    // Assign any remainder from integer-division truncation to the last recipient
+    // to guarantee sum(all transfers) == total and no funds are stranded.
+    if !net_distributions.is_empty() {
+        let mut total_net: i128 = 0;
+        for (_, net_amount) in net_distributions.iter() {
+            total_net = BasicMath::safe_add(total_net, net_amount)?;
+        }
+        let total_fees = BasicMath::safe_add(actual_trustless_fees, actual_platform_fees)?;
+        let total_out = BasicMath::safe_add(total_fees, total_net)?;
+        let remainder = BasicMath::safe_sub(total, total_out)?;
+        if remainder > 0 {
+            let last_idx = net_distributions.len() - 1;
+            let (last_addr, last_amount) = net_distributions.get(last_idx).unwrap();
+            net_distributions.set(last_idx, (last_addr, BasicMath::safe_add(last_amount, remainder)?));
+        }
+    }
+
     if actual_trustless_fees > 0 {
         token_client.transfer(contract_address, trustless_work_address, &actual_trustless_fees);
     }

@@ -94,6 +94,18 @@ impl EscrowManager {
         let fee_result =
             FeeCalculator::calculate_standard_fees(total_amount, escrow.platform_fee)?;
 
+        // Effects before interactions: commit state before any external transfer
+        for index in milestone_indices.iter() {
+            let mut milestone = escrow.milestones.get(index).unwrap();
+            milestone.released = true;
+            escrow.milestones.set(index, milestone);
+        }
+
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+
         if fee_result.trustless_work_fee > 0 {
             token_client.transfer(
                 &contract_address,
@@ -114,17 +126,6 @@ impl EscrowManager {
         if fee_result.receiver_amount > 0 {
             token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
         }
-
-        for index in milestone_indices.iter() {
-            let mut milestone = escrow.milestones.get(index).unwrap();
-            milestone.released = true;
-            escrow.milestones.set(index, milestone);
-        }
-
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(())
     }

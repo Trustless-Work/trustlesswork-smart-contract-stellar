@@ -25,13 +25,18 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, EscrowError> {
+        if e.storage().persistent().has(&DataKey::Reentrancy) {
+            return Err(EscrowError::FlagsMustBeFalse);
+        }
+        e.storage().persistent().set(&DataKey::Reentrancy, &true);
+
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
         let all_processed = escrow
             .milestones
             .iter()
-            .all(|m| m.released || m.dispute.resolved || m.dispute.is_disputed);
+            .all(|m| m.released || m.dispute.resolved);
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
@@ -49,7 +54,7 @@ impl DisputeManager {
             all_processed,
             current_balance,
             total,
-            &distributions
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();
@@ -71,6 +76,8 @@ impl DisputeManager {
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+
+        e.storage().persistent().remove(&DataKey::Reentrancy);
 
         Ok(escrow)
     }
@@ -100,10 +107,24 @@ impl DisputeManager {
             &dispute_resolver,
             current_balance,
             total,
-            &distributions
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();
+
+        // Effects before interactions: commit state change before any external transfer
+        for i in 0..escrow.milestones.len() {
+            let mut milestone = escrow.milestones.get(i).unwrap();
+            if milestone.dispute.is_disputed {
+                milestone.dispute.resolved = true;
+                milestone.dispute.is_disputed = false;
+                escrow.milestones.set(i, milestone);
+            }
+        }
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
@@ -117,19 +138,6 @@ impl DisputeManager {
             &distributions,
             total,
         )?;
-
-        for i in 0..escrow.milestones.len() {
-            let mut milestone = escrow.milestones.get(i).unwrap();
-            if milestone.dispute.is_disputed {
-                milestone.dispute.resolved = true;
-                milestone.dispute.is_disputed = false;
-                escrow.milestones.set(i, milestone);
-            }
-        }
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
