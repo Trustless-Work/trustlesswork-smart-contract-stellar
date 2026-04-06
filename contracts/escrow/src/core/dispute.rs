@@ -24,6 +24,11 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, EscrowError> {
+        if e.storage().persistent().has(&DataKey::Reentrancy) {
+            return Err(EscrowError::Reentrancy);
+        }
+        e.storage().persistent().set(&DataKey::Reentrancy, &true);
+
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -68,6 +73,8 @@ impl DisputeManager {
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
+        e.storage().persistent().remove(&DataKey::Reentrancy);
+
         Ok(escrow)
     }
 
@@ -101,6 +108,14 @@ impl DisputeManager {
 
         dispute_resolver.require_auth();
 
+        // Effects before interactions: commit state change before any external transfer
+        escrow.dispute.resolved = true;
+        escrow.dispute.is_disputed = false;
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
         calculate_and_distribute_fees(
@@ -113,13 +128,6 @@ impl DisputeManager {
             &distributions,
             total,
         )?;
-
-        escrow.dispute.resolved = true;
-        escrow.dispute.is_disputed = false;
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
