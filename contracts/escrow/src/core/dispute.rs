@@ -32,7 +32,7 @@ impl DisputeManager {
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
-        let all_processed = escrow.released || escrow.dispute.resolved || escrow.dispute.is_disputed;
+        let all_processed = escrow.released || escrow.dispute.resolved;
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
