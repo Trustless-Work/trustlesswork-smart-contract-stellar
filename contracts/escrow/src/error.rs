@@ -48,6 +48,8 @@ pub enum EscrowError {
     InvalidMilestoneIndex = 43,
     MilestoneUpdateNotAllowedWithFunds = 44,
     TargetExceedsApprovers = 45,
+    StringTooLong = 46,
+    Reentrancy = 47,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -66,4 +68,5 @@ pub enum MilestoneError {
     UnauthorizedApprover = 11,
     EscrowNotFound = 12,
     DuplicateMilestoneIndex = 13,
+    StringTooLong = 14,
 }

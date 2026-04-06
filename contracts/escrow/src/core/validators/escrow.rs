@@ -5,6 +5,9 @@ use crate::{
     storage::types::{DataKey, Escrow, Milestone, MilestoneUpdate, Roles},
 };
 
+const MAX_SHORT_STRING: u32 = 100;
+const MAX_LONG_STRING: u32 = 500;
+
 #[inline]
 fn is_milestone_approved(milestone: &Milestone) -> bool {
     milestone.approvals.target > 0
@@ -105,6 +108,25 @@ fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowErr
 }
 
 #[inline]
+fn validate_escrow_string_lengths(escrow: &Escrow) -> Result<(), EscrowError> {
+    if escrow.engagement_id.len() > MAX_SHORT_STRING
+        || escrow.title.len() > MAX_SHORT_STRING
+        || escrow.description.len() > MAX_LONG_STRING
+    {
+        return Err(EscrowError::StringTooLong);
+    }
+    for milestone in escrow.milestones.iter() {
+        if milestone.description.len() > MAX_LONG_STRING
+            || milestone.status.len() > MAX_SHORT_STRING
+            || milestone.evidence.len() > MAX_LONG_STRING
+        {
+            return Err(EscrowError::StringTooLong);
+        }
+    }
+    Ok(())
+}
+
+#[inline]
 pub fn validate_escrow_conditions(
     existing_escrow: Option<&Escrow>,
     new_escrow: &Escrow,
@@ -112,6 +134,8 @@ pub fn validate_escrow_conditions(
     contract_balance: Option<i128>,
     is_init: bool,
 ) -> Result<(), EscrowError> {
+    validate_escrow_string_lengths(new_escrow)?;
+
     let max_bps_percentage: u32 = 99 * 100;
     if new_escrow.platform_fee > max_bps_percentage {
         return Err(EscrowError::PlatformFeeTooHigh);

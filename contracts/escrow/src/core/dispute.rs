@@ -125,6 +125,11 @@ impl DisputeManager {
     }
 
     pub fn dispute_escrow(e: &Env, signer: Address, reason: String) -> Result<Escrow, EscrowError> {
+        const MAX_REASON_LEN: u32 = 500;
+        if reason.len() > MAX_REASON_LEN {
+            return Err(EscrowError::StringTooLong);
+        }
+
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, &signer)?;
 
