@@ -20,6 +20,7 @@ impl EscrowManager {
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, EscrowError> {
         validate_initialize_escrow_conditions(e, escrow_properties.clone())?;
+        escrow_properties.roles.admin.require_auth();
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
