@@ -90,4 +90,5 @@ pub enum DataKey {
     Admin,
     FundedAmount,
     Reentrancy,
+    ApprovedWasmHash,
 }
