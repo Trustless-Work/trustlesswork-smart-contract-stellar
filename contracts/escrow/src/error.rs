@@ -47,6 +47,7 @@ pub enum EscrowError {
     DisputeResolverOverlapsWithOtherRole = 42,
     InvalidMilestoneIndex = 43,
     MilestoneUpdateNotAllowedWithFunds = 44,
+    TargetExceedsApprovers = 45,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -64,4 +65,5 @@ pub enum MilestoneError {
     OnlyServiceProviderCanChangeMilestoneStatus = 10,
     UnauthorizedApprover = 11,
     EscrowNotFound = 12,
+    DuplicateMilestoneIndex = 13,
 }

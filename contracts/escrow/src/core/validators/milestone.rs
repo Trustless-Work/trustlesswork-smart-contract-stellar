@@ -54,6 +54,14 @@ pub fn validate_batch_milestone_approve(
         return Err(MilestoneError::NoMilestoneDefined);
     }
 
+    for i in 0..milestone_indices.len() {
+        for j in (i + 1)..milestone_indices.len() {
+            if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
+                return Err(MilestoneError::DuplicateMilestoneIndex);
+            }
+        }
+    }
+
     for index in milestone_indices.iter() {
         if index >= escrow.milestones.len() {
             return Err(MilestoneError::MilestoneToApproveDoesNotExist);
