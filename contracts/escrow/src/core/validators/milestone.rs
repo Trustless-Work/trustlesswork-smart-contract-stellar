@@ -5,6 +5,9 @@ use crate::{
     storage::types::{Escrow, MilestoneStatusUpdate},
 };
 
+const MAX_STATUS_LEN: u32 = 50;
+const MAX_EVIDENCE_LEN: u32 = 500;
+
 #[inline]
 pub fn validate_batch_milestone_status_change(
     escrow: &Escrow,
@@ -26,6 +29,16 @@ pub fn validate_batch_milestone_status_change(
     for update in updates.iter() {
         if update.new_status.is_empty() {
             return Err(MilestoneError::EmptyMilestoneStatus);
+        }
+
+        if update.new_status.len() > MAX_STATUS_LEN {
+            return Err(MilestoneError::StringTooLong);
+        }
+
+        if let Some(ref evidence) = update.new_evidence {
+            if evidence.len() > MAX_EVIDENCE_LEN {
+                return Err(MilestoneError::StringTooLong);
+            }
         }
 
         if update.milestone_index >= escrow.milestones.len() {
