@@ -50,6 +50,19 @@ impl EscrowManager {
         signer.require_auth();
 
         token_client.transfer(signer, &e.current_contract_address(), &amount);
+
+        let current_funded: i128 = e
+            .storage()
+            .persistent()
+            .get(&DataKey::FundedAmount)
+            .unwrap_or(0);
+        e.storage()
+            .persistent()
+            .set(&DataKey::FundedAmount, &(current_funded + amount));
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::FundedAmount, 17280, 31536000);
+
         Ok(())
     }
 
@@ -109,14 +122,17 @@ impl EscrowManager {
         escrow_properties: Escrow,
     ) -> Result<Escrow, EscrowError> {
         let existing_escrow = Self::get_escrow(e)?;
-        let token_client = TokenClient::new(e, &existing_escrow.trustline.address);
-        let contract_balance = token_client.balance(&e.current_contract_address());
+        let funded_amount: i128 = e
+            .storage()
+            .persistent()
+            .get(&DataKey::FundedAmount)
+            .unwrap_or(0);
 
         validate_escrow_property_change_conditions(
             &existing_escrow,
             &escrow_properties,
             admin,
-            contract_balance,
+            funded_amount,
         )?;
 
         admin.require_auth();
@@ -142,15 +158,18 @@ impl EscrowManager {
         milestone_updates: Vec<MilestoneUpdate>,
     ) -> Result<Escrow, EscrowError> {
         let mut existing_escrow = Self::get_escrow(e)?;
-        let token_client = TokenClient::new(e, &existing_escrow.trustline.address);
-        let contract_balance = token_client.balance(&e.current_contract_address());
+        let funded_amount: i128 = e
+            .storage()
+            .persistent()
+            .get(&DataKey::FundedAmount)
+            .unwrap_or(0);
 
         validate_manage_milestones_conditions(
             &existing_escrow,
             admin,
             &new_milestones,
             &milestone_updates,
-            contract_balance,
+            funded_amount,
         )?;
         admin.require_auth();
 
