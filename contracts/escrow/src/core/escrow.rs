@@ -33,6 +33,7 @@ impl EscrowManager {
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
         e.storage().persistent().remove(&DataKey::Admin);
+        e.storage().persistent().remove(&DataKey::ApprovedWasmHash);
         Ok(escrow_properties)
     }
 
