@@ -33,6 +33,16 @@ impl EscrowContract {
             return Err(EscrowError::EscrowAlreadyInitialized);
         }
 
+        let stored_admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+
+        if signer != stored_admin {
+            return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
+        }
+
         signer.require_auth();
 
         let deployer = env.current_contract_address();
