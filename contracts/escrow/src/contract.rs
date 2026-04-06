@@ -68,7 +68,7 @@ impl EscrowContract {
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, EscrowError> {
         let initialized_escrow = EscrowManager::initialize_escrow(e, escrow_properties)?;
         InitEsc {
-            escrow: initialized_escrow.clone(),
+            engagement_id: initialized_escrow.engagement_id.clone(),
         }
         .publish(e);
         Ok(initialized_escrow)
@@ -108,7 +108,6 @@ impl EscrowContract {
         ChgEsc {
             platform: admin_address,
             engagement_id: escrow_properties.engagement_id.clone(),
-            new_escrow_properties: updated_escrow.clone(),
         }
         .publish(e);
         Ok(updated_escrow)
@@ -123,7 +122,7 @@ impl EscrowContract {
         let updated_escrow =
             EscrowManager::manage_milestones(e, &admin_address, new_milestones, milestone_updates)?;
         MilestonesManaged {
-            escrow: updated_escrow.clone(),
+            engagement_id: updated_escrow.engagement_id.clone(),
         }
         .publish(e);
         Ok(updated_escrow)
@@ -187,7 +186,7 @@ impl EscrowContract {
         service_provider: Address,
     ) -> Result<(), MilestoneError> {
         let escrow = MilestoneManager::change_milestone_status(&e, updates, service_provider)?;
-        MilestoneStatusChanged { escrow }.publish(&e);
+        MilestoneStatusChanged { engagement_id: escrow.engagement_id }.publish(&e);
         Ok(())
     }
 
@@ -197,7 +196,7 @@ impl EscrowContract {
         approver: Address,
     ) -> Result<(), MilestoneError> {
         let escrow = MilestoneManager::approve_milestones(&e, milestone_indices, approver)?;
-        MilestonesApproved { escrow }.publish(&e);
+        MilestonesApproved { engagement_id: escrow.engagement_id }.publish(&e);
         Ok(())
     }
 
@@ -217,13 +216,13 @@ impl EscrowContract {
             trustless_work_address,
             distributions,
         )?;
-        DisputeResolved { escrow }.publish(&e);
+        DisputeResolved { engagement_id: escrow.engagement_id }.publish(&e);
         Ok(())
     }
 
     pub fn dispute_escrow(e: Env, signer: Address, reason: String) -> Result<(), EscrowError> {
         let escrow = DisputeManager::dispute_escrow(&e, signer, reason)?;
-        EscrowDisputed { escrow }.publish(&e);
+        EscrowDisputed { engagement_id: escrow.engagement_id }.publish(&e);
         Ok(())
     }
 
