@@ -13,7 +13,12 @@ pub struct EscrowContract;
 
 #[contractimpl]
 impl EscrowContract {
-    pub fn __constructor() {}
+    pub fn __constructor(e: Env, admin: Address) {
+        e.storage().persistent().set(&DataKey::Admin, &admin);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Admin, 17280, 31536000);
+    }
 
     pub fn tw_new_single_release_escrow(
         env: Env,
