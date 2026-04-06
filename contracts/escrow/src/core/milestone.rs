@@ -67,8 +67,10 @@ impl MilestoneManager {
                 .get(index)
                 .ok_or(MilestoneError::InvalidMilestoneIndex)?;
 
-            milestone.approvals.approvers.push_back(approver.clone());
-            milestone.approvals.approval_count += 1;
+            if !milestone.approvals.approvers.contains(&approver) {
+                milestone.approvals.approvers.push_back(approver.clone());
+            }
+            milestone.approvals.approval_count = milestone.approvals.approvers.len();
 
             existing_escrow.milestones.set(index, milestone);
         }

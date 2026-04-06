@@ -68,4 +68,5 @@ pub enum MilestoneError {
     OnlyServiceProviderCanChangeMilestoneStatus = 10,
     UnauthorizedApprover = 11,
     EscrowNotFound = 12,
+    DuplicateMilestoneIndex = 13,
 }

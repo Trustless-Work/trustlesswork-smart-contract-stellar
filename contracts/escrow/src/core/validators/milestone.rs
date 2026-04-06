@@ -46,6 +46,14 @@ pub fn validate_batch_milestone_approve(
         return Err(MilestoneError::BatchMilestoneApproveEmpty);
     }
 
+    for i in 0..milestone_indices.len() {
+        for j in (i + 1)..milestone_indices.len() {
+            if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
+                return Err(MilestoneError::DuplicateMilestoneIndex);
+            }
+        }
+    }
+
     if !escrow.roles.approvers.contains(approver) {
         return Err(MilestoneError::UnauthorizedApprover);
     }
