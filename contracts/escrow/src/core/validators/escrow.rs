@@ -275,12 +275,20 @@ pub fn validate_escrow_property_change_conditions(
 #[inline]
 pub fn validate_initialize_escrow_conditions(
     e: &Env,
-    escrow_properties: Escrow,
+    escrow_properties: &Escrow,
 ) -> Result<(), EscrowError> {
     if e.storage().persistent().has(&DataKey::Escrow) {
         return Err(EscrowError::EscrowAlreadyInitialized);
     }
-    validate_escrow_conditions(None, &escrow_properties, None, None, true)
+    let stored_admin: Address = e
+        .storage()
+        .persistent()
+        .get(&DataKey::Admin)
+        .ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+    if escrow_properties.roles.admin != stored_admin {
+        return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
+    }
+    validate_escrow_conditions(None, escrow_properties, None, None, true)
 }
 
 #[inline]

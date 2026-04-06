@@ -19,13 +19,21 @@ impl EscrowManager {
     }
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, EscrowError> {
-        validate_initialize_escrow_conditions(e, escrow_properties.clone())?;
+        validate_initialize_escrow_conditions(e, &escrow_properties)?;
+        let stored_admin: Address = e
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+        stored_admin.require_auth();
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+        e.storage().persistent().remove(&DataKey::Admin);
+        e.storage().persistent().remove(&DataKey::ApprovedWasmHash);
         Ok(escrow_properties)
     }
 

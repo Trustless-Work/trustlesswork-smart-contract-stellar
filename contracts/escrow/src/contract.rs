@@ -13,7 +13,18 @@ pub struct EscrowContract;
 
 #[contractimpl]
 impl EscrowContract {
-    pub fn __constructor() {}
+    pub fn __constructor(e: Env, admin: Address, approved_wasm_hash: BytesN<32>) {
+        e.storage().persistent().set(&DataKey::Admin, &admin);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Admin, 17280, 31536000);
+        e.storage()
+            .persistent()
+            .set(&DataKey::ApprovedWasmHash, &approved_wasm_hash);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::ApprovedWasmHash, 17280, 31536000);
+    }
 
     pub fn tw_new_single_release_escrow(
         env: Env,
@@ -26,6 +37,16 @@ impl EscrowContract {
     ) -> Result<(Address, Val), EscrowError> {
         if EscrowManager::get_escrow(&env).is_ok() {
             return Err(EscrowError::EscrowAlreadyInitialized);
+        }
+
+        let approved_wasm_hash: BytesN<32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::ApprovedWasmHash)
+            .ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+
+        if wasm_hash != approved_wasm_hash {
+            return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
         }
 
         signer.require_auth();
