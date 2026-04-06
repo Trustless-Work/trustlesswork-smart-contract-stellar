@@ -157,6 +157,7 @@ pub fn validate_escrow_conditions(
         }
         if new_escrow.milestones.iter().any(|m| {
             m.approvals.approval_count > 0
+                || !m.approvals.approvers.is_empty()
                 || m.released
                 || m.dispute.is_disputed
                 || m.dispute.resolved
@@ -165,6 +166,13 @@ pub fn validate_escrow_conditions(
         }
         if new_escrow.milestones.iter().any(|m| m.approvals.target == 0) {
             return Err(EscrowError::TargetCannotBeZero);
+        }
+        if new_escrow
+            .milestones
+            .iter()
+            .any(|m| m.approvals.target > new_escrow.roles.approvers.len())
+        {
+            return Err(EscrowError::TargetExceedsApprovers);
         }
         validate_admin_role_overlap(&new_escrow.roles)?;
     } else {
@@ -238,8 +246,14 @@ pub fn validate_manage_milestones_conditions(
             if milestone.approvals.target == 0 {
                 return Err(EscrowError::TargetCannotBeZero);
             }
-            if milestone.approvals.approval_count > 0 || milestone.released {
+            if milestone.approvals.approval_count > 0
+                || !milestone.approvals.approvers.is_empty()
+                || milestone.released
+            {
                 return Err(EscrowError::FlagsMustBeFalse);
+            }
+            if milestone.approvals.target > existing_escrow.roles.approvers.len() {
+                return Err(EscrowError::TargetExceedsApprovers);
             }
         }
     }

@@ -51,6 +51,7 @@ pub enum EscrowError {
     DuplicateAddressInRole = 46,
     DisputeResolverOverlapsWithOtherRole = 47,
     MilestoneUpdateNotAllowedWithFunds = 48,
+    TargetExceedsApprovers = 49,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
