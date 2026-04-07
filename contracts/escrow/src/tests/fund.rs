@@ -831,24 +831,18 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 
     client.initialize_escrow(&escrow_properties);
 
-    // Fund and go through the full release flow so withdraw_remaining_funds is allowed
+    // Fund the escrow
     usdc_token.1.mint(&approver, &escrow_amount);
     client.fund_escrow(&approver, &escrow_properties, &escrow_amount);
 
-    client.change_milestone_status(
-        &vec![
-            &env,
-            MilestoneStatusUpdate {
-                milestone_index: 0,
-                new_status: String::from_str(&env, "Completed"),
-                new_evidence: Some(String::from_str(&env, "Done"))},
-        ],
-        &service_provider,
-    );
+    // Put escrow into dispute and then resolve it so withdraw_remaining_funds is allowed.
+    // withdraw_remaining_funds requires at least one milestone to have been disputed.
+    client.dispute_escrow(&approver, &String::from_str(&env, "Work disputed"));
 
-    client.approve_milestones(&vec![&env, 0u32], &approver);
-
-    client.release_funds(&release_signer, &trustless_work_address, &vec![&env, 0u32]);
+    let mut resolve_dist = Map::new(&env);
+    resolve_dist.set(approver.clone(), escrow_amount / 2);
+    resolve_dist.set(service_provider.clone(), escrow_amount - escrow_amount / 2);
+    client.resolve_dispute(&dispute_resolver, &trustless_work_address, &resolve_dist);
 
     // Simulate remaining funds (e.g. from overfunding or rounding leftovers)
     let remaining: i128 = 100_003;
