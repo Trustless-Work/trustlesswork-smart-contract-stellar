@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
-    error::EscrowError,
+    error::{EscrowError, ReleaseError},
     storage::types::{DataKey, Escrow, Milestone, MilestoneUpdate, Roles},
 };
 
@@ -35,36 +35,44 @@ pub fn validate_release_milestones_conditions(
     escrow: &Escrow,
     release_signer: &Address,
     milestone_indices: &Vec<u32>,
-) -> Result<(), EscrowError> {
+) -> Result<(), ReleaseError> {
     if escrow.milestones.iter().any(|m| m.dispute.resolved) {
-        return Err(EscrowError::EscrowAlreadyResolved);
+        return Err(ReleaseError::EscrowAlreadyResolved);
     }
 
     if !escrow.roles.release_signers.contains(release_signer) {
-        return Err(EscrowError::OnlyReleaseSignerCanReleaseEarnings);
+        return Err(ReleaseError::OnlyReleaseSignerCanReleaseEarnings);
     }
 
     if escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
-        return Err(EscrowError::EscrowOpenedForDisputeResolution);
+        return Err(ReleaseError::EscrowOpenedForDisputeResolution);
     }
 
     if milestone_indices.is_empty() {
-        return Err(EscrowError::ReleaseMilestonesEmpty);
+        return Err(ReleaseError::ReleaseMilestonesEmpty);
+    }
+
+    for i in 0..milestone_indices.len() {
+        for j in (i + 1)..milestone_indices.len() {
+            if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
+                return Err(ReleaseError::DuplicateMilestoneIndex);
+            }
+        }
     }
 
     for index in milestone_indices.iter() {
         if index >= escrow.milestones.len() {
-            return Err(EscrowError::InvalidMilestoneIndex);
+            return Err(ReleaseError::InvalidMilestoneIndex);
         }
 
         let milestone = escrow.milestones.get(index).unwrap();
 
         if !is_milestone_approved(&milestone) {
-            return Err(EscrowError::EscrowNotCompleted);
+            return Err(ReleaseError::EscrowNotCompleted);
         }
 
         if milestone.released {
-            return Err(EscrowError::MilestoneAlreadyReleased);
+            return Err(ReleaseError::MilestoneAlreadyReleased);
         }
     }
 

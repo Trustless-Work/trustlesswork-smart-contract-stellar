@@ -57,6 +57,24 @@ pub enum EscrowError {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[contracterror]
+pub enum ReleaseError {
+    EscrowAlreadyResolved = 1,
+    OnlyReleaseSignerCanReleaseEarnings = 2,
+    EscrowOpenedForDisputeResolution = 3,
+    ReleaseMilestonesEmpty = 4,
+    DuplicateMilestoneIndex = 5,
+    InvalidMilestoneIndex = 6,
+    EscrowNotCompleted = 7,
+    MilestoneAlreadyReleased = 8,
+    EscrowBalanceNotEnoughToSendEarnings = 9,
+    Overflow = 10,
+    Underflow = 11,
+    DivisionError = 12,
+    EscrowNotFound = 13,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[contracterror]
 pub enum MilestoneError {
     NoMilestoneDefined = 1,
     InvalidMilestoneIndex = 2,
@@ -72,4 +90,5 @@ pub enum MilestoneError {
     EscrowNotFound = 12,
     DuplicateMilestoneIndex = 13,
     StringTooLong = 14,
+    BatchTooLarge = 15,
 }

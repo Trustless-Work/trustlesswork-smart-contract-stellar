@@ -1,7 +1,7 @@
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
-use crate::error::{EscrowError, MilestoneError};
+use crate::error::{EscrowError, MilestoneError, ReleaseError};
 use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestonesManaged, MilestonesApproved, MilestoneStatusChanged, MilestonesDisputed,
@@ -90,7 +90,7 @@ impl EscrowContract {
         release_signer: Address,
         trustless_work_address: Address,
         milestone_indices: Vec<u32>,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<(), ReleaseError> {
         EscrowManager::release_funds(e, &release_signer, &trustless_work_address, milestone_indices)?;
         DisEsc { release_signer }.publish(e);
         Ok(())

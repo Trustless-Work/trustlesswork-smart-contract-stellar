@@ -6,7 +6,7 @@ use crate::core::validators::escrow::{
     validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_milestones_conditions,
 };
-use crate::error::EscrowError;
+use crate::error::{EscrowError, ReleaseError};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
 
@@ -72,8 +72,9 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
-    ) -> Result<(), EscrowError> {
-        let mut escrow = Self::get_escrow(e)?;
+    ) -> Result<(), ReleaseError> {
+        let mut escrow = Self::get_escrow(e)
+            .map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
 
         release_signer.require_auth();
@@ -88,11 +89,15 @@ impl EscrowManager {
         let token_client = TokenClient::new(e, &escrow.trustline.address);
 
         if token_client.balance(&contract_address) < total_amount {
-            return Err(EscrowError::EscrowBalanceNotEnoughToSendEarnings);
+            return Err(ReleaseError::EscrowBalanceNotEnoughToSendEarnings);
         }
 
-        let fee_result =
-            FeeCalculator::calculate_standard_fees(total_amount, escrow.platform_fee)?;
+        let fee_result = FeeCalculator::calculate_standard_fees(total_amount, escrow.platform_fee)
+            .map_err(|e| match e {
+                EscrowError::Overflow => ReleaseError::Overflow,
+                EscrowError::Underflow => ReleaseError::Underflow,
+                _ => ReleaseError::DivisionError,
+            })?;
 
         // Effects before interactions: commit state before any external transfer
         for index in milestone_indices.iter() {
