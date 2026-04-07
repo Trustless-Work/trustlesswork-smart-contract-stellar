@@ -42,14 +42,14 @@ pub enum EscrowError {
     TooManyMilestones = 37,
     TargetCannotBeZero = 38,
     PlatformAddressCannotBeChanged = 39,
-    RoleLimitExceeded = 40,
-    DuplicateAddressInRole = 41,
-    DisputeResolverOverlapsWithOtherRole = 42,
-    InvalidMilestoneIndex = 43,
-    MilestoneUpdateNotAllowedWithFunds = 44,
-    TargetExceedsApprovers = 45,
-    StringTooLong = 46,
-    Reentrancy = 47,
+    InvalidMilestoneIndex = 42,
+    RoleLimitExceeded = 45,
+    DuplicateAddressInRole = 46,
+    DisputeResolverOverlapsWithOtherRole = 47,
+    MilestoneUpdateNotAllowedWithFunds = 48,
+    TargetExceedsApprovers = 49,
+    StringTooLong = 50,
+    Reentrancy = 51,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

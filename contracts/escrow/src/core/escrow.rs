@@ -103,9 +103,9 @@ impl EscrowManager {
 
         if fee_result.platform_fee > 0 {
             token_client.transfer(
-            &contract_address,
-            &escrow.roles.platform,
-            &fee_result.platform_fee,
+                &contract_address,
+                &escrow.roles.platform,
+                &fee_result.platform_fee,
             );
         }
 

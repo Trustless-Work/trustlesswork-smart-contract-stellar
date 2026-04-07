@@ -50,7 +50,7 @@ impl DisputeManager {
             all_processed,
             current_balance,
             total,
-            &distributions
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();
@@ -103,7 +103,7 @@ impl DisputeManager {
             &dispute_resolver,
             current_balance,
             total,
-            &distributions
+            &distributions,
         )?;
 
         dispute_resolver.require_auth();

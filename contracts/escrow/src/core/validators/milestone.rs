@@ -59,20 +59,20 @@ pub fn validate_batch_milestone_approve(
         return Err(MilestoneError::BatchMilestoneApproveEmpty);
     }
 
-    if !escrow.roles.approvers.contains(approver) {
-        return Err(MilestoneError::UnauthorizedApprover);
-    }
-
-    if escrow.milestones.is_empty() {
-        return Err(MilestoneError::NoMilestoneDefined);
-    }
-
     for i in 0..milestone_indices.len() {
         for j in (i + 1)..milestone_indices.len() {
             if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
                 return Err(MilestoneError::DuplicateMilestoneIndex);
             }
         }
+    }
+
+    if !escrow.roles.approvers.contains(approver) {
+        return Err(MilestoneError::UnauthorizedApprover);
+    }
+
+    if escrow.milestones.is_empty() {
+        return Err(MilestoneError::NoMilestoneDefined);
     }
 
     for index in milestone_indices.iter() {
