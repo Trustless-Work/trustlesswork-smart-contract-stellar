@@ -62,7 +62,7 @@ fn test_dispute_management() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -146,7 +146,7 @@ fn test_dispute_resolution_process() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -297,7 +297,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             address: usdc_token.0.address.clone()},
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client_1 = test_data.client;
 
     escrow_client_1.initialize_escrow(&escrow_base);
@@ -309,7 +309,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         "Dispute flag should be set to true for authorized address"
     );
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client_2 = test_data.client;
 
     escrow_client_2.initialize_escrow(&escrow_base);
@@ -381,7 +381,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             address: usdc_token.0.address.clone()},
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
 
     client.initialize_escrow(&escrow_properties);
@@ -486,7 +486,7 @@ fn test_dispute_milestones_batch() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
 
@@ -544,7 +544,7 @@ fn test_dispute_milestones_invalid_index_reverts() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
 
@@ -597,7 +597,7 @@ fn test_dispute_milestones_already_disputed_reverts() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
 
@@ -654,7 +654,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
 

@@ -71,7 +71,7 @@ fn test_initialize_excrow() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     let initialized_escrow = escrow_approver.initialize_escrow(&escrow_properties);
@@ -172,7 +172,7 @@ fn test_update_escrow() {
         trustline: trustline.clone(),
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&initial_escrow_properties);
@@ -313,7 +313,7 @@ fn test_update_escrow_platform_fee_too_high() {
         trustline: trustline.clone(),
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&initial_escrow);
 
@@ -390,7 +390,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&invalid_escrow);
     assert!(
@@ -450,38 +450,38 @@ fn test_admin_role_overlap() {
     };
 
     // admin == approver must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &approver_address);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(approver_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == approver");
 
     // admin == service_provider must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &service_provider_address);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(service_provider_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == service_provider");
 
     // admin == release_signer must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &release_signer_address);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(release_signer_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == release_signer");
 
     // admin == receiver must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &receiver_address);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(receiver_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == receiver");
 
     // admin == dispute_resolver must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &dispute_resolver_address);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(dispute_resolver_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == dispute_resolver");
 
     // distinct admin must succeed
     let escrow_admin = Address::generate(&env);
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     let res = client.try_initialize_escrow(&make_escrow(escrow_admin));
     assert!(res.is_ok(), "Init must succeed with distinct admin");
@@ -539,7 +539,7 @@ fn test_role_limit_exceeded() {
         Address::generate(&env),
         Address::generate(&env),
     ];
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&make_escrow(five_approvers));
     assert!(res.is_ok(), "Exactly 5 approvers must succeed");
 
@@ -553,7 +553,7 @@ fn test_role_limit_exceeded() {
         Address::generate(&env),
         Address::generate(&env),
     ];
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&make_escrow(six_approvers));
     assert!(res.is_err(), "6 approvers must fail with RoleLimitExceeded");
 }
@@ -602,7 +602,7 @@ fn test_duplicate_address_in_role() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&escrow);
     assert!(res.is_err(), "Duplicate address in role must fail");
 }
@@ -651,12 +651,12 @@ fn test_dispute_resolver_role_overlap() {
     };
 
     // dispute_resolver == approver must fail
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&make_escrow(vec![&env, shared.clone()]));
     assert!(res.is_err(), "dispute_resolver overlapping with approver must fail");
 
     // distinct dispute_resolver must succeed
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&make_escrow(vec![&env, Address::generate(&env)]));
     assert!(res.is_ok(), "Non-overlapping dispute_resolver must succeed");
 }

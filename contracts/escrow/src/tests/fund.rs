@@ -64,7 +64,7 @@ fn test_fund_escrow_successful_deposit() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -158,7 +158,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -245,7 +245,7 @@ fn test_release_funds_successful_flow() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -364,7 +364,7 @@ fn test_release_funds_milestones_incomplete() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -440,7 +440,7 @@ fn test_release_funds_same_receiver_as_provider() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -545,7 +545,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         trustline,
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -661,7 +661,7 @@ fn test_batch_release_partial_then_full() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
 
     client.initialize_escrow(&escrow_properties);
@@ -761,7 +761,7 @@ fn test_release_unapproved_milestone_fails() {
         trustline: Trustline { address: usdc_token.0.address.clone() },
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
     usdc_token.1.mint(&client.address, &100_000_000);
@@ -826,7 +826,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             address: usdc_token.0.address.clone()},
         receiver_memo: 0};
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
 
     client.initialize_escrow(&escrow_properties);
