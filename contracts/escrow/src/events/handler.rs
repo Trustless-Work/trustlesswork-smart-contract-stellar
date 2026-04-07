@@ -1,76 +1,74 @@
-use crate::storage::types::Escrow;
-use soroban_sdk::{contractevent, String};
+use soroban_sdk::{contractevent, Address, String};
 
-#[contractevent(topics = ["tw_init"], data_format = "vec")]
+#[contractevent(topics = ["tw_init"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct InitEsc {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
 #[contractevent(topics = ["tw_fund"], data_format = "vec")]
 #[derive(Clone)]
 pub struct FundEsc {
-    pub signer: soroban_sdk::Address,
+    pub signer: Address,
     pub amount: i128,
 }
 
 #[contractevent(topics = ["tw_release"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct DisEsc {
-    pub release_signer: soroban_sdk::Address,
+    pub release_signer: Address,
 }
 
 #[contractevent(topics = ["tw_update"], data_format = "vec")]
 #[derive(Clone)]
 pub struct ChgEsc {
-    pub platform: soroban_sdk::Address,
+    pub platform: Address,
     pub engagement_id: String,
-    pub new_escrow_properties: Escrow,
 }
 
 // Milestones
-#[contractevent(topics = ["tw_ms_change"], data_format = "vec")]
+#[contractevent(topics = ["tw_ms_change"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct MilestoneStatusChanged {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
-#[contractevent(topics = ["tw_ms_approve"], data_format = "vec")]
+#[contractevent(topics = ["tw_ms_approve"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct MilestonesApproved {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
 // Disputes
-#[contractevent(topics = ["tw_disp_resolve"], data_format = "vec")]
+#[contractevent(topics = ["tw_disp_resolve"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct DisputeResolved {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
-#[contractevent(topics = ["tw_dispute"], data_format = "vec")]
+#[contractevent(topics = ["tw_dispute"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct EscrowDisputed {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
 // Milestones managed (add or update)
-#[contractevent(topics = ["tw_ms_manage"], data_format = "vec")]
+#[contractevent(topics = ["tw_ms_manage"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct MilestonesManaged {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
-#[contractevent(topics = ["tw_ms_dispute"], data_format = "vec")]
+#[contractevent(topics = ["tw_ms_dispute"], data_format = "single-value")]
 #[derive(Clone)]
 pub struct MilestonesDisputed {
-    pub escrow: Escrow,
+    pub engagement_id: String,
 }
 
 // Admin / TTL
 #[contractevent(topics = ["tw_ttl_extend"], data_format = "vec")]
 #[derive(Clone)]
 pub struct ExtTtlEvt {
-    pub platform: soroban_sdk::Address,
+    pub platform: Address,
     pub ledgers_to_extend: u32,
 }
