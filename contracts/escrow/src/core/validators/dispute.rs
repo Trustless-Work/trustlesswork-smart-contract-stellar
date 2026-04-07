@@ -88,6 +88,18 @@ pub fn validate_batch_milestone_dispute_conditions(
         return Err(EscrowError::BatchMilestoneDisputeEmpty);
     }
 
+    if milestone_indices.len() > escrow.milestones.len() {
+        return Err(EscrowError::TooManyMilestones);
+    }
+
+    for i in 0..milestone_indices.len() {
+        for j in (i + 1)..milestone_indices.len() {
+            if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
+                return Err(EscrowError::InvalidMilestoneIndex);
+            }
+        }
+    }
+
     if escrow.milestones.iter().any(|m| m.dispute.resolved) {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
