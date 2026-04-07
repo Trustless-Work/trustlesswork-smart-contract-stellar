@@ -82,7 +82,7 @@ fn test_append_milestones_with_funds() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&initial_escrow_properties);
@@ -216,7 +216,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&initial_escrow_properties);
 
@@ -353,7 +353,7 @@ fn test_change_milestone_status_and_approved() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -507,7 +507,7 @@ fn test_change_milestone_status_batch() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
@@ -630,7 +630,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
@@ -723,7 +723,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
@@ -799,7 +799,7 @@ fn test_target_requires_multiple_approvers() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
@@ -925,7 +925,7 @@ fn test_batch_approve_milestones_multiple_indices() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
@@ -1014,7 +1014,7 @@ fn test_manage_milestones() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
     client.initialize_escrow(&escrow_base);
 

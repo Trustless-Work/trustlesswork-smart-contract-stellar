@@ -74,7 +74,7 @@ fn test_fund_escrow_successful_deposit() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -178,7 +178,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -275,7 +275,7 @@ fn test_release_funds_successful_flow() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -404,7 +404,7 @@ fn test_release_funds_milestones_incomplete() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -490,7 +490,7 @@ fn test_release_funds_same_receiver_as_provider() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -605,7 +605,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
 
     escrow_approver.initialize_escrow(&escrow_properties);
@@ -722,7 +722,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         receiver_memo: 0,
     };
 
-    let test_data = create_escrow_contract(&env);
+    let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
 
     client.initialize_escrow(&escrow_properties);

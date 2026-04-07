@@ -67,10 +67,10 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     };
 
     // Deploy two escrow contracts of the same code and initialize both
-    let c1 = create_escrow_contract(&env).client;
+    let c1 = create_escrow_contract(&env, &escrow_admin).client;
     c1.initialize_escrow(&escrow_base);
 
-    let c2 = create_escrow_contract(&env).client;
+    let c2 = create_escrow_contract(&env, &escrow_admin).client;
     c2.initialize_escrow(&escrow_base);
 
     // Mint funds to both contracts so they have balances
