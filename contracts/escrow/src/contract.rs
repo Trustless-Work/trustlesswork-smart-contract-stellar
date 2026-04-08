@@ -39,6 +39,16 @@ impl EscrowContract {
             return Err(EscrowError::EscrowAlreadyInitialized);
         }
 
+        let stored_admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+
+        if signer != stored_admin {
+            return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
+        }
+
         let approved_wasm_hash: BytesN<32> = env
             .storage()
             .persistent()
@@ -49,7 +59,7 @@ impl EscrowContract {
             return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
         }
 
-        signer.require_auth();
+        stored_admin.require_auth();
 
         let deployer = env.current_contract_address();
         let deployed_address = env
