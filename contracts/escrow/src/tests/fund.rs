@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -727,25 +727,24 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 
     client.initialize_escrow(&escrow_properties);
 
-    // Fund and go through the full release flow so withdraw_remaining_funds is allowed
+    // Fund the escrow, open a dispute, resolve it, then mint additional funds
+    // so that withdraw_remaining_funds is allowed (requires a prior dispute)
     usdc_token.1.mint(&approver, &escrow_amount);
     client.fund_escrow(&approver, &escrow_properties, &escrow_amount);
 
-    client.change_milestone_status(
-        &vec![
-            &env,
-            MilestoneStatusUpdate {
-                milestone_index: 0,
-                new_status: String::from_str(&env, "Completed"),
-                new_evidence: Some(String::from_str(&env, "Done")),
-            },
-        ],
+    client.dispute_escrow(
         &service_provider,
+        &String::from_str(&env, "Payment dispute"),
     );
 
-    client.approve_milestones(&vec![&env, 0u32], &approver);
-
-    client.release_funds(&release_signer, &trustless_work_address);
+    // Resolve the dispute (sends all funds out), then mint remaining funds for the test
+    let mut resolve_distributions = Map::new(&env);
+    resolve_distributions.set(service_provider.clone(), escrow_amount);
+    client.resolve_dispute(
+        &dispute_resolver,
+        &trustless_work_address,
+        &resolve_distributions,
+    );
 
     // Simulate remaining funds (e.g. from overfunding or rounding leftovers)
     let remaining: i128 = 100_003;
