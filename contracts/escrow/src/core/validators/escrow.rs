@@ -7,6 +7,7 @@ use crate::{
 
 const MAX_SHORT_STRING: u32 = 100;
 const MAX_LONG_STRING: u32 = 500;
+const MAX_STATUS_LEN: u32 = 50;
 
 #[inline]
 fn validate_escrow_string_lengths(escrow: &Escrow) -> Result<(), EscrowError> {
@@ -18,6 +19,12 @@ fn validate_escrow_string_lengths(escrow: &Escrow) -> Result<(), EscrowError> {
     }
     for milestone in escrow.milestones.iter() {
         if milestone.description.len() > MAX_LONG_STRING {
+            return Err(EscrowError::StringTooLong);
+        }
+        if milestone.status.len() > MAX_STATUS_LEN {
+            return Err(EscrowError::StringTooLong);
+        }
+        if milestone.evidence.len() > MAX_LONG_STRING {
             return Err(EscrowError::StringTooLong);
         }
     }
