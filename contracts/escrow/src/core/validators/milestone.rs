@@ -7,6 +7,7 @@ use crate::{
 
 const MAX_STATUS_LEN: u32 = 50;
 const MAX_EVIDENCE_LEN: u32 = 500;
+const MAX_BATCH_SIZE: u32 = 50;
 
 #[inline]
 pub fn validate_batch_milestone_status_change(
@@ -16,6 +17,10 @@ pub fn validate_batch_milestone_status_change(
 ) -> Result<(), MilestoneError> {
     if updates.is_empty() {
         return Err(MilestoneError::BatchMilestoneUpdateEmpty);
+    }
+
+    if updates.len() > MAX_BATCH_SIZE {
+        return Err(MilestoneError::BatchTooLarge);
     }
 
     if !escrow.roles.service_providers.contains(service_provider) {
@@ -57,6 +62,10 @@ pub fn validate_batch_milestone_approve(
 ) -> Result<(), MilestoneError> {
     if milestone_indices.is_empty() {
         return Err(MilestoneError::BatchMilestoneApproveEmpty);
+    }
+
+    if milestone_indices.len() > MAX_BATCH_SIZE {
+        return Err(MilestoneError::BatchTooLarge);
     }
 
     for i in 0..milestone_indices.len() {

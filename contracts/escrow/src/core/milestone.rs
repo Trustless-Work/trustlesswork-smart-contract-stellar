@@ -18,9 +18,9 @@ impl MilestoneManager {
         let mut existing_escrow = EscrowManager::get_escrow(e)
             .map_err(|_| MilestoneError::EscrowNotFound)?;
 
-        validate_batch_milestone_status_change(&existing_escrow, &service_provider, &updates)?;
-
         service_provider.require_auth();
+
+        validate_batch_milestone_status_change(&existing_escrow, &service_provider, &updates)?;
 
         for update in updates.iter() {
             let mut milestone_to_update = existing_escrow
@@ -57,9 +57,9 @@ impl MilestoneManager {
         let mut existing_escrow = EscrowManager::get_escrow(e)
             .map_err(|_| MilestoneError::EscrowNotFound)?;
 
-        validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
-
         approver.require_auth();
+
+        validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
 
         for index in milestone_indices.iter() {
             let mut milestone = existing_escrow

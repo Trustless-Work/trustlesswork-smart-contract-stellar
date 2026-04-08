@@ -69,4 +69,5 @@ pub enum MilestoneError {
     EscrowNotFound = 12,
     DuplicateMilestoneIndex = 13,
     StringTooLong = 14,
+    BatchTooLarge = 15,
 }
