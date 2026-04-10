@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
