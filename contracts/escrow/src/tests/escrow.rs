@@ -14,7 +14,6 @@ fn test_initialize_excrow() {
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
     let platform = Address::generate(&env);
-    let amount: i128 = 100_000_000;
     let service_provider_address = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
@@ -65,7 +64,6 @@ fn test_initialize_excrow() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
-        amount: amount,
         platform_fee: platform_fee,
         milestones: milestones,
         trustline,
@@ -87,7 +85,6 @@ fn test_initialize_excrow() {
         escrow.roles.platform,
         escrow_properties.roles.platform
     );
-    assert_eq!(escrow.amount, amount);
     assert_eq!(escrow.platform_fee, platform_fee);
     assert_eq!(escrow.milestones, escrow_properties.milestones);
     assert_eq!(
@@ -119,7 +116,6 @@ fn test_update_escrow() {
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
 
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let initial_milestones = vec![
@@ -166,7 +162,6 @@ fn test_update_escrow() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -217,7 +212,6 @@ fn test_update_escrow() {
         title: String::from_str(&env, "Test Escrow Updated"),
         description: String::from_str(&env, "Test Escrow Description Updated"),
         roles,
-        amount: amount * 2,
         platform_fee: platform_fee * 2,
         milestones: new_milestones.clone(),
         trustline,
@@ -231,7 +225,6 @@ fn test_update_escrow() {
     let escrow = escrow_approver.get_escrow();
     assert_eq!(escrow.title, updated_escrow_properties.title);
     assert_eq!(escrow.description, updated_escrow_properties.description);
-    assert_eq!(escrow.amount, updated_escrow_properties.amount);
     assert_eq!(escrow.platform_fee, updated_escrow_properties.platform_fee);
     assert_eq!(escrow.milestones, initial_milestones);
     assert_eq!(
@@ -271,7 +264,6 @@ fn test_update_escrow_platform_fee_too_high() {
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
 
-    let amount: i128 = 10_000_000;
     let platform_fee_valid = 50 * 100; // 50%
     let platform_fee_invalid = 100 * 100; // 100% (should fail because cap is 99%)
 
@@ -307,7 +299,6 @@ fn test_update_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles: roles.clone(),
-        amount,
         platform_fee: platform_fee_valid,
         milestones: milestones.clone(),
         trustline: trustline.clone(),
@@ -323,7 +314,6 @@ fn test_update_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles: roles.clone(),
-        amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
         trustline: trustline.clone(),
@@ -349,7 +339,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
 
-    let amount: i128 = 10_000_000;
     let platform_fee_invalid = 100 * 100; // 100%
 
     let milestones = vec![
@@ -384,7 +373,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles,
-        amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
         trustline,
@@ -442,7 +430,6 @@ fn test_admin_role_overlap() {
                 dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
                 receiver: receiver_address.clone(),
                 admin: escrow_admin, observers: vec![&env]},
-            amount: 1_000_000,
             platform_fee: 300,
             milestones: milestones.clone(),
             trustline: trustline.clone(),
@@ -523,7 +510,6 @@ fn test_role_limit_exceeded() {
             admin: escrow_admin.clone(),
         observers: vec![&env],
         },
-        amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env, milestone.clone()],
         trustline: Trustline { address: usdc_token.0.address.clone() },
@@ -595,7 +581,6 @@ fn test_duplicate_address_in_role() {
             admin: escrow_admin.clone(),
         observers: vec![&env],
         },
-        amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env, milestone],
         trustline: Trustline { address: usdc_token.0.address.clone() },
@@ -643,7 +628,6 @@ fn test_dispute_resolver_role_overlap() {
             admin: escrow_admin.clone(),
         observers: vec![&env],
         },
-        amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env, milestone.clone()],
         trustline: Trustline { address: usdc_token.0.address.clone() },

@@ -174,10 +174,6 @@ pub fn validate_escrow_conditions(
     if new_escrow.roles.dispute_resolvers.is_empty() {
         return Err(EscrowError::DisputeResolversListEmpty);
     }
-    if new_escrow.amount <= 0 {
-        return Err(EscrowError::AmountCannotBeZero);
-    }
-
     validate_role_limits(&new_escrow.roles)?;
     validate_dispute_resolver_role_overlap(&new_escrow.roles)?;
 
@@ -196,6 +192,9 @@ pub fn validate_escrow_conditions(
                 || m.dispute.resolved
         }) {
             return Err(EscrowError::FlagsMustBeFalse);
+        }
+        if new_escrow.milestones.iter().any(|m| m.amount <= 0) {
+            return Err(EscrowError::AmountCannotBeZero);
         }
         if new_escrow.milestones.iter().any(|m| m.approvals.target == 0) {
             return Err(EscrowError::TargetCannotBeZero);
@@ -234,7 +233,6 @@ pub fn validate_escrow_conditions(
                 || existing.title != new_escrow.title
                 || existing.description != new_escrow.description
                 || existing.roles != new_escrow.roles
-                || existing.amount != new_escrow.amount
                 || existing.platform_fee != new_escrow.platform_fee
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
@@ -276,6 +274,9 @@ pub fn validate_manage_milestones_conditions(
             return Err(EscrowError::TooManyMilestones);
         }
         for milestone in new_milestones.iter() {
+            if milestone.amount <= 0 {
+                return Err(EscrowError::AmountCannotBeZero);
+            }
             if milestone.approvals.target == 0 {
                 return Err(EscrowError::TargetCannotBeZero);
             }

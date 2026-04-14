@@ -66,7 +66,6 @@ fn test_append_milestones_with_funds() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -116,7 +115,6 @@ fn test_append_milestones_with_funds() {
     assert_eq!(escrow.title, initial_escrow_properties.title);
     assert_eq!(escrow.description, initial_escrow_properties.description);
     assert!(escrow.roles == initial_escrow_properties.roles);
-    assert_eq!(escrow.amount, initial_escrow_properties.amount);
     assert_eq!(escrow.platform_fee, initial_escrow_properties.platform_fee);
     assert!(escrow.trustline == initial_escrow_properties.trustline);
     assert_eq!(
@@ -188,7 +186,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         title: String::from_str(&env, "Test Escrow Approved"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -243,7 +240,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         initial_escrow_properties.description
     );
     assert!(final_escrow.roles == initial_escrow_properties.roles);
-    assert_eq!(final_escrow.amount, initial_escrow_properties.amount);
     assert_eq!(
         final_escrow.platform_fee,
         initial_escrow_properties.platform_fee
@@ -268,7 +264,6 @@ fn test_change_milestone_status_and_approved() {
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let initial_milestones = vec![
@@ -313,7 +308,6 @@ fn test_change_milestone_status_and_approved() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -398,7 +392,6 @@ fn test_change_milestone_status_batch() {
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let initial_milestones = vec![
@@ -452,7 +445,6 @@ fn test_change_milestone_status_batch() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount,
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -519,7 +511,6 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let initial_milestones = vec![
@@ -563,7 +554,6 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount,
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -610,7 +600,6 @@ fn test_batch_milestone_status_empty_batch_fails() {
     let usdc_token = create_usdc_token(&env, &admin);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let initial_milestones = vec![
@@ -644,7 +633,6 @@ fn test_batch_milestone_status_empty_batch_fails() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
-        amount,
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
@@ -709,7 +697,6 @@ fn test_target_requires_multiple_approvers() {
         title: String::from_str(&env, "Target Test Escrow"),
         description: String::from_str(&env, "Test target approval"),
         roles: roles.clone(),
-        amount,
         platform_fee,
         milestones: milestones.clone(),
         trustline: Trustline {
@@ -774,7 +761,6 @@ fn test_batch_approve_milestones_multiple_indices() {
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
-    let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
 
     let milestones = vec![
@@ -825,7 +811,6 @@ fn test_batch_approve_milestones_multiple_indices() {
         title: String::from_str(&env, "Batch Approve Test"),
         description: String::from_str(&env, "Test batch milestone approval"),
         roles: roles.clone(),
-        amount,
         platform_fee,
         milestones: milestones.clone(),
         trustline: Trustline {
@@ -906,7 +891,6 @@ fn test_manage_milestones() {
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
             receiver: service_provider.clone(),
             admin: escrow_admin.clone(), observers: vec![&env]},
-        amount: 100_000_000,
         platform_fee: 300,
         milestones: initial_milestones.clone(),
         trustline: Trustline { address: token_client.address.clone() },
@@ -1039,7 +1023,6 @@ fn test_manage_milestones() {
         title: String::from_str(&env, "Updated Title"),
         description: String::from_str(&env, "Updated Desc"),
         roles: escrow_base.roles.clone(),
-        amount: escrow_base.amount,
         platform_fee: escrow_base.platform_fee,
         milestones: initial_milestones.clone(),
         trustline: escrow_base.trustline.clone(),

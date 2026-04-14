@@ -49,7 +49,6 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         title: String::from_str(&env, "Escrow for registry test"),
         description: String::from_str(&env, "Test for multiple balances"),
         roles: roles.clone(),
-        amount: 50_000_000,
         platform_fee: 100, // 1%
         milestones,
         trustline: Trustline {
@@ -64,8 +63,8 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
     c2.initialize_escrow(&escrow_base);
 
     // Mint funds to both contracts so they have balances
-    usdc_token.1.mint(&c1.address, &escrow_base.amount);
-    usdc_token.1.mint(&c2.address, &escrow_base.amount);
+    usdc_token.1.mint(&c1.address, &100_000_000i128);
+    usdc_token.1.mint(&c2.address, &100_000_000i128);
 
     // Platform must authorize the query from c1
     // env.mock_all_auths() already mocks auth; we still pass platform as implicit auth signer in SDK
