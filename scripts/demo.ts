@@ -1,44 +1,44 @@
 /**
- * Demo: Trustless Work — nuevas funcionalidades
+ * Demo: Trustless Work — new features
  *
- * Demuestra (con estado on-chain verificado tras cada paso):
- *  - Batch update de 3 milestones en una sola transacción
- *  - Roles multi-miembro (2 service providers, 2 approvers, 2 release signers)
- *  - Flujo de quórum: cada milestone requiere 2/2 votos para quedar aprobado
+ * Demonstrates (with on-chain state verified after each step):
+ *  - Batch update of 3 milestones in a single transaction
+ *  - Multi-member roles (2 service providers, 2 approvers, 2 release signers)
+ *  - Quorum flow: each milestone requires 2/2 votes to be approved
  *
- * ── Setup (primera vez) ────────────────────────────────────────────────────────
+ * ── Setup (first time) ────────────────────────────────────────────────────────
  *
- *  1. Instalar dependencias del proyecto
+ *  1. Install project dependencies
  *       bun install
  *
- *  2. Instalar Stellar CLI  →  https://developers.stellar.org/docs/tools/stellar-cli
+ *  2. Install Stellar CLI  →  https://developers.stellar.org/docs/tools/stellar-cli
  *       # macOS
  *       brew install stellar-cli
  *
- *  3. Crear una cuenta en testnet y fondearla con XLM (Friendbot automático)
- *       stellar keys generate --name <tu-alias> --network testnet
+ *  3. Create a testnet account and fund it with XLM (automatic Friendbot)
+ *       stellar keys generate --name <your-alias> --network testnet
  *
- *     Esto genera un keypair, lo guarda en el keystore local de Stellar CLI
- *     y lo fondea con XLM de testnet via Friendbot.
- *     Puedes verificar el saldo en: https://stellar.expert/explorer/testnet
+ *     This generates a keypair, saves it in the Stellar CLI local keystore,
+ *     and funds it with testnet XLM via Friendbot.
+ *     You can verify the balance at: https://stellar.expert/explorer/testnet
  *
- *  4. Obtener USDC de testnet para esa cuenta
- *     El script deposita USDC desde tu cuenta al escrow, así que necesitas al
- *     menos 10 USDC en testnet. Hay dos formas de conseguirlos:
+ *  4. Get testnet USDC for that account
+ *     The script deposits USDC from your account into the escrow, so you need
+ *     at least 10 USDC on testnet. Two ways to get them:
  *
- *     Opción A — Stellar Lab (swap XLM → USDC):
+ *     Option A — Stellar Lab (swap XLM → USDC):
  *       https://lab.stellar.org/swap?network=testnet
- *       Conecta tu cuenta (con la clave de tu alias) y haz swap de XLM por USDC.
+ *       Connect your account (with your alias key) and swap XLM for USDC.
  *
- *     Opción B — Stellar Laboratory clásico (path payment):
+ *     Option B — Classic Stellar Laboratory (path payment):
  *       https://laboratory.stellar.org/#txbuilder?network=test
- *       Construye una operación "Path Payment" de XLM a USDC
- *       (emisor USDC testnet: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5)
+ *       Build a "Path Payment" operation from XLM to USDC
+ *       (testnet USDC issuer: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5)
  *
- *  5. Crear el archivo .env en esta carpeta (scripts/) con tu alias:
- *       echo "DEPLOYER=<tu-alias>" > scripts/.env
+ *  5. Create the .env file in this folder (scripts/) with your alias:
+ *       echo "DEPLOYER=<your-alias>" > scripts/.env
  *
- *  6. Ejecutar el demo
+ *  6. Run the demo
  *       bun run demo.ts
  *
  * ──────────────────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ import { createWriteStream, mkdirSync } from "fs";
 import { resolve } from "path";
 import PDFDocument from "pdfkit";
 
-// ── Captura de logs ───────────────────────────────────────────────────────────
+// ── Log capture ───────────────────────────────────────────────────────────────
 
 const capturedLogs: string[] = [];
 const _origLog   = console.log.bind(console);
@@ -92,7 +92,7 @@ async function generateEvidencePDF(logs: string[]) {
     const stream = createWriteStream(filePath);
     doc.pipe(stream);
 
-    // ── Encabezado ──
+    // ── Header ──
     doc
       .fontSize(18)
       .font("Helvetica-Bold")
@@ -103,21 +103,21 @@ async function generateEvidencePDF(logs: string[]) {
       .fontSize(10)
       .font("Helvetica")
       .fillColor("#555555")
-      .text(`Generado: ${new Date().toUTCString()}`, { align: "center" });
+      .text(`Generated: ${new Date().toUTCString()}`, { align: "center" });
 
     doc.moveDown(1);
     const lineY = doc.y;
     doc.moveTo(50, lineY).lineTo(545, lineY).strokeColor("#cccccc").stroke();
     doc.moveDown(0.8);
 
-    // ── Cuerpo: logs capturados ──
+    // ── Body: captured logs ──
     const EXPLORER_RE = /https?:\/\/[^\s]+/;
 
     for (const line of logs) {
       const match = line.match(EXPLORER_RE);
 
       if (match) {
-        // Línea que contiene una URL: renderiza toda la línea como link clicable
+        // Line containing a URL: render the whole line as a clickable link
         doc
           .font("Courier")
           .fontSize(8)
@@ -125,7 +125,7 @@ async function generateEvidencePDF(logs: string[]) {
           .text(line, { link: match[0], underline: true });
         doc.fillColor("#000000");
       } else if (line.startsWith("===") || line.startsWith("[") || line.startsWith("  ►")) {
-        // Líneas de sección o paso: negrita
+        // Section or step lines: bold
         doc.font("Courier-Bold").fontSize(8).fillColor("#000000").text(line);
       } else {
         doc.font("Courier").fontSize(8).fillColor("#000000").text(line);
@@ -138,7 +138,7 @@ async function generateEvidencePDF(logs: string[]) {
   });
 }
 
-// ── Configuración ─────────────────────────────────────────────────────────────
+// ── Configuration ─────────────────────────────────────────────────────────────
 
 const NETWORK    = Networks.TESTNET;
 const RPC_URL    = "https://soroban-testnet.stellar.org";
@@ -155,21 +155,21 @@ const server = new rpc.Server(RPC_URL);
 // ── Roles ─────────────────────────────────────────────────────────────────────
 
 const platform         = Keypair.random(); // admin + platform fee
-const serviceProvider1 = Keypair.random(); // proveedor #1
-const serviceProvider2 = Keypair.random(); // proveedor #2
-const approver1        = Keypair.random(); // aprobador #1  ┐ quórum 2/2
-const approver2        = Keypair.random(); // aprobador #2  ┘
+const serviceProvider1 = Keypair.random(); // provider #1
+const serviceProvider2 = Keypair.random(); // provider #2
+const approver1        = Keypair.random(); // approver #1  ┐ quorum 2/2
+const approver2        = Keypair.random(); // approver #2  ┘
 const releaseSigner1   = Keypair.random(); // release signer #1  ┐ multi-signer
 const releaseSigner2   = Keypair.random(); // release signer #2  ┘
-const receiver         = Keypair.random(); // recibe el pago
-const disputeResolver  = Keypair.random(); // resuelve disputas
-const trustlessWork    = Keypair.random(); // fee de protocolo TW
+const receiver         = Keypair.random(); // receives the payment
+const disputeResolver  = Keypair.random(); // resolves disputes
+const trustlessWork    = Keypair.random(); // TW protocol fee
 
 const funder = Keypair.fromSecret(
   execSync(`stellar keys show ${DEPLOYER}`, { encoding: "utf8" }).trim()
 );
 
-// ── Helpers básicos ───────────────────────────────────────────────────────────
+// ── Basic helpers ─────────────────────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -204,7 +204,7 @@ async function setupUsdcTrustline(...keys: Keypair[]) {
   }));
 }
 
-// Invoca una función de contrato y espera confirmación — devuelve el tx hash
+// Invokes a contract function and waits for confirmation — returns the tx hash
 async function invoke(
   contractId: string,
   fn: string,
@@ -224,9 +224,9 @@ async function invoke(
   builtTx.sign(signer);
 
   const sent = await server.sendTransaction(builtTx);
-  if (sent.status === "ERROR") throw new Error(`Error enviando ${fn}`);
+  if (sent.status === "ERROR") throw new Error(`Error sending ${fn}`);
 
-  // Polling via raw JSON-RPC (workaround: SDK v13 + Bun no puede parsear la respuesta XDR)
+  // Polling via raw JSON-RPC (workaround: SDK v13 + Bun cannot parse the XDR response)
   for (let i = 0; i < 40; i++) {
     await sleep(2500);
     const body: any = await fetch(RPC_URL, {
@@ -236,9 +236,9 @@ async function invoke(
     }).then((r) => r.json());
 
     if (body.result?.status === "SUCCESS") return sent.hash;
-    if (body.result?.status === "FAILED")  throw new Error(`Tx fallida: ${fn}`);
+    if (body.result?.status === "FAILED")  throw new Error(`Failed tx: ${fn}`);
   }
-  throw new Error(`Timeout esperando confirmación de: ${fn}`);
+  throw new Error(`Timeout waiting for confirmation of: ${fn}`);
 }
 
 // ── ScVal builders ────────────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ const i128 = (v: bigint)      => nativeToScVal(v, { type: "i128" });
 const bool = (v: boolean)     => xdr.ScVal.scvBool(v);
 const vec  = (v: xdr.ScVal[]) => xdr.ScVal.scvVec(v);
 
-// Struct de Soroban: campos ordenados alfabéticamente (requisito de contracttype)
+// Soroban struct: fields sorted alphabetically (contracttype requirement)
 const scStruct = (fields: [string, xdr.ScVal][]) =>
   xdr.ScVal.scvMap(
     [...fields]
@@ -258,9 +258,9 @@ const scStruct = (fields: [string, xdr.ScVal][]) =>
       .map(([k, v]) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(k), val: v }))
   );
 
-// ── Consulta on-chain del estado del contrato ─────────────────────────────────
+// ── On-chain contract state query ─────────────────────────────────────────────
 
-// Simula una función de lectura y devuelve el ScVal resultado
+// Simulates a read function and returns the resulting ScVal
 async function simulateView(
   contractId: string,
   fn: string,
@@ -283,16 +283,16 @@ async function simulateView(
   }).then((r) => r.json());
 
   const resultXdr = body.result?.results?.[0]?.xdr;
-  if (!resultXdr) throw new Error(`simulateView "${fn}": sin resultado XDR`);
+  if (!resultXdr) throw new Error(`simulateView "${fn}": no XDR result`);
   return xdr.ScVal.fromXDR(resultXdr, "base64");
 }
 
-// Navega un scvMap por clave símbolo
+// Navigates a scvMap by symbol key
 function mapGet(val: xdr.ScVal, key: string): xdr.ScVal {
   for (const entry of val.map()) {
     if (entry.key().sym().toString() === key) return entry.val();
   }
-  throw new Error(`Campo "${key}" no encontrado en el mapa`);
+  throw new Error(`Field "${key}" not found in map`);
 }
 
 function scvStr(v: xdr.ScVal): string  { return v.str().toString(); }
@@ -313,7 +313,7 @@ function formatUsdc(raw: bigint): string {
   return `${whole}.${frac} USDC`;
 }
 
-// ── Paneles de estado on-chain ────────────────────────────────────────────────
+// ── On-chain state panels ─────────────────────────────────────────────────────
 
 const DIV = "─".repeat(58);
 
@@ -335,7 +335,7 @@ async function showMilestones(contractId: string, label: string) {
     const target    = scvU32(mapGet(approvals, "target"));
     const quorum    = count >= target ? `${count}/${target} ✓` : `${count}/${target}`;
     const ev        = evidence ? `  "${evidence.slice(0, 38)}${evidence.length > 38 ? "…" : ""}"` : "";
-    console.log(`  │    [${i}] ${status}  quórum: ${quorum.padEnd(6)}${ev}`);
+    console.log(`  │    [${i}] ${status}  quorum: ${quorum.padEnd(6)}${ev}`);
   }
 
   console.log(`  └${DIV}\n`);
@@ -343,8 +343,8 @@ async function showMilestones(contractId: string, label: string) {
 
 async function showContractBalance(contractId: string) {
   const raw = i128ToBigInt(await simulateView(USDC, "balance", [addr(contractId)]));
-  console.log(`\n  ┌─ on-chain: saldo del contrato ${"─".repeat(27)}`);
-  console.log(`  │  contrato USDC:  ${formatUsdc(raw)}`);
+  console.log(`\n  ┌─ on-chain: contract balance ${"─".repeat(29)}`);
+  console.log(`  │  contract USDC:  ${formatUsdc(raw)}`);
   console.log(`  └${DIV}\n`);
 }
 
@@ -363,7 +363,7 @@ async function showReleaseBalances(contractId: string) {
 
   console.log(`\n  ┌─ on-chain: post release_funds ${"─".repeat(26)}`);
   console.log(`  │  released:       ${released}`);
-  console.log(`  │  contrato:       ${formatUsdc(contractBal)}`);
+  console.log(`  │  contract:       ${formatUsdc(contractBal)}`);
   console.log(`  │  receiver:       ${formatUsdc(receiverBal)}`);
   console.log(`  │  platform (fee): ${formatUsdc(platformBal)}`);
   console.log(`  │  trustlessWork:  ${formatUsdc(twBal)}`);
@@ -374,67 +374,67 @@ async function showReleaseBalances(contractId: string) {
 
 async function main() {
   const QUORUM = 2;
-  const AMOUNT = 10_0000000n; // 10 USDC (7 decimales)
+  const AMOUNT = 10_0000000n; // 10 USDC (7 decimals)
 
-  // ── Verificación de la cuenta funder ─────────────────────────────────────
-  console.log(`\nVerificando cuenta funder (DEPLOYER=${DEPLOYER})...`);
+  // ── Funder account check ──────────────────────────────────────────────────
+  console.log(`\nVerifying funder account (DEPLOYER=${DEPLOYER})...`);
 
-  // 1. ¿Existe la cuenta en testnet?
+  // 1. Does the account exist on testnet?
   try {
     await server.getAccount(funder.publicKey());
   } catch {
     console.error(`
-  ERROR: la cuenta "${DEPLOYER}" (${funder.publicKey()}) no existe en testnet.
+  ERROR: account "${DEPLOYER}" (${funder.publicKey()}) does not exist on testnet.
 
-  Créala y fóndela con XLM ejecutando:
+  Create and fund it with XLM by running:
     stellar keys generate --name ${DEPLOYER} --network testnet
 
-  Si ya tienes el keypair pero sin fondos:
+  If you already have the keypair but no funds:
     curl "https://friendbot.stellar.org?addr=${funder.publicKey()}"
 `);
     process.exit(1);
   }
 
-  // 2. ¿Tiene USDC suficiente? (requiere trustline + saldo >= 10 USDC)
+  // 2. Does it have enough USDC? (requires trustline + balance >= 10 USDC)
   let funderUsdc = 0n;
   try {
     funderUsdc = i128ToBigInt(await simulateView(USDC, "balance", [addr(funder.publicKey())]));
   } catch {
-    // La simulación puede fallar si no tiene trustline
+    // Simulation may fail if there is no trustline
   }
 
   if (funderUsdc < AMOUNT) {
     console.error(`
-  ERROR: la cuenta "${DEPLOYER}" necesita al menos 10 USDC en testnet.
-  Saldo actual: ${formatUsdc(funderUsdc)}
+  ERROR: account "${DEPLOYER}" needs at least 10 USDC on testnet.
+  Current balance: ${formatUsdc(funderUsdc)}
 
-  Cómo obtener USDC de testnet:
+  How to get testnet USDC:
     • Stellar Lab (swap XLM → USDC):
         https://lab.stellar.org/swap?network=testnet
-    • O usa Stellar Laboratory (path payment desde XLM):
+    • Or use Stellar Laboratory (path payment from XLM):
         https://laboratory.stellar.org/#txbuilder?network=test
-      Emisor USDC testnet: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+      Testnet USDC issuer: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
 `);
     process.exit(1);
   }
 
-  console.log(`  ok — saldo: ${formatUsdc(funderUsdc)}\n`);
+  console.log(`  ok — balance: ${formatUsdc(funderUsdc)}\n`);
 
-  // ── Inicio del demo ───────────────────────────────────────────────────────
-  console.log("=== Trustless Work — Demo: nuevas funcionalidades ===\n");
+  // ── Demo start ────────────────────────────────────────────────────────────
+  console.log("=== Trustless Work — Demo: new features ===\n");
   console.log("Roles:");
-  console.log(`  platform          ${platform.publicKey()}  (admin + plataforma)`);
+  console.log(`  platform          ${platform.publicKey()}  (admin + platform)`);
   console.log(`  serviceProvider1  ${serviceProvider1.publicKey()}`);
   console.log(`  serviceProvider2  ${serviceProvider2.publicKey()}`);
-  console.log(`  approver1         ${approver1.publicKey()}  ─┐ quórum ${QUORUM}/2`);
+  console.log(`  approver1         ${approver1.publicKey()}  ─┐ quorum ${QUORUM}/2`);
   console.log(`  approver2         ${approver2.publicKey()}  ─┘`);
   console.log(`  releaseSigner1    ${releaseSigner1.publicKey()}  ─┐ multi-signer`);
   console.log(`  releaseSigner2    ${releaseSigner2.publicKey()}  ─┘`);
   console.log(`  receiver          ${receiver.publicKey()}`);
   console.log(`  funder (USDC)     ${funder.publicKey()}`);
 
-  // [1] Fondear con Friendbot
-  console.log("\n[1/6] Fondeando cuentas con Friendbot...");
+  // [1] Fund with Friendbot
+  console.log("\n[1/6] Funding accounts with Friendbot...");
   await friendbot(
     platform, serviceProvider1, serviceProvider2,
     approver1, approver2,
@@ -443,18 +443,18 @@ async function main() {
   );
   console.log("      ok");
 
-  // [2] Trustlines USDC para los que recibirán fondos en release_funds
-  console.log("\n[2/6] Configurando trustlines USDC (receiver / trustlessWork / platform)...");
+  // [2] USDC trustlines for accounts that will receive funds in release_funds
+  console.log("\n[2/6] Setting up USDC trustlines (receiver / trustlessWork / platform)...");
   await setupUsdcTrustline(receiver, trustlessWork, platform);
   console.log("      ok");
 
-  // [3] Compilar
-  console.log("\n[3/6] Compilando contrato...");
+  // [3] Compile
+  console.log("\n[3/6] Compiling contract...");
   execSync("cargo build --target wasm32v1-none --release --quiet", { cwd: ROOT, stdio: "inherit" });
   console.log("      ok");
 
-  // [4] Desplegar
-  console.log("\n[4/6] Desplegando contrato en testnet...");
+  // [4] Deploy
+  console.log("\n[4/6] Deploying contract to testnet...");
   const wasmHash = execSync(
     `stellar contract upload --wasm ${WASM} --source ${DEPLOYER} --network testnet`,
     { encoding: "utf8" }
@@ -473,7 +473,7 @@ async function main() {
   ).trim();
   console.log(`      ok  ${EXPLORER}/contract/${contractId}`);
 
-  // ── Estructura del escrow ─────────────────────────────────────────────────
+  // ── Escrow structure ──────────────────────────────────────────────────────
 
   const milestone = (desc: string) =>
     scStruct([
@@ -489,7 +489,7 @@ async function main() {
 
   const escrow = scStruct([
     ["amount",        i128(AMOUNT)],
-    ["description",   str("Demo: contrato de trabajo freelance con quórum")],
+    ["description",   str("Demo: freelance work contract with quorum")],
     ["dispute",       scStruct([
       ["is_disputed", bool(false)],
       ["reason",      str("")],
@@ -497,9 +497,9 @@ async function main() {
     ])],
     ["engagement_id", str("demo-quorum-001")],
     ["milestones", vec([
-      milestone("Diseño de UI"),
-      milestone("Implementación del backend"),
-      milestone("QA y deploy a producción"),
+      milestone("UI Design"),
+      milestone("Backend implementation"),
+      milestone("QA and production deploy"),
     ])],
     ["platform_fee",  u32(300)],   // 3%
     ["receiver_memo", u32(0)],
@@ -514,12 +514,12 @@ async function main() {
       ["release_signers",   vec([addr(releaseSigner1.publicKey()), addr(releaseSigner2.publicKey())])],
       ["service_providers", vec([addr(serviceProvider1.publicKey()), addr(serviceProvider2.publicKey())])],
     ])],
-    ["title",     str("Demo Escrow — quórum y multi-roles")],
+    ["title",     str("Demo Escrow — quorum and multi-roles")],
     ["trustline", scStruct([["address", addr(USDC)]])],
   ]);
 
-  // ── Flujo del escrow ──────────────────────────────────────────────────────
-  console.log(`\n[5/6] Flujo del escrow (3 milestones, quórum ${QUORUM}/2, multi-roles)\n`);
+  // ── Escrow flow ───────────────────────────────────────────────────────────
+  console.log(`\n[5/6] Escrow flow (3 milestones, quorum ${QUORUM}/2, multi-roles)\n`);
 
   // initialize_escrow
   console.log("  ► initialize_escrow   (platform)");
@@ -528,17 +528,17 @@ async function main() {
   await showMilestones(contractId, "post initialize_escrow");
 
   // fund_escrow
-  console.log("  ► fund_escrow         (funder deposita 10 USDC)");
+  console.log("  ► fund_escrow         (funder deposits 10 USDC)");
   const h2 = await invoke(contractId, "fund_escrow", [addr(funder.publicKey()), escrow, i128(AMOUNT)], funder);
   console.log(`    ${EXPLORER}/tx/${h2}`);
   await showContractBalance(contractId);
 
-  // change_milestone_status — batch de los 3 milestones en una sola tx
-  console.log("  ► change_milestone_status  (serviceProvider1 — batch de 3 milestones)");
+  // change_milestone_status — batch of 3 milestones in a single tx
+  console.log("  ► change_milestone_status  (serviceProvider1 — batch of 3 milestones)");
   const updates = [
-    { index: 0, evidence: "PR #42 mergeado — diseño finalizado",     status: "Completed" },
-    { index: 1, evidence: "API desplegada en staging, tests pasados", status: "Completed" },
-    { index: 2, evidence: "100% coverage, deploy a prod verificado",  status: "Completed" },
+    { index: 0, evidence: "PR #42 merged — design finalized",          status: "Completed" },
+    { index: 1, evidence: "API deployed to staging, tests passed",      status: "Completed" },
+    { index: 2, evidence: "100% coverage, prod deploy verified",        status: "Completed" },
   ];
   const h3 = await invoke(contractId, "change_milestone_status", [
     vec(updates.map((u) =>
@@ -553,8 +553,8 @@ async function main() {
   console.log(`    ${EXPLORER}/tx/${h3}`);
   await showMilestones(contractId, "post change_milestone_status");
 
-  // approve_milestones — approver1 vota los 3 (quórum incompleto)
-  console.log("  ► approve_milestones  (approver1 — vota los 3 milestones)");
+  // approve_milestones — approver1 votes on 3 (quorum incomplete)
+  console.log("  ► approve_milestones  (approver1 — votes on 3 milestones)");
   const h4 = await invoke(contractId, "approve_milestones",
     [vec([u32(0), u32(1), u32(2)]), addr(approver1.publicKey())],
     approver1
@@ -562,8 +562,8 @@ async function main() {
   console.log(`    ${EXPLORER}/tx/${h4}`);
   await showMilestones(contractId, "post approve_milestones [approver1]");
 
-  // approve_milestones — approver2 vota los 3 (quórum alcanzado)
-  console.log("  ► approve_milestones  (approver2 — vota los 3 milestones)");
+  // approve_milestones — approver2 votes on 3 (quorum reached)
+  console.log("  ► approve_milestones  (approver2 — votes on 3 milestones)");
   const h5 = await invoke(contractId, "approve_milestones",
     [vec([u32(0), u32(1), u32(2)]), addr(approver2.publicKey())],
     approver2
@@ -571,7 +571,7 @@ async function main() {
   console.log(`    ${EXPLORER}/tx/${h5}`);
   await showMilestones(contractId, "post approve_milestones [approver2]");
 
-  // release_funds — cualquiera de los release signers puede liberar
+  // release_funds — any of the release signers can release
   console.log("  ► release_funds       (releaseSigner1)");
   const h6 = await invoke(contractId, "release_funds",
     [addr(releaseSigner1.publicKey()), addr(trustlessWork.publicKey())],
@@ -580,31 +580,31 @@ async function main() {
   console.log(`    ${EXPLORER}/tx/${h6}`);
   await showReleaseBalances(contractId);
 
-  // ── Resumen ───────────────────────────────────────────────────────────────
-  console.log("[6/6] Resumen\n");
-  console.log(`  Contrato:                ${EXPLORER}/contract/${contractId}`);
+  // ── Summary ───────────────────────────────────────────────────────────────
+  console.log("[6/6] Summary\n");
+  console.log(`  Contract:                ${EXPLORER}/contract/${contractId}`);
   console.log(`  initialize_escrow:       ${EXPLORER}/tx/${h1}`);
   console.log(`  fund_escrow:             ${EXPLORER}/tx/${h2}`);
   console.log(`  change_milestone_status: ${EXPLORER}/tx/${h3}`);
   console.log(`  approve_milestones [1]:  ${EXPLORER}/tx/${h4}`);
   console.log(`  approve_milestones [2]:  ${EXPLORER}/tx/${h5}`);
   console.log(`  release_funds:           ${EXPLORER}/tx/${h6}`);
-  console.log("\n=== Flujo completo ===");
+  console.log("\n=== Flow complete ===");
 
-  // ── Generar PDF de evidencia ──────────────────────────────────────────────
-  _origLog("\nGenerando PDF de evidencia...");
+  // ── Generate evidence PDF ─────────────────────────────────────────────────
+  _origLog("\nGenerating evidence PDF...");
   const pdfPath = await generateEvidencePDF(capturedLogs);
-  _origLog(`  PDF guardado en: ${pdfPath}`);
+  _origLog(`  PDF saved at: ${pdfPath}`);
 }
 
 main().catch(async (e) => {
   console.error("\n ERROR:", e.message);
-  _origLog("\nGenerando PDF de evidencia (con error)...");
+  _origLog("\nGenerating evidence PDF (with error)...");
   try {
     const pdfPath = await generateEvidencePDF(capturedLogs);
-    _origLog(`  PDF guardado en: ${pdfPath}`);
+    _origLog(`  PDF saved at: ${pdfPath}`);
   } catch (pdfErr) {
-    _origLog("  No se pudo generar el PDF:", (pdfErr as Error).message);
+    _origLog("  Could not generate PDF:", (pdfErr as Error).message);
   }
   process.exit(1);
 });
