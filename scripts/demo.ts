@@ -16,6 +16,13 @@
  *       # macOS
  *       brew install stellar-cli
  *
+ *       # Windows (winget)
+ *       winget install --id Stellar.StellarCLI
+ *
+ *       # Windows (manual) — download the .exe from the releases page:
+ *       https://github.com/stellar/stellar-cli/releases/latest
+ *       Add the folder containing stellar.exe to your PATH environment variable.
+ *
  *  3. Create a testnet account and fund it with XLM (automatic Friendbot)
  *       stellar keys generate --name <your-alias> --network testnet
  *
