@@ -1,0 +1,14 @@
+{
+  "name": "trustless-work-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "demo": "bun run demo.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.1.0",
+    "@types/pdfkit": "^0.17.5",
+    "dotenv": "^17.4.2",
+    "pdfkit": "^0.18.0"
+  }
+}
