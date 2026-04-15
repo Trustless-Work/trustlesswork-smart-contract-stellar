@@ -9,10 +9,20 @@
  *
  * ── Setup (first time) ────────────────────────────────────────────────────────
  *
- *  1. Install project dependencies
+ *  1. Install Rust and the WASM target (required to compile the contract)
+ *       # macOS / Linux
+ *       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+ *
+ *       # Windows — download and run the installer from:
+ *       https://rustup.rs
+ *
+ *       # After installing Rust, add the WASM target:
+ *       rustup target add wasm32v1-none
+ *
+ *  2. Install project dependencies
  *       bun install
  *
- *  2. Install Stellar CLI  →  https://developers.stellar.org/docs/tools/stellar-cli
+ *  3. Install Stellar CLI  →  https://developers.stellar.org/docs/tools/stellar-cli
  *       # macOS
  *       brew install stellar-cli
  *
@@ -23,14 +33,14 @@
  *       https://github.com/stellar/stellar-cli/releases/latest
  *       Add the folder containing stellar.exe to your PATH environment variable.
  *
- *  3. Create a testnet account and fund it with XLM (automatic Friendbot)
+ *  4. Create a testnet account and fund it with XLM (automatic Friendbot)
  *       stellar keys generate --name <your-alias> --network testnet
  *
  *     This generates a keypair, saves it in the Stellar CLI local keystore,
  *     and funds it with testnet XLM via Friendbot.
  *     You can verify the balance at: https://stellar.expert/explorer/testnet
  *
- *  4. Get testnet USDC for that account
+ *  5. Get testnet USDC for that account
  *     The script deposits USDC from your account into the escrow, so you need
  *     at least 10 USDC on testnet. Two ways to get them:
  *
@@ -43,10 +53,10 @@
  *       Build a "Path Payment" operation from XLM to USDC
  *       (testnet USDC issuer: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5)
  *
- *  5. Create the .env file in this folder (scripts/) with your alias:
+ *  6. Create the .env file in this folder (scripts/) with your alias:
  *       echo "DEPLOYER=<your-alias>" > scripts/.env
  *
- *  6. Run the demo
+ *  7. Run the demo
  *       bun run demo.ts
  *
  * ──────────────────────────────────────────────────────────────────────────────
