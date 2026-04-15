@@ -15,3 +15,4 @@ contracts/escrow/test_snapshots/tests
 **/.DS_Store
 /.stellar
 /install_mainnet.json
+/scripts/node_modules
