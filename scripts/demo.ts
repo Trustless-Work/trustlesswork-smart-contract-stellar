@@ -33,7 +33,7 @@
  *       Add the folder containing stellar.exe to your PATH environment variable.
  *
  *  4. Create a testnet account and fund it with XLM (automatic Friendbot)
- *       stellar keys generate --name <your-alias> --network testnet
+ *       stellar keys generate <your-alias> --network testnet
  *
  *     This generates a keypair, saves it in the Stellar CLI local keystore,
  *     and funds it with testnet XLM via Friendbot.
