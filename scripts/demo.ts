@@ -18,7 +18,7 @@
  *       # After installing Rust, add the WASM target:
  *       rustup target add wasm32v1-none
  *
- *  2. Install project dependencies
+ *  2. Install project dependencies  (run inside scripts/)
  *       bun install
  *
  *  3. Install Stellar CLI  →  https://developers.stellar.org/docs/tools/stellar-cli
@@ -32,30 +32,26 @@
  *       https://github.com/stellar/stellar-cli/releases/latest
  *       Add the folder containing stellar.exe to your PATH environment variable.
  *
- *  4. Create a testnet account and fund it with XLM (automatic Friendbot)
- *       stellar keys generate <your-alias> --network testnet
+ *  4. Create a testnet keypair
+ *       stellar keys generate --name <your-alias> --network testnet
  *
- *     This generates a keypair, saves it in the Stellar CLI local keystore,
- *     and funds it with testnet XLM via Friendbot.
- *     You can verify the balance at: https://stellar.expert/explorer/testnet
+ *     To view your public key:
+ *       stellar keys public-key <your-alias>
  *
- *  5. Get testnet USDC for that account
- *     The script deposits USDC from your account into the escrow, so you need
- *     at least 10 USDC on testnet. Two ways to get them:
+ *     To view your secret key:
+ *       stellar keys secret <your-alias>
  *
- *     Option A — Stellar Lab (swap XLM → USDC):
- *       https://lab.stellar.org/swap?network=testnet
- *       Connect your account (with your alias key) and swap XLM for USDC.
+ *  5. Fund your account, add the USDC trustline, and get testnet USDC
+ *     Open the link below in your browser. Connect your account using the
+ *     secret key from step 4 — you can fund with XLM, add the USDC trustline,
+ *     and send yourself USDC all from that same page.
+ *     The script requires at least 10 USDC in your account.
+ *       https://lab.stellar.org/account/fund?$=network$id=testnet&label=Testnet&horizonUrl=https:////horizon-testnet.stellar.org&rpcUrl=https:////soroban-testnet.stellar.org&passphrase=Test%20SDF%20Network%20/;%20September%202015;;
  *
- *     Option B — Classic Stellar Laboratory (path payment):
- *       https://laboratory.stellar.org/#txbuilder?network=test
- *       Build a "Path Payment" operation from XLM to USDC
- *       (testnet USDC issuer: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5)
+ *  6. Create the .env file in scripts/ with your alias  (run inside scripts/)
+ *       echo "DEPLOYER=<your-alias>" > .env
  *
- *  6. Create the .env file in this folder (scripts/) with your alias:
- *       echo "DEPLOYER=<your-alias>" > scripts/.env
- *
- *  7. Run the demo
+ *  7. Run the demo  (run inside scripts/)
  *       bun run demo.ts
  *
  * ──────────────────────────────────────────────────────────────────────────────
