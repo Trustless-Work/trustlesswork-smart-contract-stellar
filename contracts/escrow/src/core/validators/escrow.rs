@@ -41,16 +41,8 @@ pub fn validate_release_milestones_conditions(
     release_signer: &Address,
     milestone_indices: &Vec<u32>,
 ) -> Result<(), ReleaseError> {
-    if escrow.milestones.iter().any(|m| m.dispute.resolved) {
-        return Err(ReleaseError::EscrowAlreadyResolved);
-    }
-
     if !escrow.roles.release_signers.contains(release_signer) {
         return Err(ReleaseError::OnlyReleaseSignerCanReleaseEarnings);
-    }
-
-    if escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
-        return Err(ReleaseError::EscrowOpenedForDisputeResolution);
     }
 
     if milestone_indices.is_empty() {
@@ -71,6 +63,14 @@ pub fn validate_release_milestones_conditions(
         }
 
         let milestone = escrow.milestones.get(index).unwrap();
+
+        if milestone.dispute.is_disputed {
+            return Err(ReleaseError::EscrowOpenedForDisputeResolution);
+        }
+
+        if milestone.dispute.resolved {
+            return Err(ReleaseError::EscrowAlreadyResolved);
+        }
 
         if !is_milestone_approved(&milestone) {
             return Err(ReleaseError::EscrowNotCompleted);
