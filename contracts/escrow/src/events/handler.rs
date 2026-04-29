@@ -46,12 +46,6 @@ pub struct DisputeResolved {
     pub engagement_id: String,
 }
 
-#[contractevent(topics = ["tw_dispute"], data_format = "single-value")]
-#[derive(Clone)]
-pub struct EscrowDisputed {
-    pub engagement_id: String,
-}
-
 // Milestones managed (add or update)
 #[contractevent(topics = ["tw_ms_manage"], data_format = "single-value")]
 #[derive(Clone)]

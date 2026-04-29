@@ -3,7 +3,7 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Sym
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError, ReleaseError};
 use crate::events::handler::{
-    ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
+    ChgEsc, DisEsc, DisputeResolved, ExtTtlEvt, FundEsc, InitEsc,
     MilestonesManaged, MilestonesApproved, MilestoneStatusChanged, MilestonesDisputed,
 };
 use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneStatusUpdate, MilestoneUpdate};
@@ -229,12 +229,6 @@ impl EscrowContract {
     ) -> Result<(), EscrowError> {
         let escrow = DisputeManager::dispute_milestones(&e, signer, milestone_indices, reason)?;
         MilestonesDisputed { engagement_id: escrow.engagement_id }.publish(&e);
-        Ok(())
-    }
-
-    pub fn dispute_escrow(e: Env, signer: Address, reason: String) -> Result<(), EscrowError> {
-        let escrow = DisputeManager::dispute_escrow(&e, signer, reason)?;
-        EscrowDisputed { engagement_id: escrow.engagement_id }.publish(&e);
         Ok(())
     }
 

@@ -12,7 +12,7 @@ use crate::modules::{
 use crate::storage::types::{DataKey, Escrow};
 
 use super::validators::dispute::{
-    validate_batch_milestone_dispute_conditions, validate_dispute_flag_change_conditions,
+    validate_batch_milestone_dispute_conditions,
     validate_dispute_resolution_conditions,
 };
 
@@ -165,33 +165,6 @@ impl DisputeManager {
             escrow.milestones.set(index, milestone);
         }
 
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
-
-        Ok(escrow)
-    }
-
-    pub fn dispute_escrow(e: &Env, signer: Address, reason: String) -> Result<Escrow, EscrowError> {
-        const MAX_REASON_LEN: u32 = 500;
-        if reason.len() > MAX_REASON_LEN {
-            return Err(EscrowError::StringTooLong);
-        }
-
-        let mut escrow = EscrowManager::get_escrow(e)?;
-        validate_dispute_flag_change_conditions(&escrow, &signer)?;
-
-        signer.require_auth();
-
-        for i in 0..escrow.milestones.len() {
-            let mut milestone = escrow.milestones.get(i).unwrap();
-            if !milestone.dispute.is_disputed {
-                milestone.dispute.is_disputed = true;
-                milestone.dispute.reason = reason.clone();
-                escrow.milestones.set(i, milestone);
-            }
-        }
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
             .persistent()
