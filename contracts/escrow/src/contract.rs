@@ -26,7 +26,7 @@ impl EscrowContract {
             .extend_ttl(&DataKey::ApprovedWasmHash, 17280, 31536000);
     }
 
-    pub fn tw_new_single_release_escrow(
+    pub fn tw_new_multi_release_escrow(
         env: Env,
         signer: Address,
         wasm_hash: BytesN<32>,
