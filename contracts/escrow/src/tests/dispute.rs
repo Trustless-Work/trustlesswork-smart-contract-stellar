@@ -69,7 +69,7 @@ fn test_dispute_management() {
     let escrow = escrow_approver.get_escrow();
     assert!(!escrow.milestones.iter().any(|m| m.dispute.is_disputed));
 
-    escrow_approver.dispute_escrow(&approver_address, &String::from_str(&env, "Work not done"));
+    escrow_approver.dispute_milestones(&approver_address, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     let escrow_after_change = escrow_approver.get_escrow();
     assert!(escrow_after_change.milestones.iter().any(|m| m.dispute.is_disputed));
@@ -80,7 +80,7 @@ fn test_dispute_management() {
         escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
     assert!(result.is_err());
 
-    let _ = escrow_approver.try_dispute_escrow(&approver_address, &String::from_str(&env, "Work not done"));
+    let _ = escrow_approver.try_dispute_milestones(&approver_address, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     let escrow_after_second_change = escrow_approver.get_escrow();
     assert!(escrow_after_second_change.milestones.iter().any(|m| m.dispute.is_disputed));
@@ -153,7 +153,7 @@ fn test_dispute_resolution_process() {
         .0
         .transfer(&approver_address, &escrow_approver.address, &amount);
 
-    escrow_approver.dispute_escrow(&approver_address, &String::from_str(&env, "Work not done"));
+    escrow_approver.dispute_milestones(&approver_address, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     let escrow_with_dispute = escrow_approver.get_escrow();
     assert!(escrow_with_dispute.milestones.iter().any(|m| m.dispute.is_disputed));
@@ -244,7 +244,7 @@ fn test_dispute_resolution_process() {
 }
 
 #[test]
-fn test_dispute_escrow_authorized_and_unauthorized() {
+fn test_dispute_milestones_authorized_and_unauthorized() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -298,7 +298,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let escrow_client_1 = test_data.client;
 
     escrow_client_1.initialize_escrow(&escrow_base);
-    escrow_client_1.dispute_escrow(&approver, &String::from_str(&env, "Work not done"));
+    escrow_client_1.dispute_milestones(&approver, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     let updated_escrow = escrow_client_1.get_escrow();
     assert!(
@@ -310,7 +310,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let escrow_client_2 = test_data.client;
 
     escrow_client_2.initialize_escrow(&escrow_base);
-    let result = escrow_client_2.try_dispute_escrow(&unauthorized, &String::from_str(&env, "Work not done"));
+    let result = escrow_client_2.try_dispute_milestones(&unauthorized, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     assert!(
         result.is_err(),
@@ -386,7 +386,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     usdc_token.1.mint(&client.address, &total);
 
     // Put escrow in dispute
-    client.dispute_escrow(&approver, &String::from_str(&env, "Work not done"));
+    client.dispute_milestones(&approver, &vec![&env, 0u32], &String::from_str(&env, "Work not done"));
 
     // Distributions that trigger the rounding mismatch
     let mut distributions = Map::new(&env);

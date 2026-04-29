@@ -828,7 +828,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 
     // Put escrow into dispute and then resolve it so withdraw_remaining_funds is allowed.
     // withdraw_remaining_funds requires at least one milestone to have been disputed.
-    client.dispute_escrow(&approver, &String::from_str(&env, "Work disputed"));
+    client.dispute_milestones(&approver, &vec![&env, 0u32], &String::from_str(&env, "Work disputed"));
 
     let mut resolve_dist = Map::new(&env);
     resolve_dist.set(approver.clone(), escrow_amount / 2);
