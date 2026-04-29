@@ -100,10 +100,6 @@ pub fn validate_batch_milestone_dispute_conditions(
         }
     }
 
-    if escrow.milestones.iter().any(|m| m.dispute.resolved) {
-        return Err(EscrowError::EscrowAlreadyResolved);
-    }
-
     if escrow.roles.dispute_resolvers.contains(signer) {
         return Err(EscrowError::DisputeResolverCannotDisputeTheEscrow);
     }
@@ -124,6 +120,10 @@ pub fn validate_batch_milestone_dispute_conditions(
         }
 
         let milestone = escrow.milestones.get(index).unwrap();
+
+        if milestone.dispute.resolved {
+            return Err(EscrowError::EscrowAlreadyResolved);
+        }
 
         if milestone.dispute.is_disputed {
             return Err(EscrowError::MilestoneAlreadyDisputed);
