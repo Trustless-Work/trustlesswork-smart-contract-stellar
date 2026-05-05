@@ -833,7 +833,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     let mut resolve_dist = Map::new(&env);
     resolve_dist.set(approver.clone(), escrow_amount / 2);
     resolve_dist.set(service_provider.clone(), escrow_amount - escrow_amount / 2);
-    client.resolve_dispute(&dispute_resolver, &trustless_work_address, &resolve_dist);
+    client.resolve_dispute(&dispute_resolver, &trustless_work_address, &vec![&env, 0u32], &resolve_dist);
 
     // Simulate remaining funds (e.g. from overfunding or rounding leftovers)
     let remaining: i128 = 100_003;

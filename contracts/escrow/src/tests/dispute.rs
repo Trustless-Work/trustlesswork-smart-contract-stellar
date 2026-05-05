@@ -158,6 +158,8 @@ fn test_dispute_resolution_process() {
     let escrow_with_dispute = escrow_approver.get_escrow();
     assert!(escrow_with_dispute.milestones.iter().any(|m| m.dispute.is_disputed));
 
+    let milestone_indices = vec![&env, 0u32];
+
     // Try to resolve dispute with incorrect dispute resolver (should fail)
     let mut wrong_dist = Map::new(&env);
     wrong_dist.set(approver_address.clone(), 50_000_000);
@@ -165,22 +167,22 @@ fn test_dispute_resolution_process() {
     let result = escrow_approver.try_resolve_dispute(
         &approver_address,
         &trustless_work_address,
+        &milestone_indices,
         &wrong_dist,
     );
     assert!(result.is_err());
 
+    // Try to resolve with distributions exceeding the milestone amount (should fail)
     let approver_funds: i128 = 50_000_000;
-    let insufficient_receiver_funds: i128 = 40_000_000;
+    let over_milestone_funds: i128 = 60_000_000;
 
     let mut incorrect_dist = Map::new(&env);
     incorrect_dist.set(approver_address.clone(), approver_funds);
-    incorrect_dist.set(
-        service_provider_address.clone(),
-        insufficient_receiver_funds,
-    );
+    incorrect_dist.set(service_provider_address.clone(), over_milestone_funds);
     let incorrect_dispute_resolution_result = escrow_approver.try_resolve_dispute(
         &dispute_resolver_address,
         &trustless_work_address,
+        &milestone_indices,
         &incorrect_dist,
     );
 
@@ -190,6 +192,7 @@ fn test_dispute_resolution_process() {
     let dispute_resolution_with_incorrect_funds = escrow_approver.try_resolve_dispute(
         &dispute_resolver_address,
         &trustless_work_address,
+        &milestone_indices,
         &empty_dist,
     );
 
@@ -201,7 +204,7 @@ fn test_dispute_resolution_process() {
     let mut ok_dist = Map::new(&env);
     ok_dist.set(approver_address.clone(), approver_funds);
     ok_dist.set(service_provider_address.clone(), receiver_funds);
-    escrow_approver.resolve_dispute(&dispute_resolver_address, &trustless_work_address, &ok_dist);
+    escrow_approver.resolve_dispute(&dispute_resolver_address, &trustless_work_address, &milestone_indices, &ok_dist);
 
     // Verify dispute was resolved
     let escrow_after_resolution = escrow_approver.get_escrow();
@@ -397,6 +400,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     let result = client.try_resolve_dispute(
         &dispute_resolver,
         &trustless_work_address,
+        &vec![&env, 0u32],
         &distributions,
     );
     assert!(result.is_ok(), "resolve_dispute should handle fee rounding correctly");

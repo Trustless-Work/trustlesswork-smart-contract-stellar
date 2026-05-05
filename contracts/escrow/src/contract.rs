@@ -209,12 +209,14 @@ impl EscrowContract {
         e: Env,
         dispute_resolver: Address,
         trustless_work_address: Address,
+        milestone_indices: Vec<u32>,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
         let escrow = DisputeManager::resolve_dispute(
             &e,
             dispute_resolver,
             trustless_work_address,
+            milestone_indices,
             distributions,
         )?;
         DisputeResolved { engagement_id: escrow.engagement_id }.publish(&e);

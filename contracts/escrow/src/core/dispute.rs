@@ -86,6 +86,7 @@ impl DisputeManager {
         e: &Env,
         dispute_resolver: Address,
         trustless_work_address: Address,
+        milestone_indices: Vec<u32>,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
@@ -108,18 +109,17 @@ impl DisputeManager {
             current_balance,
             total,
             &distributions,
+            &milestone_indices,
         )?;
 
         dispute_resolver.require_auth();
 
-        // Effects before interactions: commit state change before any external transfer
-        for i in 0..escrow.milestones.len() {
-            let mut milestone = escrow.milestones.get(i).unwrap();
-            if milestone.dispute.is_disputed {
-                milestone.dispute.resolved = true;
-                milestone.dispute.is_disputed = false;
-                escrow.milestones.set(i, milestone);
-            }
+        // Effects before interactions: only resolve the specified disputed milestones
+        for index in milestone_indices.iter() {
+            let mut milestone = escrow.milestones.get(index).unwrap();
+            milestone.dispute.resolved = true;
+            milestone.dispute.is_disputed = false;
+            escrow.milestones.set(index, milestone);
         }
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()

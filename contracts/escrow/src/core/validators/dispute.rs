@@ -2,6 +2,7 @@ use soroban_sdk::{Address, Map, Vec};
 
 use crate::{
     error::EscrowError,
+    modules::math::{BasicArithmetic, BasicMath},
     storage::types::Escrow,
 };
 
@@ -50,6 +51,7 @@ pub fn validate_dispute_resolution_conditions(
     current_balance: i128,
     total: i128,
     distributions: &Map<Address, i128>,
+    milestone_indices: &Vec<u32>,
 ) -> Result<(), EscrowError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
         return Err(EscrowError::TooManyDistributions);
@@ -59,16 +61,39 @@ pub fn validate_dispute_resolution_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
-    if !escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
+    if milestone_indices.is_empty() {
         return Err(EscrowError::EscrowNotInDispute);
+    }
+
+    for i in 0..milestone_indices.len() {
+        for j in (i + 1)..milestone_indices.len() {
+            if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {
+                return Err(EscrowError::InvalidMilestoneIndex);
+            }
+        }
+    }
+
+    let mut milestone_amount_total: i128 = 0;
+    for index in milestone_indices.iter() {
+        if index >= escrow.milestones.len() {
+            return Err(EscrowError::InvalidMilestoneIndex);
+        }
+        let milestone = escrow.milestones.get(index).unwrap();
+        if !milestone.dispute.is_disputed {
+            return Err(EscrowError::EscrowNotInDispute);
+        }
+        if milestone.dispute.resolved {
+            return Err(EscrowError::EscrowAlreadyResolved);
+        }
+        milestone_amount_total = BasicMath::safe_add(milestone_amount_total, milestone.amount)?;
+    }
+
+    if total > milestone_amount_total {
+        return Err(EscrowError::DistributionsMustEqualEscrowBalance);
     }
 
     if current_balance < total {
         return Err(EscrowError::InsufficientFundsForResolution);
-    }
-
-    if total != current_balance {
-        return Err(EscrowError::DistributionsMustEqualEscrowBalance);
     }
 
     if total <= 0 {
