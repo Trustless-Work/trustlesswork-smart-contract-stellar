@@ -133,7 +133,7 @@ pub fn validate_batch_milestone_dispute_conditions(
         || escrow.roles.service_providers.contains(signer)
         || signer == &escrow.roles.platform
         || escrow.roles.release_signers.contains(signer)
-        || signer == &escrow.roles.receiver;
+        || escrow.milestones.iter().any(|m| &m.receiver == signer);
 
     if !is_authorized {
         return Err(EscrowError::UnauthorizedToChangeDisputeFlag);

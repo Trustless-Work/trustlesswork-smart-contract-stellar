@@ -90,7 +90,6 @@ fn validate_admin_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
         || roles.service_providers.contains(&roles.admin)
         || roles.release_signers.contains(&roles.admin)
         || roles.dispute_resolvers.contains(&roles.admin)
-        || roles.admin == roles.receiver
     {
         return Err(EscrowError::AdminAddressOverlapsWithOtherRole);
     }
@@ -137,7 +136,6 @@ fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowErr
         if roles.approvers.contains(&resolver)
             || roles.service_providers.contains(&resolver)
             || roles.release_signers.contains(&resolver)
-            || resolver == roles.receiver
         {
             return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
         }

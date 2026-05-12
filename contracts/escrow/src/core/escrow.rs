@@ -14,8 +14,8 @@ pub struct EscrowManager;
 
 impl EscrowManager {
     #[inline]
-    pub fn get_receiver(escrow: &Escrow) -> Address {
-        escrow.roles.receiver.clone()
+    pub fn get_receiver(milestone: &Milestone) -> Address {
+        milestone.receiver.clone()
     }
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, EscrowError> {
@@ -92,13 +92,6 @@ impl EscrowManager {
             return Err(ReleaseError::EscrowBalanceNotEnoughToSendEarnings);
         }
 
-        let fee_result = FeeCalculator::calculate_standard_fees(total_amount, escrow.platform_fee)
-            .map_err(|e| match e {
-                EscrowError::Overflow => ReleaseError::Overflow,
-                EscrowError::Underflow => ReleaseError::Underflow,
-                _ => ReleaseError::DivisionError,
-            })?;
-
         // Effects before interactions: commit state before any external transfer
         for index in milestone_indices.iter() {
             let mut milestone = escrow.milestones.get(index).unwrap();
@@ -111,25 +104,35 @@ impl EscrowManager {
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                trustless_work_address,
-                &fee_result.trustless_work_fee,
-            );
-        }
+        for index in milestone_indices.iter() {
+            let milestone = escrow.milestones.get(index).unwrap();
+            let fee_result = FeeCalculator::calculate_standard_fees(milestone.amount, escrow.platform_fee)
+                .map_err(|e| match e {
+                    EscrowError::Overflow => ReleaseError::Overflow,
+                    EscrowError::Underflow => ReleaseError::Underflow,
+                    _ => ReleaseError::DivisionError,
+                })?;
 
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform,
-                &fee_result.platform_fee,
-            );
-        }
+            if fee_result.trustless_work_fee > 0 {
+                token_client.transfer(
+                    &contract_address,
+                    trustless_work_address,
+                    &fee_result.trustless_work_fee,
+                );
+            }
 
-        let receiver = Self::get_receiver(&escrow);
-        if fee_result.receiver_amount > 0 {
-            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            if fee_result.platform_fee > 0 {
+                token_client.transfer(
+                    &contract_address,
+                    &escrow.roles.platform,
+                    &fee_result.platform_fee,
+                );
+            }
+
+            let receiver = Self::get_receiver(&milestone);
+            if fee_result.receiver_amount > 0 {
+                token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            }
         }
 
         Ok(())
