@@ -31,6 +31,7 @@ pub struct Milestone {
     pub amount: i128,
     pub dispute: Dispute,
     pub released: bool,
+    pub receiver: Address,
 }
 
 #[contracttype]
@@ -57,7 +58,6 @@ pub struct Roles {
     pub platform: Address,
     pub release_signers: Vec<Address>,
     pub dispute_resolvers: Vec<Address>,
-    pub receiver: Address,
     pub admin: Address,
     pub observers: Vec<Address>,
 }
