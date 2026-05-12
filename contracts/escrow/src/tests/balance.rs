@@ -27,7 +27,6 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: receiver.clone(),
         admin: escrow_admin.clone(), observers: vec![&env]};
 
     let milestones = vec![
@@ -41,7 +40,9 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
                 approval_count: 0,
                 approvers: vec![&env]},
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false }, released: false},
+            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            released: false,
+            receiver: receiver.clone()},
     ];
 
     let escrow_base = Escrow {
