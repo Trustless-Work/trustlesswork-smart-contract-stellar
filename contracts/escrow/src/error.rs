@@ -72,3 +72,18 @@ pub enum MilestoneError {
     StringTooLong = 14,
     BatchTooLarge = 15,
 }
+
+impl From<MilestoneError> for EscrowError {
+    fn from(err: MilestoneError) -> EscrowError {
+        match err {
+            MilestoneError::BatchMilestoneApproveEmpty => EscrowError::NoMilestoneDefined,
+            MilestoneError::InvalidMilestoneIndex
+            | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
+            MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
+            MilestoneError::MilestoneHasAlreadyBeenApproved
+            | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::EscrowAlreadyReleased,
+            MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
+            _ => EscrowError::EscrowNotCompleted,
+        }
+    }
+}
