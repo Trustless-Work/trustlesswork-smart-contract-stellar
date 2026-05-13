@@ -73,12 +73,29 @@ impl EscrowManager {
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
     ) -> Result<(), ReleaseError> {
-        let mut escrow = Self::get_escrow(e)
-            .map_err(|_| ReleaseError::EscrowNotFound)?;
+        let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
-
         release_signer.require_auth();
+        Self::release_funds_execute(e, trustless_work_address, milestone_indices, escrow)
+    }
 
+    pub(crate) fn release_funds_inner(
+        e: &Env,
+        release_signer: &Address,
+        trustless_work_address: &Address,
+        milestone_indices: Vec<u32>,
+    ) -> Result<(), ReleaseError> {
+        let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
+        validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
+        Self::release_funds_execute(e, trustless_work_address, milestone_indices, escrow)
+    }
+
+    fn release_funds_execute(
+        e: &Env,
+        trustless_work_address: &Address,
+        milestone_indices: Vec<u32>,
+        mut escrow: Escrow,
+    ) -> Result<(), ReleaseError> {
         let mut total_amount: i128 = 0;
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();

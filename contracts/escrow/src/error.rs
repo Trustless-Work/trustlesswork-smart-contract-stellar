@@ -53,6 +53,7 @@ pub enum EscrowError {
     MilestoneUpdateNotAllowedWithFunds = 48,
     TargetExceedsApprovers = 49,
     StringTooLong = 50,
+    SignerMustBeApproverAndReleaseSigner = 51,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

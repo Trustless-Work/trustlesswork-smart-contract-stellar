@@ -54,10 +54,17 @@ impl MilestoneManager {
         milestone_indices: Vec<u32>,
         approver: Address,
     ) -> Result<Escrow, MilestoneError> {
+        approver.require_auth();
+        Self::approve_milestones_inner(e, milestone_indices, approver)
+    }
+
+    pub(crate) fn approve_milestones_inner(
+        e: &Env,
+        milestone_indices: Vec<u32>,
+        approver: Address,
+    ) -> Result<Escrow, MilestoneError> {
         let mut existing_escrow = EscrowManager::get_escrow(e)
             .map_err(|_| MilestoneError::EscrowNotFound)?;
-
-        approver.require_auth();
 
         validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
 

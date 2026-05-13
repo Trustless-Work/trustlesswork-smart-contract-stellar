@@ -201,6 +201,47 @@ impl EscrowContract {
         Ok(())
     }
 
+    pub fn approve_and_release_milestones(
+        e: Env,
+        signer: Address,
+        trustless_work_address: Address,
+        milestone_indices: Vec<u32>,
+    ) -> Result<(), EscrowError> {
+        let escrow = EscrowManager::get_escrow(&e)?;
+        if !escrow.roles.approvers.contains(&signer)
+            || !escrow.roles.release_signers.contains(&signer)
+        {
+            return Err(EscrowError::SignerMustBeApproverAndReleaseSigner);
+        }
+        signer.require_auth();
+        let updated_escrow = MilestoneManager::approve_milestones_inner(&e, milestone_indices.clone(), signer.clone())
+            .map_err(|err| match err {
+                MilestoneError::BatchMilestoneApproveEmpty => EscrowError::NoMilestoneDefined,
+                MilestoneError::InvalidMilestoneIndex
+                | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
+                MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
+                MilestoneError::MilestoneHasAlreadyBeenApproved
+                | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::MilestoneAlreadyReleased,
+                MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
+                _ => EscrowError::EscrowNotCompleted,
+            })?;
+        MilestonesApproved { engagement_id: updated_escrow.engagement_id.clone() }.publish(&e);
+        EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address, milestone_indices)
+            .map_err(|err| match err {
+                ReleaseError::EscrowNotFound => EscrowError::EscrowNotFound,
+                ReleaseError::EscrowOpenedForDisputeResolution => EscrowError::EscrowOpenedForDisputeResolution,
+                ReleaseError::EscrowNotCompleted => EscrowError::EscrowNotCompleted,
+                ReleaseError::MilestoneAlreadyReleased => EscrowError::MilestoneAlreadyReleased,
+                ReleaseError::EscrowBalanceNotEnoughToSendEarnings => EscrowError::EscrowBalanceNotEnoughToSendEarnings,
+                ReleaseError::Overflow => EscrowError::Overflow,
+                ReleaseError::Underflow => EscrowError::Underflow,
+                ReleaseError::DivisionError => EscrowError::DivisionError,
+                _ => EscrowError::EscrowNotCompleted,
+            })?;
+        DisEsc { release_signer: signer }.publish(&e);
+        Ok(())
+    }
+
     ////////////////////////
     // Disputes /////
     ////////////////////////
