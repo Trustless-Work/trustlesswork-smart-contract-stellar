@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -786,4 +786,98 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         total_withdrawn, balance_used,
         "Total withdrawn must equal the contract balance decrease"
     );
+}
+
+#[test]
+fn test_full_flow_init_without_milestones() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    let trustless_work = Address::generate(&env);
+    let amount: i128 = 100_000_000;
+
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
+    token_admin.mint(&approver, &amount);
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        receiver: receiver.clone(),
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
+
+    // 1. Init sin milestones
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "full-flow-no-milestones"),
+        title: String::from_str(&env, "Full Flow Test"),
+        description: String::from_str(&env, "Complete lifecycle starting without milestones"),
+        roles: roles.clone(),
+        amount,
+        platform_fee: 0,
+        milestones: vec![&env],
+        dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+        released: false,
+        trustline: Trustline { address: token_client.address.clone() },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+    assert!(client.get_escrow().milestones.is_empty());
+
+    // 2. Agregar milestone
+    let new_milestone = Milestone {
+        description: String::from_str(&env, "Deliver project"),
+        status: String::from_str(&env, "Pending"),
+        evidence: String::from_str(&env, ""),
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+    };
+    let escrow_with_milestones = client.manage_milestones(
+        &escrow_admin,
+        &vec![&env, new_milestone],
+        &vec![&env],
+    );
+    assert_eq!(escrow_with_milestones.milestones.len(), 1);
+
+    // 3. Fondear el escrow
+    client.fund_escrow(&approver, &escrow_with_milestones, &amount);
+    assert_eq!(token_client.balance(&client.address), amount);
+
+    // 4. Service provider marca el trabajo como completado
+    let status_update = MilestoneStatusUpdate {
+        milestone_index: 0,
+        new_status: String::from_str(&env, "Completed"),
+        new_evidence: Some(String::from_str(&env, "Delivered on time")),
+    };
+    client.change_milestone_status(&vec![&env, status_update], &service_provider);
+
+    // 5. Approver aprueba el milestone
+    client.approve_milestones(&vec![&env, 0u32], &approver);
+
+    let escrow_before_release = client.get_escrow();
+    let milestone = escrow_before_release.milestones.get(0).unwrap();
+    assert!(milestone.approvals.approval_count >= milestone.approvals.target);
+
+    // 6. Release funds
+    client.release_funds(&release_signer, &trustless_work);
+
+    assert!(client.get_escrow().released);
+    assert_eq!(token_client.balance(&client.address), 0);
+    // TW cobra 30 bps (0.3%), platform_fee=0 → receiver recibe el resto
+    let tw_fee = amount * 30 / 10_000;
+    assert_eq!(token_client.balance(&trustless_work), tw_fee);
+    assert_eq!(token_client.balance(&receiver), amount - tw_fee);
 }
