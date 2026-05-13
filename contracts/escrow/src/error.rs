@@ -93,3 +93,34 @@ pub enum MilestoneError {
     StringTooLong = 14,
     BatchTooLarge = 15,
 }
+
+impl From<MilestoneError> for EscrowError {
+    fn from(err: MilestoneError) -> EscrowError {
+        match err {
+            MilestoneError::BatchMilestoneApproveEmpty => EscrowError::NoMilestoneDefined,
+            MilestoneError::InvalidMilestoneIndex
+            | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
+            MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
+            MilestoneError::MilestoneHasAlreadyBeenApproved
+            | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::MilestoneAlreadyReleased,
+            MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
+            _ => EscrowError::EscrowNotCompleted,
+        }
+    }
+}
+
+impl From<ReleaseError> for EscrowError {
+    fn from(err: ReleaseError) -> EscrowError {
+        match err {
+            ReleaseError::EscrowNotFound => EscrowError::EscrowNotFound,
+            ReleaseError::EscrowOpenedForDisputeResolution => EscrowError::EscrowOpenedForDisputeResolution,
+            ReleaseError::EscrowNotCompleted => EscrowError::EscrowNotCompleted,
+            ReleaseError::MilestoneAlreadyReleased => EscrowError::MilestoneAlreadyReleased,
+            ReleaseError::EscrowBalanceNotEnoughToSendEarnings => EscrowError::EscrowBalanceNotEnoughToSendEarnings,
+            ReleaseError::Overflow => EscrowError::Overflow,
+            ReleaseError::Underflow => EscrowError::Underflow,
+            ReleaseError::DivisionError => EscrowError::DivisionError,
+            _ => EscrowError::EscrowNotCompleted,
+        }
+    }
+}
