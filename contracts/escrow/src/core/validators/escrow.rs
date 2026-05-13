@@ -260,7 +260,7 @@ pub fn validate_manage_milestones_conditions(
     if existing_escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
-    if existing_escrow.milestones.iter().all(|m| m.released) {
+    if !existing_escrow.milestones.is_empty() && existing_escrow.milestones.iter().all(|m| m.released) {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
     if existing_escrow.milestones.iter().any(|m| m.dispute.resolved) {

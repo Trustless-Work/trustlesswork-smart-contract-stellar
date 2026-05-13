@@ -1089,3 +1089,67 @@ fn test_manage_milestones() {
     let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &updates);
     assert!(result.is_err(), "Updating milestones must fail when escrow has funds");
 }
+
+#[test]
+fn test_add_milestones_after_init_without_milestones() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let (token_client, _) = create_usdc_token(&env, &admin);
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "no-milestones-then-add"),
+        title: String::from_str(&env, "Deferred Milestones Escrow"),
+        description: String::from_str(&env, "Init without milestones, add later"),
+        roles: roles.clone(),
+        platform_fee: 0,
+        milestones: vec![&env],
+        trustline: Trustline { address: token_client.address.clone() },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+
+    client.initialize_escrow(&escrow_properties);
+
+    let new_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "First milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+            amount: 100_000_000,
+            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let empty_updates = vec![&env];
+    let result = client.try_manage_milestones(&escrow_admin, &new_milestones, &empty_updates);
+    assert!(result.is_ok(), "Should be able to add milestones to an escrow initialized without them");
+
+    let escrow = client.get_escrow();
+    assert_eq!(escrow.milestones.len(), 1);
+}
