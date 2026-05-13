@@ -72,11 +72,27 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
     ) -> Result<(), EscrowError> {
-        let mut escrow = Self::get_escrow(e)?;
+        let escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
-
         release_signer.require_auth();
+        Self::release_funds_execute(e, trustless_work_address, escrow)
+    }
 
+    pub(crate) fn release_funds_inner(
+        e: &Env,
+        release_signer: &Address,
+        trustless_work_address: &Address,
+    ) -> Result<(), EscrowError> {
+        let escrow = Self::get_escrow(e)?;
+        validate_release_conditions(&escrow, release_signer)?;
+        Self::release_funds_execute(e, trustless_work_address, escrow)
+    }
+
+    fn release_funds_execute(
+        e: &Env,
+        trustless_work_address: &Address,
+        mut escrow: Escrow,
+    ) -> Result<(), EscrowError> {
         escrow.released = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()

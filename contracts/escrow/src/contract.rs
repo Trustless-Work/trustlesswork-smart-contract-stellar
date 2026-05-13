@@ -200,6 +200,36 @@ impl EscrowContract {
         Ok(())
     }
 
+    pub fn approve_and_release_milestones(
+        e: Env,
+        signer: Address,
+        trustless_work_address: Address,
+        milestone_indices: Vec<u32>,
+    ) -> Result<(), EscrowError> {
+        let escrow = EscrowManager::get_escrow(&e)?;
+        if !escrow.roles.approvers.contains(&signer)
+            || !escrow.roles.release_signers.contains(&signer)
+        {
+            return Err(EscrowError::SignerMustBeApproverAndReleaseSigner);
+        }
+        signer.require_auth();
+        let updated_escrow = MilestoneManager::approve_milestones_inner(&e, milestone_indices, signer.clone())
+            .map_err(|err| match err {
+                MilestoneError::BatchMilestoneApproveEmpty => EscrowError::NoMilestoneDefined,
+                MilestoneError::InvalidMilestoneIndex
+                | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
+                MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
+                MilestoneError::MilestoneHasAlreadyBeenApproved
+                | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::EscrowAlreadyReleased,
+                MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
+                _ => EscrowError::EscrowNotCompleted,
+            })?;
+        MilestonesApproved { engagement_id: updated_escrow.engagement_id.clone() }.publish(&e);
+        EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address)?;
+        DisEsc { release_signer: signer }.publish(&e);
+        Ok(())
+    }
+
     ////////////////////////
     // Disputes /////
     ////////////////////////

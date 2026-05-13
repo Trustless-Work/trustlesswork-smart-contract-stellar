@@ -50,6 +50,7 @@ pub enum EscrowError {
     TargetExceedsApprovers = 49,
     StringTooLong = 50,
     Reentrancy = 51,
+    SignerMustBeApproverAndReleaseSigner = 52,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
