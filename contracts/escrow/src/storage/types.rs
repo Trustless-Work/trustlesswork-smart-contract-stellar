@@ -10,7 +10,7 @@ pub struct Escrow {
     pub platform_fee: u32,
     pub milestones: Vec<Milestone>,
     pub trustline: Trustline,
-    pub receiver_memo: i128,
+    pub receiver_memo: u32,
 }
 
 #[contracttype]
@@ -25,11 +25,19 @@ pub struct Milestone {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MilestoneUpdate {
+    pub index: u32,
+    pub status: String,
+    pub evidence: Option<String>,
+}
+
+#[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Roles {
     pub approver: Address,
     pub service_provider: Address,
-    pub platform_address: Address,
+    pub platform: Address,
     pub release_signer: Address,
     pub dispute_resolver: Address,
 }

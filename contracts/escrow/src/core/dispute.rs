@@ -2,7 +2,9 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, String};
 
 use crate::core::escrow::EscrowManager;
+use crate::core::validators::milestone::validate_and_convert_milestone_index;
 use crate::error::ContractError;
+use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
     math::{BasicArithmetic, BasicMath},
@@ -10,7 +12,8 @@ use crate::modules::{
 use crate::storage::types::{DataKey, Escrow, Milestone};
 
 use super::validators::dispute::{
-    validate_withdraw_remaining_funds_conditions, validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
+    validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
+    validate_withdraw_remaining_funds_conditions,
 };
 
 pub struct DisputeManager;
@@ -21,10 +24,8 @@ impl DisputeManager {
         dispute_resolver: Address,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         let trustless_address_string = String::from_str(&e, "GBWWSOATPLIC72ZBOIM7WJCT7VCAHNWW4QUBZ2H4FORMCCIUM5ZVKSZN");
         let trustless_work_address = Address::from_string(&trustless_address_string);
-
         let escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -47,46 +48,35 @@ impl DisputeManager {
             total = BasicMath::safe_add(total, amount)?;
         }
 
-        let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-
         validate_withdraw_remaining_funds_conditions(
             &escrow,
             &dispute_resolver,
             all_processed,
             current_balance,
-            total
+            total,
+            &distributions,
         )?;
 
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &fee_result.trustless_work_fee,
-            );
-        }
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform_address,
-                &fee_result.platform_fee,
-            );
-        }
+        dispute_resolver.require_auth();
 
-        let total_fees = BasicMath::safe_add(
-            fee_result.trustless_work_fee,
-            fee_result.platform_fee,
+        let fee_result =
+            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
+            
+        calculate_and_distribute_fees(
+            e,
+            &token_client,
+            &contract_address,
+            &trustless_work_address,
+            &escrow.roles.platform,
+            &fee_result,
+            &distributions,
+            total,
         )?;
-        for (addr, amount) in distributions.iter() {
-            if amount > 0 {
-                let fee_share = (amount * total_fees) / total;
-                let net_amount = amount - fee_share;
-                if net_amount > 0 {
-                    token_client.transfer(&contract_address, &addr, &net_amount);
-                }
-            }
-        }
 
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
@@ -97,10 +87,8 @@ impl DisputeManager {
         milestone_index: u32,
         distributions: Map<Address, i128>,
     ) -> Result<Escrow, ContractError> {
-        dispute_resolver.require_auth();
         let trustless_address_string = String::from_str(&e, "GBWWSOATPLIC72ZBOIM7WJCT7VCAHNWW4QUBZ2H4FORMCCIUM5ZVKSZN");
         let trustless_work_address = Address::from_string(&trustless_address_string);
-
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -126,38 +114,25 @@ impl DisputeManager {
             &milestone,
             &dispute_resolver,
             current_balance,
-            total
+            total,
+            &distributions,
         )?;
 
-        let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        let total_fees =
-            BasicMath::safe_add(fee_result.trustless_work_fee, fee_result.platform_fee)?;
+        dispute_resolver.require_auth();
 
-        if fee_result.trustless_work_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &trustless_work_address,
-                &fee_result.trustless_work_fee,
-            );
-        }
-        if fee_result.platform_fee > 0 {
-            token_client.transfer(
-                &contract_address,
-                &escrow.roles.platform_address,
-                &fee_result.platform_fee,
-            );
-        }
-
-        for (addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                continue;
-            }
-            let fee_share = (amount * (total_fees as i128)) / total;
-            let net_amount = amount - fee_share;
-            if net_amount > 0 {
-                token_client.transfer(&contract_address, &addr, &net_amount);
-            }
-        }
+        let fee_result =
+            FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
+        
+        calculate_and_distribute_fees(
+            e,
+            &token_client,
+            &contract_address,
+            &trustless_work_address,
+            &escrow.roles.platform,
+            &fee_result,
+            &distributions,
+            total,
+        )?;
 
         let mut updated_milestones = escrow.milestones.clone();
         let mut new_flags = milestone.flags.clone();
@@ -173,28 +148,39 @@ impl DisputeManager {
         );
         escrow.milestones = updated_milestones;
 
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }
 
     pub fn dispute_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         signer: Address,
     ) -> Result<Escrow, ContractError> {
-        signer.require_auth();
         let mut escrow = EscrowManager::get_escrow(e)?;
         validate_dispute_flag_change_conditions(&escrow, milestone_index, &signer)?;
 
-        let idx = milestone_index as u32;
+        signer.require_auth();
+
+        let idx = validate_and_convert_milestone_index(
+            milestone_index,
+            escrow.milestones.len(),
+        )?;
+
         let mut target = escrow
             .milestones
             .get(idx)
             .ok_or(ContractError::InvalidMileStoneIndex)?;
         target.flags.disputed = true;
         escrow.milestones.set(idx, target);
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         Ok(escrow)
     }

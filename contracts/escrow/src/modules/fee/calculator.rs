@@ -27,6 +27,7 @@ pub trait FeeCalculatorTrait {
 pub struct FeeCalculator;
 
 impl FeeCalculatorTrait for FeeCalculator {
+    #[inline]
     fn calculate_standard_fees(
         total_amount: i128,
         platform_fee_bps: u32,
@@ -41,7 +42,7 @@ impl FeeCalculatorTrait for FeeCalculator {
 
         let after_tw = BasicMath::safe_sub(total_amount, trustless_work_fee)?;
         let receiver_amount = BasicMath::safe_sub(after_tw, platform_fee)?;
-
+        
         Ok(StandardFeeResult {
             trustless_work_fee,
             platform_fee,

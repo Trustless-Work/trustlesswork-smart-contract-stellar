@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::ContractError;
@@ -6,7 +6,7 @@ use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestoneApproved, MilestoneStatusChanged, WithdrawEvt,
 };
-use crate::storage::types::{AddressBalance, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, MilestoneUpdate};
 
 #[contract]
 pub struct EscrowContract;
@@ -15,26 +15,29 @@ pub struct EscrowContract;
 impl EscrowContract {
     pub fn __constructor() {}
 
-    pub fn deploy(
+    pub fn tw_new_multi_release_escrow(
         env: Env,
-        deployer: Address,
+        signer: Address,
         wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         init_fn: Symbol,
         init_args: Vec<Val>,
         constructor_args: Vec<Val>,
-    ) -> (Address, Val) {
-        if deployer != env.current_contract_address() {
-            deployer.require_auth();
+    ) -> Result<(Address, Val), ContractError> {
+        if EscrowManager::get_escrow(&env).is_ok() {
+            return Err(ContractError::EscrowAlreadyInitialized);
         }
 
+        signer.require_auth();
+
+        let deployer = env.current_contract_address();
         let deployed_address = env
             .deployer()
             .with_address(deployer, salt)
             .deploy_v2(wasm_hash, constructor_args);
 
         let res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
-        (deployed_address, res)
+        Ok((deployed_address, res))
     }
 
     ////////////////////////
@@ -119,23 +122,23 @@ impl EscrowContract {
 
     pub fn extend_contract_ttl(
         e: &Env,
-        platform_address: Address,
+        platform: Address,
         ledgers_to_extend: u32,
     ) -> Result<(), ContractError> {
-        platform_address.require_auth();
+        platform.require_auth();
 
         let escrow = EscrowManager::get_escrow(e)?;
-        if platform_address != escrow.roles.platform_address {
+        if platform != escrow.roles.platform {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
-        let min_ledgers = 1u32;
+        let min_ledgers = 17280u32;
         e.storage()
-            .instance()
-            .extend_ttl(min_ledgers, ledgers_to_extend);
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
         ExtTtlEvt {
-            platform: platform_address,
+            platform: platform,
             ledgers_to_extend,
         }
         .publish(e);
@@ -149,32 +152,22 @@ impl EscrowContract {
 
     pub fn change_milestone_status(
         e: &Env,
-        milestone_index: i128,
-        new_status: String,
-        new_evidence: Option<String>,
+        milestone_updates: Vec<MilestoneUpdate>,
         service_provider: Address,
     ) -> Result<(), ContractError> {
-        let escrow = MilestoneManager::change_milestone_status(
-            e,
-            milestone_index,
-            new_status,
-            new_evidence,
-            service_provider,
-        )?;
+        let escrow =
+            MilestoneManager::change_milestone_status(e, milestone_updates, service_provider)?;
         MilestoneStatusChanged { escrow }.publish(&e);
         Ok(())
     }
 
     pub fn approve_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         approver: Address,
     ) -> Result<(), ContractError> {
-        let escrow = MilestoneManager::change_milestone_approved_flag(
-            e,
-            milestone_index,
-            approver,
-        )?;
+        let escrow =
+            MilestoneManager::change_milestone_approved_flag(e, milestone_index, approver)?;
         MilestoneApproved { escrow }.publish(&e);
         Ok(())
     }
@@ -201,7 +194,7 @@ impl EscrowContract {
 
     pub fn dispute_milestone(
         e: &Env,
-        milestone_index: i128,
+        milestone_index: u32,
         signer: Address,
     ) -> Result<(), ContractError> {
         let escrow = DisputeManager::dispute_milestone(e, milestone_index, signer)?;
