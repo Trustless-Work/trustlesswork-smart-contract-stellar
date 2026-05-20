@@ -41,7 +41,7 @@ pub fn validate_release_conditions(
 pub fn validate_escrow_conditions(
     existing_escrow: Option<&Escrow>,
     new_escrow: &Escrow,
-    platform_address: Option<&Address>,
+    platform: Option<&Address>,
     contract_balance: Option<i128>,
     is_init: bool,
 ) -> Result<(), ContractError> {
@@ -49,18 +49,13 @@ pub fn validate_escrow_conditions(
     if new_escrow.platform_fee > max_bps_percentage {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
-    // Trustless Work fee is 30 bps (0.3%) per FeeCalculator. Keep behavior but validate sum <= 100%.
-    // We retain the stricter platform cap (<= 99%), so this check is redundant but explicit.
     const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
     if (new_escrow.platform_fee as u32) + TRUSTLESS_WORK_FEE_BPS > 10_000 {
         return Err(ContractError::PlatformFeeTooHigh);
     }
-
-    if new_escrow.amount < 0 {
+    if new_escrow.amount <= 0 {
         return Err(ContractError::AmountCannotBeZero);
     }
-
     if new_escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
     }
@@ -78,13 +73,13 @@ pub fn validate_escrow_conditions(
         }
     } else {
         let existing = existing_escrow.ok_or(ContractError::EscrowNotFound)?;
-
-        let caller = platform_address.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
-        if caller != &existing.roles.platform_address {
+        let caller =
+            platform.ok_or(ContractError::OnlyPlatformAddressExecuteThisFunction)?;
+        if caller != &existing.roles.platform {
             return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
         }
 
-        if existing.roles.platform_address != new_escrow.roles.platform_address {
+        if existing.roles.platform != new_escrow.roles.platform {
             return Err(ContractError::PlatformAddressCannotBeChanged);
         }
 
@@ -92,15 +87,7 @@ pub fn validate_escrow_conditions(
             return Err(ContractError::EscrowOpenedForDisputeResolution);
         }
 
-        if existing.milestones.iter().any(|m| m.approved) {
-            return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
-        }
-
-        if new_escrow.flags.released
-            || new_escrow.flags.disputed
-            || new_escrow.flags.resolved
-            || new_escrow.milestones.iter().any(|m| m.approved)
-        {
+        if new_escrow.flags.released || new_escrow.flags.disputed || new_escrow.flags.resolved {
             return Err(ContractError::FlagsMustBeFalse);
         }
 
@@ -129,6 +116,20 @@ pub fn validate_escrow_conditions(
                     return Err(ContractError::EscrowPropertiesMismatch);
                 }
             }
+
+            for i in old_len..new_len {
+                if new_escrow.milestones.get(i).unwrap().approved {
+                    return Err(ContractError::FlagsMustBeFalse);
+                }
+            }
+        } else {
+            if existing.milestones.iter().any(|m| m.approved) {
+                return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
+            }
+
+            if new_escrow.milestones.iter().any(|m| m.approved) {
+                return Err(ContractError::FlagsMustBeFalse);
+            }
         }
     }
 
@@ -139,13 +140,13 @@ pub fn validate_escrow_conditions(
 pub fn validate_escrow_property_change_conditions(
     existing_escrow: &Escrow,
     new_escrow: &Escrow,
-    platform_address: &Address,
+    platform: &Address,
     contract_balance: i128,
 ) -> Result<(), ContractError> {
     validate_escrow_conditions(
         Some(existing_escrow),
         new_escrow,
-        Some(platform_address),
+        Some(platform),
         Some(contract_balance),
         false,
     )
@@ -156,7 +157,7 @@ pub fn validate_initialize_escrow_conditions(
     e: &Env,
     escrow_properties: Escrow,
 ) -> Result<(), ContractError> {
-    if e.storage().instance().has(&DataKey::Escrow) {
+    if e.storage().persistent().has(&DataKey::Escrow) {
         return Err(ContractError::EscrowAlreadyInitialized);
     }
     validate_escrow_conditions(None, &escrow_properties, None, None, true)
@@ -165,6 +166,7 @@ pub fn validate_initialize_escrow_conditions(
 #[inline]
 pub fn validate_fund_escrow_conditions(
     amount: i128,
+    balance: i128,
     stored_escrow: &Escrow,
     expected_escrow: &Escrow,
 ) -> Result<(), ContractError> {
@@ -174,6 +176,10 @@ pub fn validate_fund_escrow_conditions(
 
     if !stored_escrow.eq(&expected_escrow) {
         return Err(ContractError::EscrowPropertiesMismatch);
+    }
+
+    if balance < amount {
+        return Err(ContractError::InsufficientFundsForEscrowFunding);
     }
 
     Ok(())

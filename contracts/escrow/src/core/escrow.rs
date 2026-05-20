@@ -20,8 +20,11 @@ impl EscrowManager {
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, ContractError> {
         validate_initialize_escrow_conditions(e, escrow_properties.clone())?;
         e.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
         Ok(escrow_properties)
     }
 
@@ -32,10 +35,12 @@ impl EscrowManager {
         amount: i128,
     ) -> Result<(), ContractError> {
         let stored_escrow: Escrow = Self::get_escrow(e)?;
-        validate_fund_escrow_conditions(amount, &stored_escrow, expected_escrow)?;
+        let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
+        let balance = token_client.balance(signer);
+        validate_fund_escrow_conditions(amount, balance, &stored_escrow, expected_escrow)?;
 
         signer.require_auth();
-        let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
+
         token_client.transfer(signer, &e.current_contract_address(), &amount);
         Ok(())
     }
@@ -44,15 +49,18 @@ impl EscrowManager {
         e: &Env,
         release_signer: &Address,
     ) -> Result<(), ContractError> {
-        release_signer.require_auth();
         let trustless_address_string = String::from_str(&e, "GBWWSOATPLIC72ZBOIM7WJCT7VCAHNWW4QUBZ2H4FORMCCIUM5ZVKSZN");
         let trustless_work_address = Address::from_string(&trustless_address_string);
-
         let mut escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
 
+        release_signer.require_auth();
+
         escrow.flags.released = true;
-        e.storage().instance().set(&DataKey::Escrow, &escrow);
+        e.storage().persistent().set(&DataKey::Escrow, &escrow);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         let contract_address = e.current_contract_address();
         let token_client = TokenClient::new(e, &escrow.trustline.address);
@@ -62,30 +70,36 @@ impl EscrowManager {
         }
 
         let fee_result =
-            FeeCalculator::calculate_standard_fees(escrow.amount as i128, escrow.platform_fee)?;
+            FeeCalculator::calculate_standard_fees(escrow.amount, escrow.platform_fee)?;
 
-        token_client.transfer(
+        if fee_result.trustless_work_fee > 0 {
+            token_client.transfer(
+                &contract_address,
+                trustless_work_address,
+                &fee_result.trustless_work_fee,
+            );
+        }
+
+        if fee_result.platform_fee > 0 {
+            token_client.transfer(
             &contract_address,
-            trustless_work_address,
-            &fee_result.trustless_work_fee,
-        );
-        token_client.transfer(
-            &contract_address,
-            &escrow.roles.platform_address,
+            &escrow.roles.platform,
             &fee_result.platform_fee,
-        );
+            );
+        }
 
         let receiver = Self::get_receiver(&escrow);
-        token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+        if fee_result.receiver_amount > 0 {
+            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+        }
 
         Ok(())
     }
     pub fn change_escrow_properties(
         e: &Env,
-        platform_address: &Address,
+        platform: &Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, ContractError> {
-        platform_address.require_auth();
         let existing_escrow = Self::get_escrow(e)?;
         let token_client = TokenClient::new(e, &existing_escrow.trustline.address);
         let contract_balance = token_client.balance(&e.current_contract_address());
@@ -93,13 +107,18 @@ impl EscrowManager {
         validate_escrow_property_change_conditions(
             &existing_escrow,
             &escrow_properties,
-            platform_address,
+            platform,
             contract_balance,
         )?;
 
+        platform.require_auth();
+
         e.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow, &escrow_properties);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
         Ok(escrow_properties)
     }
 
@@ -140,7 +159,7 @@ impl EscrowManager {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, ContractError> {
         Ok(e.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Escrow)
             .ok_or(ContractError::EscrowNotFound)?)
     }

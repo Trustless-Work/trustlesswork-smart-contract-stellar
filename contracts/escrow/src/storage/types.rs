@@ -12,7 +12,7 @@ pub struct Escrow {
     pub milestones: Vec<Milestone>,
     pub flags: Flags,
     pub trustline: Trustline,
-    pub receiver_memo: i128,
+    pub receiver_memo: u32,
 }
 
 #[contracttype]
@@ -29,7 +29,7 @@ pub struct Milestone {
 pub struct Roles {
     pub approver: Address,
     pub service_provider: Address,
-    pub platform_address: Address,
+    pub platform: Address,
     pub release_signer: Address,
     pub dispute_resolver: Address,
     pub receiver: Address,
