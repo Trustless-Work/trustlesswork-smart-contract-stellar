@@ -28,7 +28,7 @@ fn test_initialize_excrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -40,7 +40,7 @@ fn test_initialize_excrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -129,7 +129,7 @@ fn test_update_escrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -141,7 +141,7 @@ fn test_update_escrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -187,7 +187,7 @@ fn test_update_escrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -199,7 +199,7 @@ fn test_update_escrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -211,7 +211,7 @@ fn test_update_escrow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -284,7 +284,7 @@ fn test_update_escrow_platform_fee_too_high() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -360,7 +360,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -423,7 +423,7 @@ fn test_admin_role_overlap() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 1_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -498,7 +498,7 @@ fn test_role_limit_exceeded() {
         description: String::from_str(&env, "M1"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
         amount: 100_000_000,
         dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
         released: false,
@@ -570,7 +570,7 @@ fn test_duplicate_address_in_role() {
         description: String::from_str(&env, "M1"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
         amount: 100_000_000,
         dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
         released: false,
@@ -618,7 +618,7 @@ fn test_dispute_resolver_role_overlap() {
         description: String::from_str(&env, "M1"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
         amount: 100_000_000,
         dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
         released: false,

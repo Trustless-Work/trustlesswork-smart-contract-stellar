@@ -97,7 +97,7 @@ pub fn validate_batch_milestone_approve(
             return Err(MilestoneError::MilestoneHasAlreadyBeenApproved);
         }
 
-        if milestone.approvals.approvers.contains(approver) {
+        if milestone.approvals.approved_by.contains(approver) {
             return Err(MilestoneError::ApproverAlreadyApprovedMilestone);
         }
     }

@@ -33,7 +33,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -45,7 +45,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -93,7 +93,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -158,7 +158,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -170,7 +170,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -222,7 +222,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -286,7 +286,7 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -298,7 +298,7 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -418,7 +418,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -430,7 +430,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -442,7 +442,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -543,7 +543,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -555,7 +555,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -636,7 +636,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -705,7 +705,7 @@ fn test_target_requires_multiple_approvers() {
             approvals: MilestoneApprovals {
                 target: 2,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -767,7 +767,7 @@ fn test_target_requires_multiple_approvers() {
         m2.approvals.approval_count >= m2.approvals.target,
         "Milestone must be fully approved once target is reached"
     );
-    assert_eq!(m2.approvals.approvers.len(), 2, "Both approvers must be recorded");
+    assert_eq!(m2.approvals.approved_by.len(), 2, "Both approvers must be recorded");
 
     // Release must now succeed
     let result =
@@ -801,7 +801,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -813,7 +813,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -825,7 +825,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -909,7 +909,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 50_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -946,7 +946,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 25_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -958,7 +958,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 25_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -999,7 +999,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 10_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: true,
@@ -1018,7 +1018,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 0,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 10_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
@@ -1138,7 +1138,7 @@ fn test_add_milestones_after_init_without_milestones() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+            approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
