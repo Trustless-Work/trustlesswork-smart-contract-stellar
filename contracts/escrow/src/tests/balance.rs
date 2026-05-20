@@ -38,7 +38,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env]},
+                approved_by: vec![&env]},
             amount: 100_000_000,
             dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
             released: false,
