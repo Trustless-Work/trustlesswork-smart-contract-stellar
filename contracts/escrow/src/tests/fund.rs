@@ -35,7 +35,7 @@ fn test_fund_escrow_successful_deposit() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -139,7 +139,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -226,7 +226,7 @@ fn test_release_funds_successful_flow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -236,7 +236,7 @@ fn test_release_funds_successful_flow() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -356,7 +356,7 @@ fn test_release_funds_milestones_incomplete() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -366,7 +366,7 @@ fn test_release_funds_milestones_incomplete() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -451,7 +451,7 @@ fn test_release_funds_same_receiver_as_provider() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -566,7 +566,7 @@ fn test_release_funds_invalid_receiver_fallback() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -697,7 +697,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -843,7 +843,7 @@ fn test_full_flow_init_without_milestones() {
         description: String::from_str(&env, "Deliver project"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
     };
     let escrow_with_milestones = client.manage_milestones(
         &escrow_admin,
@@ -915,7 +915,7 @@ fn test_approve_and_release_milestones_success() {
         description: String::from_str(&env, "Deliver project"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
     };
 
     let escrow_properties = Escrow {
@@ -979,7 +979,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
         description: String::from_str(&env, "Deliver project"),
         status: String::from_str(&env, "Pending"),
         evidence: String::from_str(&env, ""),
-        approvals: MilestoneApprovals { target: 1, approval_count: 0, approvers: vec![&env] },
+        approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
     };
 
     let escrow_properties = Escrow {

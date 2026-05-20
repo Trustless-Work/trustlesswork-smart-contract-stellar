@@ -175,7 +175,7 @@ pub fn validate_escrow_conditions(
         }
         if !new_escrow.milestones.is_empty() {
             if new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0)
-                || new_escrow.milestones.iter().any(|m| !m.approvals.approvers.is_empty())
+                || new_escrow.milestones.iter().any(|m| !m.approvals.approved_by.is_empty())
             {
                 return Err(EscrowError::FlagsMustBeFalse);
             }
@@ -267,7 +267,7 @@ pub fn validate_manage_milestones_conditions(
                 return Err(EscrowError::TargetCannotBeZero);
             }
             if milestone.approvals.approval_count > 0
-                || !milestone.approvals.approvers.is_empty()
+                || !milestone.approvals.approved_by.is_empty()
             {
                 return Err(EscrowError::FlagsMustBeFalse);
             }

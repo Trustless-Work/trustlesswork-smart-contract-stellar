@@ -34,7 +34,7 @@ fn test_dispute_management() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -127,7 +127,7 @@ fn test_dispute_resolution_process() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -302,7 +302,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -396,7 +396,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -503,7 +503,7 @@ fn test_dispute_reason_is_stored() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];

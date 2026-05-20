@@ -33,7 +33,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -43,7 +43,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -101,7 +101,7 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -167,7 +167,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -177,7 +177,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -239,7 +239,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -304,7 +304,7 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -314,7 +314,7 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -449,7 +449,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -459,7 +459,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -469,7 +469,7 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -582,7 +582,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -592,7 +592,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -685,7 +685,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -763,7 +763,7 @@ fn test_target_requires_multiple_approvers() {
             approvals: MilestoneApprovals {
                 target: 2,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -835,7 +835,7 @@ fn test_target_requires_multiple_approvers() {
         m2.approvals.approval_count >= m2.approvals.target,
         "Milestone must be fully approved once target is reached"
     );
-    assert_eq!(m2.approvals.approvers.len(), 2, "Both approvers must be recorded");
+    assert_eq!(m2.approvals.approved_by.len(), 2, "Both approvers must be recorded");
 
     // Release must now succeed
     let result =
@@ -869,7 +869,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -879,7 +879,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -889,7 +889,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -982,7 +982,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -1028,7 +1028,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
         Milestone {
@@ -1038,7 +1038,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
@@ -1077,7 +1077,7 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 0,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];

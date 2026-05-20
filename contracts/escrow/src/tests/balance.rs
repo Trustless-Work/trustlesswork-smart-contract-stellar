@@ -41,7 +41,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approvers: vec![&env],
+                approved_by: vec![&env],
             },
         },
     ];
