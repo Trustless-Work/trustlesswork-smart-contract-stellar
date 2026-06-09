@@ -8,7 +8,9 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{EscrowError, ReleaseError};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate};
+use crate::storage::types::{
+    AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate,
+};
 
 pub struct EscrowManager;
 
@@ -125,12 +127,13 @@ impl EscrowManager {
         let mut payouts: Vec<MilestonePayout> = Vec::new(e);
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
-            let fee_result = FeeCalculator::calculate_standard_fees(milestone.amount, escrow.platform_fee)
-                .map_err(|e| match e {
-                    EscrowError::Overflow => ReleaseError::Overflow,
-                    EscrowError::Underflow => ReleaseError::Underflow,
-                    _ => ReleaseError::DivisionError,
-                })?;
+            let fee_result =
+                FeeCalculator::calculate_standard_fees(milestone.amount, escrow.platform_fee)
+                    .map_err(|e| match e {
+                        EscrowError::Overflow => ReleaseError::Overflow,
+                        EscrowError::Underflow => ReleaseError::Underflow,
+                        _ => ReleaseError::DivisionError,
+                    })?;
 
             if fee_result.trustless_work_fee > 0 {
                 token_client.transfer(

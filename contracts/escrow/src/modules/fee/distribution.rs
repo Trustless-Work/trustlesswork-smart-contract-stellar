@@ -1,8 +1,8 @@
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, Vec};
 
-use crate::error::EscrowError;
 use super::StandardFeeResult;
+use crate::error::EscrowError;
 use crate::modules::math::{BasicArithmetic, BasicMath};
 
 pub fn calculate_and_distribute_fees(
@@ -27,10 +27,7 @@ pub fn calculate_and_distribute_fees(
 
     for (addr, amount) in distributions.iter() {
         if amount > 0 {
-            let net = BasicMath::safe_div(
-                BasicMath::safe_mul(amount, distributable)?,
-                total,
-            )?;
+            let net = BasicMath::safe_div(BasicMath::safe_mul(amount, distributable)?, total)?;
             if net > 0 {
                 net_distributions.push_back((addr.clone(), net));
                 total_distributed = BasicMath::safe_add(total_distributed, net)?;
@@ -43,11 +40,18 @@ pub fn calculate_and_distribute_fees(
     if remainder > 0 && !net_distributions.is_empty() {
         let last_idx = net_distributions.len() - 1;
         let (last_addr, last_amount) = net_distributions.get(last_idx).unwrap();
-        net_distributions.set(last_idx, (last_addr, BasicMath::safe_add(last_amount, remainder)?));
+        net_distributions.set(
+            last_idx,
+            (last_addr, BasicMath::safe_add(last_amount, remainder)?),
+        );
     }
 
     if global_trustless_fee > 0 {
-        token_client.transfer(contract_address, trustless_work_address, &global_trustless_fee);
+        token_client.transfer(
+            contract_address,
+            trustless_work_address,
+            &global_trustless_fee,
+        );
     }
     if global_platform_fee > 0 {
         token_client.transfer(contract_address, platform_address, &global_platform_fee);

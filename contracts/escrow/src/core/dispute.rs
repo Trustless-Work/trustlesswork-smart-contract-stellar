@@ -2,7 +2,7 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, String, Vec};
 
 use crate::core::escrow::EscrowManager;
-use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
+use crate::core::validators::dispute::validate_withdraw_remaining_funds_conditions;
 use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::{
@@ -12,8 +12,7 @@ use crate::modules::{
 use crate::storage::types::{DataKey, Escrow};
 
 use super::validators::dispute::{
-    validate_batch_milestone_dispute_conditions,
-    validate_dispute_resolution_conditions,
+    validate_batch_milestone_dispute_conditions, validate_dispute_resolution_conditions,
 };
 
 pub struct DisputeManager;

@@ -192,7 +192,11 @@ pub fn validate_escrow_conditions(
             if new_escrow.milestones.iter().any(|m| m.amount <= 0) {
                 return Err(EscrowError::AmountCannotBeZero);
             }
-            if new_escrow.milestones.iter().any(|m| m.approvals.target == 0) {
+            if new_escrow
+                .milestones
+                .iter()
+                .any(|m| m.approvals.target == 0)
+            {
                 return Err(EscrowError::TargetCannotBeZero);
             }
             if new_escrow
@@ -206,8 +210,7 @@ pub fn validate_escrow_conditions(
         validate_admin_role_overlap(&new_escrow.roles)?;
     } else {
         let existing = existing_escrow.ok_or(EscrowError::EscrowNotFound)?;
-        let caller =
-            admin.ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+        let caller = admin.ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
         if caller != &existing.roles.admin {
             return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
         }
@@ -257,13 +260,23 @@ pub fn validate_manage_milestones_conditions(
     if admin != &existing_escrow.roles.admin {
         return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
     }
-    if existing_escrow.milestones.iter().any(|m| m.dispute.is_disputed) {
+    if existing_escrow
+        .milestones
+        .iter()
+        .any(|m| m.dispute.is_disputed)
+    {
         return Err(EscrowError::EscrowOpenedForDisputeResolution);
     }
-    if !existing_escrow.milestones.is_empty() && existing_escrow.milestones.iter().all(|m| m.released) {
+    if !existing_escrow.milestones.is_empty()
+        && existing_escrow.milestones.iter().all(|m| m.released)
+    {
         return Err(EscrowError::EscrowAlreadyReleased);
     }
-    if existing_escrow.milestones.iter().any(|m| m.dispute.resolved) {
+    if existing_escrow
+        .milestones
+        .iter()
+        .any(|m| m.dispute.resolved)
+    {
         return Err(EscrowError::EscrowAlreadyResolved);
     }
     if !new_milestones.is_empty() {

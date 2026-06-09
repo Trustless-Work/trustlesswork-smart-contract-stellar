@@ -3,13 +3,12 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Sym
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError, ReleaseError};
 use crate::events::handler::{
-    DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
-    MilestonesApproved, MilestonesDisputed, MilestonesManaged, MilestoneStatusChanged,
-    ReleaseEsc, TtlExtended,
+    DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc, MilestoneStatusChanged,
+    MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
 use crate::storage::types::{
-    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone,
-    MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
+    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
+    MilestoneStatusUpdate, MilestoneUpdate,
 };
 
 #[contract]
@@ -112,8 +111,12 @@ impl EscrowContract {
         let engagement_id = EscrowManager::get_escrow(e)
             .map_err(|_| ReleaseError::EscrowNotFound)?
             .engagement_id;
-        let payouts =
-            EscrowManager::release_funds(e, &release_signer, &trustless_work_address, milestone_indices)?;
+        let payouts = EscrowManager::release_funds(
+            e,
+            &release_signer,
+            &trustless_work_address,
+            milestone_indices,
+        )?;
         ReleaseEsc {
             engagement_id,
             release_signer,
@@ -162,10 +165,7 @@ impl EscrowContract {
         EscrowManager::get_escrow(e)
     }
 
-    pub fn get_escrow_by_contract_id(
-        e: &Env,
-        contract_id: Address,
-    ) -> Result<Escrow, EscrowError> {
+    pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow_by_contract_id(e, &contract_id)
     }
 
@@ -263,8 +263,11 @@ impl EscrowContract {
             return Err(EscrowError::SignerMustBeApproverAndReleaseSigner);
         }
         signer.require_auth();
-        let updated_escrow =
-            MilestoneManager::approve_milestones_inner(&e, milestone_indices.clone(), signer.clone())?;
+        let updated_escrow = MilestoneManager::approve_milestones_inner(
+            &e,
+            milestone_indices.clone(),
+            signer.clone(),
+        )?;
         MilestonesApproved {
             engagement_id: updated_escrow.engagement_id.clone(),
             approver: signer.clone(),

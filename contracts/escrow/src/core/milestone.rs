@@ -15,8 +15,8 @@ impl MilestoneManager {
         updates: Vec<MilestoneStatusUpdate>,
         service_provider: Address,
     ) -> Result<Escrow, MilestoneError> {
-        let mut existing_escrow = EscrowManager::get_escrow(e)
-            .map_err(|_| MilestoneError::EscrowNotFound)?;
+        let mut existing_escrow =
+            EscrowManager::get_escrow(e).map_err(|_| MilestoneError::EscrowNotFound)?;
 
         service_provider.require_auth();
 
@@ -63,8 +63,8 @@ impl MilestoneManager {
         milestone_indices: Vec<u32>,
         approver: Address,
     ) -> Result<Escrow, MilestoneError> {
-        let mut existing_escrow = EscrowManager::get_escrow(e)
-            .map_err(|_| MilestoneError::EscrowNotFound)?;
+        let mut existing_escrow =
+            EscrowManager::get_escrow(e).map_err(|_| MilestoneError::EscrowNotFound)?;
 
         validate_batch_milestone_approve(&existing_escrow, &approver, &milestone_indices)?;
 

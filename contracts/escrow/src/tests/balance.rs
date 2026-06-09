@@ -27,7 +27,9 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let milestones = vec![
         &env,
@@ -38,11 +40,17 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
     ];
 
     let escrow_base = Escrow {
@@ -53,8 +61,10 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         platform_fee: 100, // 1%
         milestones,
         trustline: Trustline {
-            address: usdc_token.0.address.clone()},
-        receiver_memo: 0};
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
 
     // Deploy two escrow contracts of the same code and initialize both
     let c1 = create_escrow_contract(&env, &escrow_admin).client;

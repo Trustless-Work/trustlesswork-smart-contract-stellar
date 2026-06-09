@@ -15,7 +15,7 @@ pub fn validate_withdraw_remaining_funds_conditions(
     all_processed: bool,
     current_balance: i128,
     total: i128,
-    distributions: &Map<Address, i128>
+    distributions: &Map<Address, i128>,
 ) -> Result<(), EscrowError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
         return Err(EscrowError::TooManyDistributions);
@@ -25,7 +25,11 @@ pub fn validate_withdraw_remaining_funds_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
-    if !escrow.milestones.iter().any(|m| m.dispute.is_disputed || m.dispute.resolved) {
+    if !escrow
+        .milestones
+        .iter()
+        .any(|m| m.dispute.is_disputed || m.dispute.resolved)
+    {
         return Err(EscrowError::EscrowNotInDispute);
     }
 

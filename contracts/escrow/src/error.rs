@@ -101,7 +101,9 @@ impl From<MilestoneError> for EscrowError {
             | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
             MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
             MilestoneError::MilestoneHasAlreadyBeenApproved
-            | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::MilestoneAlreadyReleased,
+            | MilestoneError::ApproverAlreadyApprovedMilestone => {
+                EscrowError::MilestoneAlreadyReleased
+            }
             MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
             _ => EscrowError::EscrowNotCompleted,
         }
@@ -112,10 +114,14 @@ impl From<ReleaseError> for EscrowError {
     fn from(err: ReleaseError) -> EscrowError {
         match err {
             ReleaseError::EscrowNotFound => EscrowError::EscrowNotFound,
-            ReleaseError::EscrowOpenedForDisputeResolution => EscrowError::EscrowOpenedForDisputeResolution,
+            ReleaseError::EscrowOpenedForDisputeResolution => {
+                EscrowError::EscrowOpenedForDisputeResolution
+            }
             ReleaseError::EscrowNotCompleted => EscrowError::EscrowNotCompleted,
             ReleaseError::MilestoneAlreadyReleased => EscrowError::MilestoneAlreadyReleased,
-            ReleaseError::EscrowBalanceNotEnoughToSendEarnings => EscrowError::EscrowBalanceNotEnoughToSendEarnings,
+            ReleaseError::EscrowBalanceNotEnoughToSendEarnings => {
+                EscrowError::EscrowBalanceNotEnoughToSendEarnings
+            }
             ReleaseError::Overflow => EscrowError::Overflow,
             ReleaseError::Underflow => EscrowError::Underflow,
             ReleaseError::DivisionError => EscrowError::DivisionError,

@@ -1,6 +1,9 @@
 extern crate std;
 
-use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, MilestoneUpdate, Roles, Trustline};
+use crate::storage::types::{
+    Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, MilestoneUpdate, Roles,
+    Trustline,
+};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -33,11 +36,17 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
@@ -45,11 +54,17 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -58,10 +73,13 @@ fn test_append_milestones_with_funds() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: token_client.address.clone()};
+        address: token_client.address.clone(),
+    };
 
     let engagement_id = String::from_str(&env, "append_with_funds");
     let initial_escrow_properties: Escrow = Escrow {
@@ -72,7 +90,8 @@ fn test_append_milestones_with_funds() {
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
@@ -93,11 +112,17 @@ fn test_append_milestones_with_funds() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     escrow_approver.manage_milestones(&escrow_admin, &new_milestones_to_add, &vec![&env]);
@@ -158,11 +183,17 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
@@ -170,11 +201,17 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -183,10 +220,13 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: token_client.address.clone()};
+        address: token_client.address.clone(),
+    };
 
     let engagement_id = String::from_str(&env, "append_with_funds_and_approved");
     let initial_escrow_properties: Escrow = Escrow {
@@ -197,7 +237,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
@@ -210,7 +251,10 @@ fn test_append_milestones_with_funds_and_existing_approved() {
     // Approve the first milestone
     escrow_client.approve_milestones(&vec![&env, 0u32], &approver_address);
     let after_approval = escrow_client.get_escrow();
-    { let m = after_approval.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.target); }
+    {
+        let m = after_approval.milestones.get(0).unwrap();
+        assert!(m.approvals.approval_count >= m.approvals.target);
+    }
 
     // Add a new milestone via manage_milestones
     let new_milestones_to_add = vec![
@@ -222,23 +266,41 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     escrow_client.manage_milestones(&escrow_admin, &new_milestones_to_add, &vec![&env]);
     let final_escrow = escrow_client.get_escrow();
 
     assert_eq!(final_escrow.milestones.len(), 3);
-    { let m = final_escrow.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.target, "Existing approved milestone should remain approved"); }
+    {
+        let m = final_escrow.milestones.get(0).unwrap();
+        assert!(
+            m.approvals.approval_count >= m.approvals.target,
+            "Existing approved milestone should remain approved"
+        );
+    }
     assert_eq!(
         final_escrow.milestones.get(1).unwrap(),
         after_approval.milestones.get(1).unwrap()
     );
-    { let m = final_escrow.milestones.get(2).unwrap(); assert!(m.approvals.approval_count < m.approvals.target, "Appended milestone should start unapproved"); }
+    {
+        let m = final_escrow.milestones.get(2).unwrap();
+        assert!(
+            m.approvals.approval_count < m.approvals.target,
+            "Appended milestone should start unapproved"
+        );
+    }
     // Ensure other properties unchanged
     assert_eq!(
         final_escrow.engagement_id,
@@ -286,11 +348,17 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
@@ -298,11 +366,17 @@ fn test_change_milestone_status_and_approved() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -311,10 +385,13 @@ fn test_change_milestone_status_and_approved() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: usdc_token.0.address.clone()};
+        address: usdc_token.0.address.clone(),
+    };
 
     let engagement_id = String::from_str(&env, "test_escrow");
     let escrow_properties: Escrow = Escrow {
@@ -325,7 +402,8 @@ fn test_change_milestone_status_and_approved() {
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_approver = test_data.client;
@@ -338,7 +416,8 @@ fn test_change_milestone_status_and_approved() {
         MilestoneStatusUpdate {
             milestone_index: 0,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: Some(String::from_str(&env, "New evidence"))},
+            new_evidence: Some(String::from_str(&env, "New evidence")),
+        },
     ];
     escrow_approver.change_milestone_status(&updates, &service_provider_address);
 
@@ -356,7 +435,10 @@ fn test_change_milestone_status_and_approved() {
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
 
     let final_escrow = escrow_approver.get_escrow();
-    { let m = final_escrow.milestones.get(0).unwrap(); assert!(m.approvals.approval_count >= m.approvals.target); }
+    {
+        let m = final_escrow.milestones.get(0).unwrap();
+        assert!(m.approvals.approval_count >= m.approvals.target);
+    }
 
     // Invalid index in batch should fail
     let invalid_updates = vec![
@@ -364,7 +446,8 @@ fn test_change_milestone_status_and_approved() {
         MilestoneStatusUpdate {
             milestone_index: 10,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: None},
+            new_evidence: None,
+        },
     ];
     let result =
         escrow_approver.try_change_milestone_status(&invalid_updates, &service_provider_address);
@@ -381,15 +464,15 @@ fn test_change_milestone_status_and_approved() {
         MilestoneStatusUpdate {
             milestone_index: 0,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: None},
+            new_evidence: None,
+        },
     ];
     let result =
         escrow_approver.try_change_milestone_status(&unauth_updates, &unauthorized_address);
     assert!(result.is_err());
 
     // Milestone 0 is already fully approved (target reached), further approval must fail
-    let result =
-        escrow_approver.try_approve_milestones(&vec![&env, 0u32], &unauthorized_address);
+    let result = escrow_approver.try_approve_milestones(&vec![&env, 0u32], &unauthorized_address);
     assert!(result.is_err());
 }
 
@@ -418,11 +501,17 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
@@ -430,11 +519,17 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
             status: String::from_str(&env, "in-progress"),
@@ -442,11 +537,17 @@ fn test_change_milestone_status_batch() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -455,10 +556,13 @@ fn test_change_milestone_status_batch() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: usdc_token.0.address.clone()};
+        address: usdc_token.0.address.clone(),
+    };
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "batch_status_test"),
@@ -468,7 +572,8 @@ fn test_change_milestone_status_batch() {
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
@@ -480,11 +585,13 @@ fn test_change_milestone_status_batch() {
         MilestoneStatusUpdate {
             milestone_index: 0,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: Some(String::from_str(&env, "Proof for milestone 1"))},
+            new_evidence: Some(String::from_str(&env, "Proof for milestone 1")),
+        },
         MilestoneStatusUpdate {
             milestone_index: 2,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: Some(String::from_str(&env, "Proof for milestone 3"))},
+            new_evidence: Some(String::from_str(&env, "Proof for milestone 3")),
+        },
     ];
 
     escrow_client.change_milestone_status(&updates, &service_provider_address);
@@ -543,11 +650,17 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
@@ -555,11 +668,17 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -568,10 +687,13 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: usdc_token.0.address.clone()};
+        address: usdc_token.0.address.clone(),
+    };
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "batch_revert_test"),
@@ -581,7 +703,8 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
@@ -593,11 +716,13 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         MilestoneStatusUpdate {
             milestone_index: 0,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: None},
+            new_evidence: None,
+        },
         MilestoneStatusUpdate {
             milestone_index: 99,
             new_status: String::from_str(&env, "completed"),
-            new_evidence: None},
+            new_evidence: None,
+        },
     ];
 
     let result = escrow_client.try_change_milestone_status(&updates, &service_provider_address);
@@ -636,11 +761,17 @@ fn test_batch_milestone_status_empty_batch_fails() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -649,10 +780,13 @@ fn test_batch_milestone_status_empty_batch_fails() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let trustline: Trustline = Trustline {
-        address: usdc_token.0.address.clone()};
+        address: usdc_token.0.address.clone(),
+    };
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "empty_batch_test"),
@@ -662,16 +796,17 @@ fn test_batch_milestone_status_empty_batch_fails() {
         platform_fee,
         milestones: initial_milestones.clone(),
         trustline: trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
     escrow_client.initialize_escrow(&escrow_properties);
 
     // Empty batch must fail
-    let empty_updates: soroban_sdk::Vec<MilestoneStatusUpdate> =
-        soroban_sdk::vec![&env];
-    let result = escrow_client.try_change_milestone_status(&empty_updates, &service_provider_address);
+    let empty_updates: soroban_sdk::Vec<MilestoneStatusUpdate> = soroban_sdk::vec![&env];
+    let result =
+        escrow_client.try_change_milestone_status(&empty_updates, &service_provider_address);
     assert!(result.is_err());
 }
 
@@ -705,11 +840,17 @@ fn test_target_requires_multiple_approvers() {
             approvals: MilestoneApprovals {
                 target: 2,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -718,7 +859,9 @@ fn test_target_requires_multiple_approvers() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "target_test"),
@@ -728,8 +871,10 @@ fn test_target_requires_multiple_approvers() {
         platform_fee,
         milestones: milestones.clone(),
         trustline: Trustline {
-            address: usdc_token.0.address.clone()},
-        receiver_memo: 0};
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
@@ -749,13 +894,22 @@ fn test_target_requires_multiple_approvers() {
     );
 
     // Release must fail — target not yet reached
-    let result =
-        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
-    assert!(result.is_err(), "Release must fail when target is not reached");
+    let result = escrow_client.try_release_funds(
+        &release_signer_address,
+        &trustless_work_address,
+        &vec![&env, 0u32],
+    );
+    assert!(
+        result.is_err(),
+        "Release must fail when target is not reached"
+    );
 
     // Approver A tries to vote again — must fail
     let result = escrow_client.try_approve_milestones(&vec![&env, 0u32], &approver_a);
-    assert!(result.is_err(), "Double-voting by the same approver must be rejected");
+    assert!(
+        result.is_err(),
+        "Double-voting by the same approver must be rejected"
+    );
 
     // Second approval by a different address: approval_count becomes 2 == target
     escrow_client.approve_milestones(&vec![&env, 0u32], &approver_b);
@@ -767,12 +921,22 @@ fn test_target_requires_multiple_approvers() {
         m2.approvals.approval_count >= m2.approvals.target,
         "Milestone must be fully approved once target is reached"
     );
-    assert_eq!(m2.approvals.approved_by.len(), 2, "Both approvers must be recorded");
+    assert_eq!(
+        m2.approvals.approved_by.len(),
+        2,
+        "Both approvers must be recorded"
+    );
 
     // Release must now succeed
-    let result =
-        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &vec![&env, 0u32]);
-    assert!(result.is_ok(), "Release must succeed after target is reached");
+    let result = escrow_client.try_release_funds(
+        &release_signer_address,
+        &trustless_work_address,
+        &vec![&env, 0u32],
+    );
+    assert!(
+        result.is_ok(),
+        "Release must succeed after target is reached"
+    );
 }
 
 #[test]
@@ -801,11 +965,17 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "completed"),
@@ -813,11 +983,17 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
             status: String::from_str(&env, "completed"),
@@ -825,11 +1001,17 @@ fn test_batch_approve_milestones_multiple_indices() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver_address.clone()},
+            receiver: receiver_address.clone(),
+        },
     ];
 
     let roles: Roles = Roles {
@@ -838,7 +1020,9 @@ fn test_batch_approve_milestones_multiple_indices() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        admin: escrow_admin.clone(), observers: vec![&env]};
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
 
     let escrow_properties: Escrow = Escrow {
         engagement_id: String::from_str(&env, "batch_approve_test"),
@@ -848,8 +1032,10 @@ fn test_batch_approve_milestones_multiple_indices() {
         platform_fee,
         milestones: milestones.clone(),
         trustline: Trustline {
-            address: usdc_token.0.address.clone()},
-        receiver_memo: 0};
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client = test_data.client;
@@ -863,14 +1049,32 @@ fn test_batch_approve_milestones_multiple_indices() {
     let m1 = escrow.milestones.get(1).unwrap();
     let m2 = escrow.milestones.get(2).unwrap();
 
-    assert_eq!(m0.approvals.approval_count, 1, "Milestone 0 should have 1 approval");
-    assert!(m0.approvals.approval_count >= m0.approvals.target, "Milestone 0 should be approved");
+    assert_eq!(
+        m0.approvals.approval_count, 1,
+        "Milestone 0 should have 1 approval"
+    );
+    assert!(
+        m0.approvals.approval_count >= m0.approvals.target,
+        "Milestone 0 should be approved"
+    );
 
-    assert_eq!(m1.approvals.approval_count, 0, "Milestone 1 should be untouched");
-    assert!(m1.approvals.approval_count < m1.approvals.target, "Milestone 1 should not be approved");
+    assert_eq!(
+        m1.approvals.approval_count, 0,
+        "Milestone 1 should be untouched"
+    );
+    assert!(
+        m1.approvals.approval_count < m1.approvals.target,
+        "Milestone 1 should not be approved"
+    );
 
-    assert_eq!(m2.approvals.approval_count, 1, "Milestone 2 should have 1 approval");
-    assert!(m2.approvals.approval_count >= m2.approvals.target, "Milestone 2 should be approved");
+    assert_eq!(
+        m2.approvals.approval_count, 1,
+        "Milestone 2 should have 1 approval"
+    );
+    assert!(
+        m2.approvals.approval_count >= m2.approvals.target,
+        "Milestone 2 should be approved"
+    );
 
     // Empty batch must fail
     let empty: soroban_sdk::Vec<u32> = soroban_sdk::vec![&env];
@@ -878,8 +1082,7 @@ fn test_batch_approve_milestones_multiple_indices() {
     assert!(result.is_err(), "Empty batch must fail");
 
     // Batch with invalid index must revert entirely
-    let result =
-        escrow_client.try_approve_milestones(&vec![&env, 1u32, 99u32], &approver_address);
+    let result = escrow_client.try_approve_milestones(&vec![&env, 1u32, 99u32], &approver_address);
     assert!(result.is_err(), "Batch with invalid index must fail");
 }
 
@@ -909,11 +1112,17 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 50_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
     ];
 
     let escrow_base = Escrow {
@@ -926,11 +1135,16 @@ fn test_manage_milestones() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            admin: escrow_admin.clone(), observers: vec![&env]},
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
         platform_fee: 300,
         milestones: initial_milestones.clone(),
-        trustline: Trustline { address: token_client.address.clone() },
-        receiver_memo: 0};
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let client = test_data.client;
@@ -946,11 +1160,17 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 25_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
             status: String::from_str(&env, "Pending"),
@@ -958,18 +1178,28 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 25_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
     ];
 
     let no_updates: soroban_sdk::Vec<MilestoneUpdate> = soroban_sdk::vec![&env];
     client.manage_milestones(&escrow_admin, &to_add, &no_updates);
 
     let escrow = client.get_escrow();
-    assert_eq!(escrow.milestones.len(), 3, "Should have 3 milestones after adding 2");
+    assert_eq!(
+        escrow.milestones.len(),
+        3,
+        "Should have 3 milestones after adding 2"
+    );
     assert_eq!(
         escrow.milestones.get(0).unwrap().description,
         String::from_str(&env, "Milestone 1"),
@@ -982,7 +1212,10 @@ fn test_manage_milestones() {
 
     // Unauthorized caller must fail
     let result = client.try_manage_milestones(&non_platform, &to_add, &no_updates);
-    assert!(result.is_err(), "Non-admin address must not manage milestones");
+    assert!(
+        result.is_err(),
+        "Non-admin address must not manage milestones"
+    );
 
     // Both lists empty must fail
     let empty_milestones: soroban_sdk::Vec<Milestone> = soroban_sdk::vec![&env];
@@ -999,11 +1232,17 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 1,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 10_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: true,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
     ];
     let result = client.try_manage_milestones(&escrow_admin, &already_released, &no_updates);
     assert!(result.is_err(), "Milestone with released=true must fail");
@@ -1018,11 +1257,17 @@ fn test_manage_milestones() {
             approvals: MilestoneApprovals {
                 target: 0,
                 approval_count: 0,
-                approved_by: vec![&env]},
+                approved_by: vec![&env],
+            },
             amount: 10_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
-            receiver: receiver.clone()},
+            receiver: receiver.clone(),
+        },
     ];
     let result = client.try_manage_milestones(&escrow_admin, &bad_target, &no_updates);
     assert!(result.is_err(), "Milestone with target 0 must fail");
@@ -1070,7 +1315,8 @@ fn test_manage_milestones() {
         platform_fee: escrow_base.platform_fee,
         milestones: initial_milestones.clone(),
         trustline: escrow_base.trustline.clone(),
-        receiver_memo: 0};
+        receiver_memo: 0,
+    };
     client.update_escrow(&escrow_admin, &updated_escrow_props);
 
     let after_escrow_update = client.get_escrow();
@@ -1079,7 +1325,10 @@ fn test_manage_milestones() {
         3,
         "update_escrow must not overwrite milestones"
     );
-    assert_eq!(after_escrow_update.title, String::from_str(&env, "Updated Title"));
+    assert_eq!(
+        after_escrow_update.title,
+        String::from_str(&env, "Updated Title")
+    );
 
     // Fund the escrow — updating must now fail
     token_admin.mint(&approver, &100_000_000i128);
@@ -1087,7 +1336,10 @@ fn test_manage_milestones() {
     client.fund_escrow(&approver, &current_escrow, &100_000_000i128);
 
     let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &updates);
-    assert!(result.is_err(), "Updating milestones must fail when escrow has funds");
+    assert!(
+        result.is_err(),
+        "Updating milestones must fail when escrow has funds"
+    );
 }
 
 #[test]
@@ -1123,7 +1375,9 @@ fn test_add_milestones_after_init_without_milestones() {
         roles: roles.clone(),
         platform_fee: 0,
         milestones: vec![&env],
-        trustline: Trustline { address: token_client.address.clone() },
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
         receiver_memo: 0,
     };
 
@@ -1138,9 +1392,17 @@ fn test_add_milestones_after_init_without_milestones() {
             description: String::from_str(&env, "First milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
-            approvals: MilestoneApprovals { target: 1, approval_count: 0, approved_by: vec![&env] },
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
             amount: 100_000_000,
-            dispute: Dispute { is_disputed: false, reason: String::from_str(&env, ""), resolved: false },
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
             released: false,
             receiver: receiver.clone(),
         },
@@ -1148,7 +1410,10 @@ fn test_add_milestones_after_init_without_milestones() {
 
     let empty_updates = vec![&env];
     let result = client.try_manage_milestones(&escrow_admin, &new_milestones, &empty_updates);
-    assert!(result.is_ok(), "Should be able to add milestones to an escrow initialized without them");
+    assert!(
+        result.is_ok(),
+        "Should be able to add milestones to an escrow initialized without them"
+    );
 
     let escrow = client.get_escrow();
     assert_eq!(escrow.milestones.len(), 1);
