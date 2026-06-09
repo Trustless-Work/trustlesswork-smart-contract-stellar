@@ -1,10 +1,11 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Map, String};
+use soroban_sdk::{Address, Env, Map, String, Vec};
 
 use crate::core::escrow::EscrowManager;
 use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
 use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
+use crate::modules::fee::{StandardFeeResult};
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
     math::{BasicArithmetic, BasicMath},
@@ -23,7 +24,7 @@ impl DisputeManager {
         dispute_resolver: Address,
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         if e.storage().persistent().has(&DataKey::Reentrancy) {
             return Err(EscrowError::Reentrancy);
         }
@@ -57,7 +58,7 @@ impl DisputeManager {
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
-        calculate_and_distribute_fees(
+        let net_dists = calculate_and_distribute_fees(
             e,
             &token_client,
             &contract_address,
@@ -75,7 +76,7 @@ impl DisputeManager {
 
         e.storage().persistent().remove(&DataKey::Reentrancy);
 
-        Ok(escrow)
+        Ok((escrow, fee_result, net_dists))
     }
 
     pub fn resolve_dispute(
@@ -83,7 +84,7 @@ impl DisputeManager {
         dispute_resolver: Address,
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -118,7 +119,7 @@ impl DisputeManager {
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
-        calculate_and_distribute_fees(
+        let net_dists = calculate_and_distribute_fees(
             e,
             &token_client,
             &contract_address,
@@ -129,7 +130,7 @@ impl DisputeManager {
             total,
         )?;
 
-        Ok(escrow)
+        Ok((escrow, fee_result, net_dists))
     }
 
     pub fn dispute_escrow(e: &Env, signer: Address, reason: String) -> Result<Escrow, EscrowError> {

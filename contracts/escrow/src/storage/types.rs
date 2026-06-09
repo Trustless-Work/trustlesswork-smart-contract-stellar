@@ -1,6 +1,20 @@
 use soroban_sdk::{contracttype, Address, String, Vec};
 
 #[contracttype]
+#[derive(Clone)]
+pub struct MilestoneStatusEntry {
+    pub index: u32,
+    pub status: String,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct DistributionEntry {
+    pub address: Address,
+    pub amount: i128,
+}
+
+#[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Escrow {
     pub engagement_id: String,

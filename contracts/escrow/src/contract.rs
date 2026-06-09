@@ -3,10 +3,13 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Sym
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError};
 use crate::events::handler::{
-    ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
-    MilestonesManaged, MilestonesApproved, MilestoneStatusChanged,
+    DisputeResolved, EscrowDisputed, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
+    MilestonesApproved, MilestonesManaged, MilestoneStatusChanged, ReleaseEsc, TtlExtended,
 };
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneStatusUpdate, MilestoneUpdate};
+use crate::storage::types::{
+    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
+    MilestoneStatusUpdate, MilestoneUpdate,
+};
 
 #[contract]
 pub struct EscrowContract;
@@ -69,6 +72,10 @@ impl EscrowContract {
         let initialized_escrow = EscrowManager::initialize_escrow(e, escrow_properties)?;
         InitEsc {
             engagement_id: initialized_escrow.engagement_id.clone(),
+            amount: initialized_escrow.amount,
+            platform_fee: initialized_escrow.platform_fee,
+            trustline: initialized_escrow.trustline.address.clone(),
+            receiver: initialized_escrow.roles.receiver.clone(),
         }
         .publish(e);
         Ok(initialized_escrow)
@@ -80,8 +87,15 @@ impl EscrowContract {
         expected_escrow: Escrow,
         amount: i128,
     ) -> Result<(), EscrowError> {
-        EscrowManager::fund_escrow(e, &signer, &expected_escrow, amount)?;
-        FundEsc { signer, amount }.publish(e);
+        let engagement_id = expected_escrow.engagement_id.clone();
+        let funded_total = EscrowManager::fund_escrow(e, &signer, &expected_escrow, amount)?;
+        FundEsc {
+            engagement_id,
+            funder: signer,
+            amount,
+            funded_total,
+        }
+        .publish(e);
         Ok(())
     }
 
@@ -90,8 +104,18 @@ impl EscrowContract {
         release_signer: Address,
         trustless_work_address: Address,
     ) -> Result<(), EscrowError> {
-        EscrowManager::release_funds(e, &release_signer, &trustless_work_address)?;
-        DisEsc { release_signer }.publish(e);
+        let (escrow, fee_result) =
+            EscrowManager::release_funds(e, &release_signer, &trustless_work_address)?;
+        ReleaseEsc {
+            engagement_id: escrow.engagement_id,
+            release_signer,
+            receiver: escrow.roles.receiver,
+            amount: escrow.amount,
+            platform_fee: fee_result.platform_fee,
+            trustless_work_fee: fee_result.trustless_work_fee,
+            net_amount: fee_result.receiver_amount,
+        }
+        .publish(e);
         Ok(())
     }
 
@@ -103,11 +127,11 @@ impl EscrowContract {
         let updated_escrow = EscrowManager::change_escrow_properties(
             e,
             &admin_address,
-            escrow_properties.clone(),
+            escrow_properties,
         )?;
-        ChgEsc {
-            platform: admin_address,
-            engagement_id: escrow_properties.engagement_id.clone(),
+        EscrowUpdated {
+            engagement_id: updated_escrow.engagement_id.clone(),
+            admin: admin_address,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -119,10 +143,15 @@ impl EscrowContract {
         new_milestones: Vec<Milestone>,
         milestone_updates: Vec<MilestoneUpdate>,
     ) -> Result<Escrow, EscrowError> {
+        let added_count = new_milestones.len();
+        let updated_count = milestone_updates.len();
         let updated_escrow =
             EscrowManager::manage_milestones(e, &admin_address, new_milestones, milestone_updates)?;
         MilestonesManaged {
             engagement_id: updated_escrow.engagement_id.clone(),
+            admin: admin_address,
+            added_count,
+            updated_count,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -167,8 +196,9 @@ impl EscrowContract {
             .persistent()
             .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
-        ExtTtlEvt {
-            platform: admin,
+        TtlExtended {
+            engagement_id: escrow.engagement_id,
+            admin,
             ledgers_to_extend,
         }
         .publish(e);
@@ -185,8 +215,20 @@ impl EscrowContract {
         updates: Vec<MilestoneStatusUpdate>,
         service_provider: Address,
     ) -> Result<(), MilestoneError> {
-        let escrow = MilestoneManager::change_milestone_status(&e, updates, service_provider)?;
-        MilestoneStatusChanged { engagement_id: escrow.engagement_id }.publish(&e);
+        let mut status_entries: Vec<MilestoneStatusEntry> = Vec::new(&e);
+        for update in updates.iter() {
+            status_entries.push_back(MilestoneStatusEntry {
+                index: update.milestone_index,
+                status: update.new_status.clone(),
+            });
+        }
+        let escrow = MilestoneManager::change_milestone_status(&e, updates, service_provider.clone())?;
+        MilestoneStatusChanged {
+            engagement_id: escrow.engagement_id,
+            service_provider,
+            updates: status_entries,
+        }
+        .publish(&e);
         Ok(())
     }
 
@@ -195,8 +237,13 @@ impl EscrowContract {
         milestone_indices: Vec<u32>,
         approver: Address,
     ) -> Result<(), MilestoneError> {
-        let escrow = MilestoneManager::approve_milestones(&e, milestone_indices, approver)?;
-        MilestonesApproved { engagement_id: escrow.engagement_id }.publish(&e);
+        let escrow = MilestoneManager::approve_milestones(&e, milestone_indices.clone(), approver.clone())?;
+        MilestonesApproved {
+            engagement_id: escrow.engagement_id,
+            approver,
+            milestone_indices,
+        }
+        .publish(&e);
         Ok(())
     }
 
@@ -213,10 +260,26 @@ impl EscrowContract {
             return Err(EscrowError::SignerMustBeApproverAndReleaseSigner);
         }
         signer.require_auth();
-        let updated_escrow = MilestoneManager::approve_milestones_inner(&e, milestone_indices, signer.clone())?;
-        MilestonesApproved { engagement_id: updated_escrow.engagement_id.clone() }.publish(&e);
-        EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address)?;
-        DisEsc { release_signer: signer }.publish(&e);
+        let updated_escrow =
+            MilestoneManager::approve_milestones_inner(&e, milestone_indices.clone(), signer.clone())?;
+        MilestonesApproved {
+            engagement_id: updated_escrow.engagement_id.clone(),
+            approver: signer.clone(),
+            milestone_indices,
+        }
+        .publish(&e);
+        let (release_escrow, fee_result) =
+            EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address)?;
+        ReleaseEsc {
+            engagement_id: release_escrow.engagement_id,
+            release_signer: signer,
+            receiver: release_escrow.roles.receiver,
+            amount: release_escrow.amount,
+            platform_fee: fee_result.platform_fee,
+            trustless_work_fee: fee_result.trustless_work_fee,
+            net_amount: fee_result.receiver_amount,
+        }
+        .publish(&e);
         Ok(())
     }
 
@@ -230,19 +293,35 @@ impl EscrowContract {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
-        let escrow = DisputeManager::resolve_dispute(
+        let (escrow, fee_result, net_dists) = DisputeManager::resolve_dispute(
             &e,
-            dispute_resolver,
+            dispute_resolver.clone(),
             trustless_work_address,
             distributions,
         )?;
-        DisputeResolved { engagement_id: escrow.engagement_id }.publish(&e);
+        let mut dist_entries: Vec<DistributionEntry> = Vec::new(&e);
+        for (address, amount) in net_dists.iter() {
+            dist_entries.push_back(DistributionEntry { address, amount });
+        }
+        DisputeResolved {
+            engagement_id: escrow.engagement_id,
+            dispute_resolver,
+            platform_fee: fee_result.platform_fee,
+            trustless_work_fee: fee_result.trustless_work_fee,
+            distributions: dist_entries,
+        }
+        .publish(&e);
         Ok(())
     }
 
     pub fn dispute_escrow(e: Env, signer: Address, reason: String) -> Result<(), EscrowError> {
-        let escrow = DisputeManager::dispute_escrow(&e, signer, reason)?;
-        EscrowDisputed { engagement_id: escrow.engagement_id }.publish(&e);
+        let escrow = DisputeManager::dispute_escrow(&e, signer.clone(), reason.clone())?;
+        EscrowDisputed {
+            engagement_id: escrow.engagement_id,
+            signer,
+            reason,
+        }
+        .publish(&e);
         Ok(())
     }
 
@@ -252,12 +331,24 @@ impl EscrowContract {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
-        DisputeManager::withdraw_remaining_funds(
+        let (escrow, fee_result, net_dists) = DisputeManager::withdraw_remaining_funds(
             &e,
-            dispute_resolver,
+            dispute_resolver.clone(),
             trustless_work_address,
             distributions,
         )?;
+        let mut dist_entries: Vec<DistributionEntry> = Vec::new(&e);
+        for (address, amount) in net_dists.iter() {
+            dist_entries.push_back(DistributionEntry { address, amount });
+        }
+        FundsWithdrawn {
+            engagement_id: escrow.engagement_id,
+            dispute_resolver,
+            platform_fee: fee_result.platform_fee,
+            trustless_work_fee: fee_result.trustless_work_fee,
+            distributions: dist_entries,
+        }
+        .publish(&e);
         Ok(())
     }
 }

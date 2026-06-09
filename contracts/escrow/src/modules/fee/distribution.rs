@@ -14,7 +14,7 @@ pub fn calculate_and_distribute_fees(
     fee_result: &StandardFeeResult,
     distributions: &Map<Address, i128>,
     total: i128,
-) -> Result<(), EscrowError> {
+) -> Result<Vec<(Address, i128)>, EscrowError> {
     // Use pre-computed global fees to guarantee exact fee payment regardless of
     // how many recipients there are (per-recipient flooring would under-collect fees).
     let global_trustless_fee = fee_result.trustless_work_fee;
@@ -63,5 +63,5 @@ pub fn calculate_and_distribute_fees(
         token_client.transfer(contract_address, &addr, &net_amount);
     }
 
-    Ok(())
+    Ok(net_distributions)
 }

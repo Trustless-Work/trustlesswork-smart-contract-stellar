@@ -7,7 +7,7 @@ use crate::core::validators::escrow::{
     validate_release_conditions,
 };
 use crate::error::EscrowError;
-use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
+use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult};
 use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
 
 pub struct EscrowManager;
@@ -42,7 +42,7 @@ impl EscrowManager {
         signer: &Address,
         expected_escrow: &Escrow,
         amount: i128,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<i128, EscrowError> {
         let stored_escrow: Escrow = Self::get_escrow(e)?;
         let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
         let balance = token_client.balance(signer);
@@ -57,21 +57,22 @@ impl EscrowManager {
             .persistent()
             .get(&DataKey::FundedAmount)
             .unwrap_or(0);
+        let new_funded = current_funded + amount;
         e.storage()
             .persistent()
-            .set(&DataKey::FundedAmount, &(current_funded + amount));
+            .set(&DataKey::FundedAmount, &new_funded);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::FundedAmount, 17280, 31536000);
 
-        Ok(())
+        Ok(new_funded)
     }
 
     pub fn release_funds(
         e: &Env,
         release_signer: &Address,
         trustless_work_address: &Address,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
         let escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
         release_signer.require_auth();
@@ -82,7 +83,7 @@ impl EscrowManager {
         e: &Env,
         release_signer: &Address,
         trustless_work_address: &Address,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
         let escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
         Self::release_funds_execute(e, trustless_work_address, escrow)
@@ -92,7 +93,7 @@ impl EscrowManager {
         e: &Env,
         trustless_work_address: &Address,
         mut escrow: Escrow,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
         escrow.released = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
@@ -130,7 +131,7 @@ impl EscrowManager {
             token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
         }
 
-        Ok(())
+        Ok((escrow, fee_result))
     }
 
     pub fn change_escrow_properties(
