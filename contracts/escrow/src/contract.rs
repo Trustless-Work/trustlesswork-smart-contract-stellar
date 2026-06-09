@@ -4,7 +4,7 @@ use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError};
 use crate::events::handler::{
     DisputeResolved, EscrowDisputed, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
-    MilestonesApproved, MilestonesManaged, MilestoneStatusChanged, ReleaseEsc, TtlExtended,
+    MilestoneStatusChanged, MilestonesApproved, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
 use crate::storage::types::{
     AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
@@ -124,11 +124,8 @@ impl EscrowContract {
         admin_address: Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, EscrowError> {
-        let updated_escrow = EscrowManager::change_escrow_properties(
-            e,
-            &admin_address,
-            escrow_properties,
-        )?;
+        let updated_escrow =
+            EscrowManager::change_escrow_properties(e, &admin_address, escrow_properties)?;
         EscrowUpdated {
             engagement_id: updated_escrow.engagement_id.clone(),
             admin: admin_address,
@@ -161,10 +158,7 @@ impl EscrowContract {
         EscrowManager::get_escrow(e)
     }
 
-    pub fn get_escrow_by_contract_id(
-        e: &Env,
-        contract_id: Address,
-    ) -> Result<Escrow, EscrowError> {
+    pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow_by_contract_id(e, &contract_id)
     }
 
@@ -222,7 +216,8 @@ impl EscrowContract {
                 status: update.new_status.clone(),
             });
         }
-        let escrow = MilestoneManager::change_milestone_status(&e, updates, service_provider.clone())?;
+        let escrow =
+            MilestoneManager::change_milestone_status(&e, updates, service_provider.clone())?;
         MilestoneStatusChanged {
             engagement_id: escrow.engagement_id,
             service_provider,
@@ -237,7 +232,8 @@ impl EscrowContract {
         milestone_indices: Vec<u32>,
         approver: Address,
     ) -> Result<(), MilestoneError> {
-        let escrow = MilestoneManager::approve_milestones(&e, milestone_indices.clone(), approver.clone())?;
+        let escrow =
+            MilestoneManager::approve_milestones(&e, milestone_indices.clone(), approver.clone())?;
         MilestonesApproved {
             engagement_id: escrow.engagement_id,
             approver,
@@ -260,8 +256,11 @@ impl EscrowContract {
             return Err(EscrowError::SignerMustBeApproverAndReleaseSigner);
         }
         signer.require_auth();
-        let updated_escrow =
-            MilestoneManager::approve_milestones_inner(&e, milestone_indices.clone(), signer.clone())?;
+        let updated_escrow = MilestoneManager::approve_milestones_inner(
+            &e,
+            milestone_indices.clone(),
+            signer.clone(),
+        )?;
         MilestonesApproved {
             engagement_id: updated_escrow.engagement_id.clone(),
             approver: signer.clone(),

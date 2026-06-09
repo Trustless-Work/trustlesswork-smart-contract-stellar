@@ -29,7 +29,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let milestones = vec![

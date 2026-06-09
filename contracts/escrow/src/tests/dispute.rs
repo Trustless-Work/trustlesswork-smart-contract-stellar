@@ -47,7 +47,7 @@ fn test_dispute_management() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -140,7 +140,7 @@ fn test_dispute_resolution_process() {
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
         receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let trustline: Trustline = Trustline {
@@ -290,7 +290,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: receiver.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let milestones = vec![
@@ -343,7 +343,8 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
     let escrow_client_2 = test_data.client;
 
     escrow_client_2.initialize_escrow(&escrow_base);
-    let result = escrow_client_2.try_dispute_escrow(&unauthorized, &String::from_str(&env, "Unauthorized"));
+    let result =
+        escrow_client_2.try_dispute_escrow(&unauthorized, &String::from_str(&env, "Unauthorized"));
 
     assert!(
         result.is_err(),
@@ -384,7 +385,7 @@ fn test_resolve_dispute_rounding_edge_case() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let milestones = vec![
@@ -438,12 +439,12 @@ fn test_resolve_dispute_rounding_edge_case() {
     distributions.set(service_provider.clone(), 50_002);
 
     // This must NOT revert (old code would fail here due to insufficient balance)
-    let result = client.try_resolve_dispute(
-        &dispute_resolver,
-        &trustless_work_address,
-        &distributions,
+    let result =
+        client.try_resolve_dispute(&dispute_resolver, &trustless_work_address, &distributions);
+    assert!(
+        result.is_ok(),
+        "resolve_dispute should handle fee rounding correctly"
     );
-    assert!(result.is_ok(), "resolve_dispute should handle fee rounding correctly");
 
     // Verify contract has no negative balance and all funds were distributed
     let final_balance = usdc_token.0.balance(&client.address);
@@ -491,7 +492,7 @@ fn test_dispute_reason_is_stored() {
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
         receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
-    observers: vec![&env],
+        observers: vec![&env],
     };
 
     let milestones = vec![

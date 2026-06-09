@@ -81,7 +81,9 @@ impl From<MilestoneError> for EscrowError {
             | MilestoneError::MilestoneToApproveDoesNotExist => EscrowError::InvalidMilestoneIndex,
             MilestoneError::DuplicateMilestoneIndex => EscrowError::InvalidMilestoneIndex,
             MilestoneError::MilestoneHasAlreadyBeenApproved
-            | MilestoneError::ApproverAlreadyApprovedMilestone => EscrowError::EscrowAlreadyReleased,
+            | MilestoneError::ApproverAlreadyApprovedMilestone => {
+                EscrowError::EscrowAlreadyReleased
+            }
             MilestoneError::EscrowNotFound => EscrowError::EscrowNotFound,
             _ => EscrowError::EscrowNotCompleted,
         }

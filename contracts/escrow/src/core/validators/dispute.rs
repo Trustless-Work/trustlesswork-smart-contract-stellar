@@ -1,9 +1,6 @@
 use soroban_sdk::{Address, Map};
 
-use crate::{
-    error::EscrowError,
-    storage::types::Escrow,
-};
+use crate::{error::EscrowError, storage::types::Escrow};
 
 const MAX_DISTRIBUTIONS: u32 = 50;
 
@@ -14,7 +11,7 @@ pub fn validate_withdraw_remaining_funds_conditions(
     all_processed: bool,
     current_balance: i128,
     total: i128,
-    distributions: &Map<Address, i128>
+    distributions: &Map<Address, i128>,
 ) -> Result<(), EscrowError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
         return Err(EscrowError::TooManyDistributions);

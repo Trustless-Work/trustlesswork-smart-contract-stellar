@@ -2,10 +2,10 @@ use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, String, Vec};
 
 use crate::core::escrow::EscrowManager;
-use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
+use crate::core::validators::dispute::validate_withdraw_remaining_funds_conditions;
 use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
-use crate::modules::fee::{StandardFeeResult};
+use crate::modules::fee::StandardFeeResult;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
     math::{BasicArithmetic, BasicMath},

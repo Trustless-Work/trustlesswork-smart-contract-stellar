@@ -21,6 +21,7 @@ pub struct TestData<'a> {
 pub fn create_escrow_contract<'a>(env: &Env, admin: &Address) -> TestData<'a> {
     env.mock_all_auths();
     let wasm_hash = BytesN::from_array(env, &[0u8; 32]);
-    let client = EscrowContractClient::new(env, &env.register(EscrowContract {}, (admin, &wasm_hash)));
+    let client =
+        EscrowContractClient::new(env, &env.register(EscrowContract {}, (admin, &wasm_hash)));
     TestData { client }
 }

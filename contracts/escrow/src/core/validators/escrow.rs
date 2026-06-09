@@ -174,12 +174,22 @@ pub fn validate_escrow_conditions(
             return Err(EscrowError::FlagsMustBeFalse);
         }
         if !new_escrow.milestones.is_empty() {
-            if new_escrow.milestones.iter().any(|m| m.approvals.approval_count > 0)
-                || new_escrow.milestones.iter().any(|m| !m.approvals.approved_by.is_empty())
+            if new_escrow
+                .milestones
+                .iter()
+                .any(|m| m.approvals.approval_count > 0)
+                || new_escrow
+                    .milestones
+                    .iter()
+                    .any(|m| !m.approvals.approved_by.is_empty())
             {
                 return Err(EscrowError::FlagsMustBeFalse);
             }
-            if new_escrow.milestones.iter().any(|m| m.approvals.target == 0) {
+            if new_escrow
+                .milestones
+                .iter()
+                .any(|m| m.approvals.target == 0)
+            {
                 return Err(EscrowError::TargetCannotBeZero);
             }
             if new_escrow
@@ -193,8 +203,7 @@ pub fn validate_escrow_conditions(
         validate_admin_role_overlap(&new_escrow.roles)?;
     } else {
         let existing = existing_escrow.ok_or(EscrowError::EscrowNotFound)?;
-        let caller =
-            admin.ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
+        let caller = admin.ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
         if caller != &existing.roles.admin {
             return Err(EscrowError::OnlyAdminAddressExecuteThisFunction);
         }
@@ -266,8 +275,7 @@ pub fn validate_manage_milestones_conditions(
             if milestone.approvals.target == 0 {
                 return Err(EscrowError::TargetCannotBeZero);
             }
-            if milestone.approvals.approval_count > 0
-                || !milestone.approvals.approved_by.is_empty()
+            if milestone.approvals.approval_count > 0 || !milestone.approvals.approved_by.is_empty()
             {
                 return Err(EscrowError::FlagsMustBeFalse);
             }
