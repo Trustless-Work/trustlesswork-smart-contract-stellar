@@ -8,7 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{EscrowError, ReleaseError};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate};
 
 pub struct EscrowManager;
 
@@ -42,7 +42,7 @@ impl EscrowManager {
         signer: &Address,
         expected_escrow: &Escrow,
         amount: i128,
-    ) -> Result<(), EscrowError> {
+    ) -> Result<i128, EscrowError> {
         let stored_escrow: Escrow = Self::get_escrow(e)?;
         let token_client = TokenClient::new(e, &stored_escrow.trustline.address);
         let balance = token_client.balance(signer);
@@ -57,14 +57,15 @@ impl EscrowManager {
             .persistent()
             .get(&DataKey::FundedAmount)
             .unwrap_or(0);
+        let new_funded = current_funded + amount;
         e.storage()
             .persistent()
-            .set(&DataKey::FundedAmount, &(current_funded + amount));
+            .set(&DataKey::FundedAmount, &new_funded);
         e.storage()
             .persistent()
             .extend_ttl(&DataKey::FundedAmount, 17280, 31536000);
 
-        Ok(())
+        Ok(new_funded)
     }
 
     pub fn release_funds(
@@ -72,7 +73,7 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
-    ) -> Result<(), ReleaseError> {
+    ) -> Result<Vec<MilestonePayout>, ReleaseError> {
         let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
         release_signer.require_auth();
@@ -84,7 +85,7 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
-    ) -> Result<(), ReleaseError> {
+    ) -> Result<Vec<MilestonePayout>, ReleaseError> {
         let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
         Self::release_funds_execute(e, trustless_work_address, milestone_indices, escrow)
@@ -95,7 +96,7 @@ impl EscrowManager {
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
         mut escrow: Escrow,
-    ) -> Result<(), ReleaseError> {
+    ) -> Result<Vec<MilestonePayout>, ReleaseError> {
         let mut total_amount: i128 = 0;
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
@@ -121,6 +122,7 @@ impl EscrowManager {
             .persistent()
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
+        let mut payouts: Vec<MilestonePayout> = Vec::new(e);
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
             let fee_result = FeeCalculator::calculate_standard_fees(milestone.amount, escrow.platform_fee)
@@ -150,9 +152,18 @@ impl EscrowManager {
             if fee_result.receiver_amount > 0 {
                 token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
             }
+
+            payouts.push_back(MilestonePayout {
+                index,
+                receiver,
+                amount: milestone.amount,
+                platform_fee: fee_result.platform_fee,
+                trustless_work_fee: fee_result.trustless_work_fee,
+                net_amount: fee_result.receiver_amount,
+            });
         }
 
-        Ok(())
+        Ok(payouts)
     }
 
     pub fn change_escrow_properties(

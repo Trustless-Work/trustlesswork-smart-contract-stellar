@@ -6,7 +6,7 @@ use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditi
 use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::{
-    fee::{FeeCalculator, FeeCalculatorTrait},
+    fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult},
     math::{BasicArithmetic, BasicMath},
 };
 use crate::storage::types::{DataKey, Escrow};
@@ -24,7 +24,7 @@ impl DisputeManager {
         dispute_resolver: Address,
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         if e.storage().persistent().has(&DataKey::Reentrancy) {
             return Err(EscrowError::FlagsMustBeFalse);
         }
@@ -61,7 +61,7 @@ impl DisputeManager {
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
-        calculate_and_distribute_fees(
+        let net_dists = calculate_and_distribute_fees(
             e,
             &token_client,
             &contract_address,
@@ -79,7 +79,7 @@ impl DisputeManager {
 
         e.storage().persistent().remove(&DataKey::Reentrancy);
 
-        Ok(escrow)
+        Ok((escrow, fee_result, net_dists))
     }
 
     pub fn resolve_dispute(
@@ -88,7 +88,7 @@ impl DisputeManager {
         trustless_work_address: Address,
         milestone_indices: Vec<u32>,
         distributions: Map<Address, i128>,
-    ) -> Result<Escrow, EscrowError> {
+    ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -128,7 +128,7 @@ impl DisputeManager {
 
         let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
 
-        calculate_and_distribute_fees(
+        let net_dists = calculate_and_distribute_fees(
             e,
             &token_client,
             &contract_address,
@@ -139,7 +139,7 @@ impl DisputeManager {
             total,
         )?;
 
-        Ok(escrow)
+        Ok((escrow, fee_result, net_dists))
     }
 
     pub fn dispute_milestones(
