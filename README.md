@@ -1,6 +1,6 @@
 <p align="center"> <img src="https://github.com/user-attachments/assets/5b182044-dceb-41f5-acf0-da22dea7c98a" alt="CLR-S (2)"> </p>
 
-# Trustless Work | [API Documentation](https://docs.trustlesswork.com/trustless-work)
+# Trustless Work | [API Documentation](https://docs.trustlesswork.com/trustless-work) | [On-Chain Contract Reference](docs/CONTRACT_REFERENCE.md)
 It enables trustless payments via smart contracts, securing funds in escrow until milestones are approved by clients. Stablecoins like USDC are used to ensure stability and ease of use.
 
 # Maintainers | [Telegram](https://t.me/+kmr8tGegxLU0NTA5)
@@ -48,6 +48,7 @@ It enables trustless payments via smart contracts, securing funds in escrow unti
 
 ## Contents
 
+- [On-Chain Contract Reference](docs/CONTRACT_REFERENCE.md)
 - [Installing Rust](#installing-rust)
 - [Install the Stellar CLI](#install-stellar-cli)
 - [Configuring the CLI for Testnet](#configuring-the-cli-for-testnet)
