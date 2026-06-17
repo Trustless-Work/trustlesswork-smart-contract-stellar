@@ -4,6 +4,7 @@ target
 # Local Soroban settings
 .soroban
 Makefile
+/scripts
 
 # Ignore JetBrains IDE settings
 .idea/
