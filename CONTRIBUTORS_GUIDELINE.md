@@ -29,9 +29,9 @@ cargo test
 
 ---
 
-## 3. Create a New Branch
+## 4. Create a New Branch
 
-- Create a new branch according to the guidelines in the following document: [Git Guidelines](https://github.com/Tico4Chain-Coders/Trustless-Work/blob/main/GIT_GUIDELINE.md).
+- Create a new branch according to the guidelines in the following document: [Git Guidelines](GIT_GUIDELINE.md).
 - Make sure to base the branch name on the type of change you're making (e.g., `feat/name-related-issue`, `fix/name-related-issue`).
 
 ```bash
@@ -40,9 +40,9 @@ git checkout -b your-branch-name
 
 ---
 
-## 4. Make Atomic Commits
+## 5. Make Atomic Commits
 
-- Create atomic commits following the guidelines outlined here: [Git Guidelines](https://github.com/Tico4Chain-Coders/Trustless-Work/blob/main/GIT_GUIDELINE.md).
+- Create atomic commits following the guidelines outlined here: [Git Guidelines](GIT_GUIDELINE.md).
 - Each commit should represent a small, focused change. Avoid including multiple unrelated changes in a single commit.
 
 ```bash
@@ -52,7 +52,7 @@ git commit -m "type: description"
 
 ---
 
-## 5. Push Your Changes
+## 6. Push Your Changes
 
 - Push the changes to your forked repository:
 
@@ -62,8 +62,14 @@ git push origin your-branch-name
 
 ---
 
-## 6. Generate a Pull Request (PR)
+## 7. Generate a Pull Request (PR)
 
 - Create a Pull Request (PR) to the **develop** branch of the original repository.
 - Follow the PR template below to submit your PR.
 - **Important:** If you don’t use the provided PR template properly, your PR will be ignored.
+
+---
+
+## 8. On-Chain Contract Reference
+
+Before making changes to the smart contract logic, please review the [On-Chain Contract Reference](docs/CONTRACT_REFERENCE.md) to understand the public entrypoints, storage model, roles, error codes, and events.
