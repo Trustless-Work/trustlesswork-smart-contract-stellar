@@ -1,5 +1,6 @@
 #![no_std]
 
+mod cctp;
 mod contract;
 mod core {
     pub mod dispute;

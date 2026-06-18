@@ -1,6 +1,9 @@
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Symbol, Vec};
 
+use crate::cctp::{
+    truncate_to_6_decimals, TokenMessengerClient, CCTP_TOKEN_MESSENGER_ADDRESS,
+};
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
     validate_initialize_escrow_conditions, validate_release_conditions,
@@ -81,15 +84,73 @@ impl EscrowManager {
 
         if fee_result.platform_fee > 0 {
             token_client.transfer(
-            &contract_address,
-            &escrow.roles.platform,
-            &fee_result.platform_fee,
+                &contract_address,
+                &escrow.roles.platform,
+                &fee_result.platform_fee,
             );
         }
 
         let receiver = Self::get_receiver(&escrow);
         if fee_result.receiver_amount > 0 {
-            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            let first_milestone = escrow.milestones.get(0);
+            let has_cross_chain = first_milestone
+                .as_ref()
+                .and_then(|m| m.cross_chain_destination_domain)
+                .is_some();
+            if has_cross_chain {
+                Self::release_cross_chain(
+                    e,
+                    &token_client,
+                    &contract_address,
+                    &receiver,
+                    fee_result.receiver_amount,
+                    &first_milestone.unwrap(),
+                )?;
+            } else {
+                token_client.transfer(
+                    &contract_address,
+                    &receiver,
+                    &fee_result.receiver_amount,
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    fn release_cross_chain(
+        e: &Env,
+        token_client: &TokenClient,
+        contract_address: &Address,
+        stellar_receiver: &Address,
+        net_amount: i128,
+        milestone: &crate::storage::types::Milestone,
+    ) -> Result<(), ContractError> {
+        let (amount_6_decimals, remainder) = truncate_to_6_decimals(net_amount);
+
+        if amount_6_decimals > 0 {
+            let token_messenger_address =
+                Address::from_string(&soroban_sdk::String::from_str(
+                    e,
+                    CCTP_TOKEN_MESSENGER_ADDRESS,
+                ));
+            let token_messenger =
+                TokenMessengerClient::new(e, &token_messenger_address);
+
+            let recipient = milestone.cross_chain_recipient.clone().unwrap_or_else(|| soroban_sdk::Bytes::from_array(e, &[0u8; 32]));
+            let destination_domain = milestone.cross_chain_destination_domain.unwrap_or(0);
+
+            token_messenger.deposit_for_burn(
+                e,
+                amount_6_decimals,
+                destination_domain,
+                recipient,
+                token_client.address.clone(),
+            );
+        }
+
+        if remainder > 0 {
+            token_client.transfer(contract_address, stellar_receiver, &remainder);
         }
 
         Ok(())

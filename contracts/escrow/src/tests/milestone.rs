@@ -30,12 +30,16 @@ fn test_append_milestones_with_funds() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -91,6 +95,8 @@ fn test_append_milestones_with_funds() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -164,12 +170,16 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -229,6 +239,8 @@ fn test_append_milestones_with_funds_and_existing_approved() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -307,12 +319,16 @@ fn test_change_milestone_status_and_approved() {
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
             status: String::from_str(&env, "in-progress"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 

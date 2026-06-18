@@ -36,6 +36,8 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 

@@ -26,12 +26,16 @@ fn test_initialize_excrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -128,12 +132,16 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -185,18 +193,24 @@ fn test_update_escrow() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -271,6 +285,8 @@ fn test_update_escrow_platform_fee_too_high() {
             status: String::from_str(&env, "pending"),
             evidence: String::from_str(&env, "e"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -354,6 +370,8 @@ fn test_initialize_escrow_platform_fee_too_high() {
             status: String::from_str(&env, "pending"),
             evidence: String::from_str(&env, "e"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 

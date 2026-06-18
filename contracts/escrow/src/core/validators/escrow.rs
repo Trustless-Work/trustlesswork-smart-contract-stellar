@@ -1,6 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
+    cctp::is_valid_cctp_domain,
     error::ContractError,
     storage::types::{DataKey, Escrow},
 };
@@ -133,6 +134,8 @@ pub fn validate_escrow_conditions(
         }
     }
 
+    validate_cross_chain_receivers(new_escrow)?;
+
     Ok(())
 }
 
@@ -182,5 +185,28 @@ pub fn validate_fund_escrow_conditions(
         return Err(ContractError::InsufficientFundsForEscrowFunding);
     }
 
+    Ok(())
+}
+
+#[inline]
+pub fn validate_cross_chain_receivers(escrow: &Escrow) -> Result<(), ContractError> {
+    for milestone in escrow.milestones.iter() {
+        if let Some(domain) = milestone.cross_chain_destination_domain {
+            if !is_valid_cctp_domain(domain) {
+                return Err(ContractError::InvalidCctpDomain);
+            }
+            if let Some(recipient) = &milestone.cross_chain_recipient {
+                if recipient.len() == 0 {
+                    return Err(ContractError::InvalidCctpRecipient);
+                }
+                let all_zero = recipient.iter().all(|b| b == 0);
+                if all_zero {
+                    return Err(ContractError::InvalidCctpRecipient);
+                }
+            } else {
+                return Err(ContractError::InvalidCctpRecipient);
+            }
+        }
+    }
     Ok(())
 }

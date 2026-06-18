@@ -49,6 +49,8 @@ pub enum ContractError {
     EscrowNotFullyProcessed = 44,
     TooManyDistributions = 45,
     MilestoneToUpdateDoesNotExist = 46,
+    InvalidCctpDomain = 47,
+    InvalidCctpRecipient = 48,
 }
 
 // impl fmt::Display for ContractError {

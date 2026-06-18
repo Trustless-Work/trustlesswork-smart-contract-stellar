@@ -22,6 +22,8 @@ pub struct Milestone {
     pub status: String,
     pub evidence: String,
     pub approved: bool,
+    pub cross_chain_destination_domain: Option<u32>,
+    pub cross_chain_recipient: Option<soroban_sdk::Bytes>,
 }
 
 #[contracttype]

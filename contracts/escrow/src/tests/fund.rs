@@ -32,6 +32,8 @@ fn test_fund_escrow_successful_deposit() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -130,6 +132,8 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -211,12 +215,16 @@ fn test_release_funds_successful_flow() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -331,12 +339,16 @@ fn test_release_funds_milestones_incomplete() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, "Initial evidence"),
-            approved: false, // Not approved yet
+            approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -416,6 +428,8 @@ fn test_release_funds_same_receiver_as_provider() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -525,6 +539,8 @@ fn test_release_funds_invalid_receiver_fallback() {
             status: String::from_str(&env, "Completed"),
             evidence: String::from_str(&env, "Initial evidence"),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
@@ -648,6 +664,8 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             status: String::from_str(&env, "Pending"),
             evidence: String::from_str(&env, ""),
             approved: false,
+            cross_chain_destination_domain: None,
+            cross_chain_recipient: None,
         },
     ];
 
