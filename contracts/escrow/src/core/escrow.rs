@@ -6,8 +6,9 @@ use crate::core::validators::escrow::{
     validate_initialize_escrow_conditions, validate_release_conditions,
 };
 use crate::error::ContractError;
+use crate::modules::cctp::release_receiver_amount_via_cctp;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{AddressBalance, DataKey, Escrow};
+use crate::storage::types::{is_cross_chain_configured, AddressBalance, DataKey, Escrow};
 
 pub struct EscrowManager;
 
@@ -89,7 +90,23 @@ impl EscrowManager {
 
         let receiver = Self::get_receiver(&escrow);
         if fee_result.receiver_amount > 0 {
-            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            if is_cross_chain_configured(&escrow.cross_chain_receiver) {
+                release_receiver_amount_via_cctp(
+                    e,
+                    &token_client,
+                    &contract_address,
+                    &escrow.trustline.address,
+                    fee_result.receiver_amount,
+                    &escrow.cross_chain_receiver,
+                    &receiver,
+                )?;
+            } else {
+                token_client.transfer(
+                    &contract_address,
+                    &receiver,
+                    &fee_result.receiver_amount,
+                );
+            }
         }
 
         Ok(())

@@ -50,7 +50,7 @@ All exported functions in `EscrowContract` (`contracts/escrow/src/contract.rs`) 
 | `tw_new_single_release_escrow` | `signer` | The contract must not already have an escrow stored. | None (invokes init functions internally) | `/escrow/single-release/v2/deploy` (Factory part) |
 | `initialize_escrow` | None (Typically Deployer) | Must not be already initialized. Flags must be false. Milestones must not be empty and <= 50. Platform fee + 0.3% TW fee must be <= 100%. | `InitEsc` (`tw_init`) | `/escrow/single-release/v2/deploy` (Init part) |
 | `fund_escrow` | `signer` | Escrow is initialized. `amount` > 0. Provided `expected_escrow` matches current stored state exactly. `signer` has enough trustline token balance. | `FundEsc` (`tw_fund`) | `/escrow/single-release/v2/fund` |
-| `release_funds` | `release_signer` | Escrow not already released/resolved. `release_signer` matches stored `roles.release_signer`. Escrow not disputed. All milestones are approved. Contract holds enough tokens. | `DisEsc` (`tw_release`) | `/escrow/single-release/v2/release` |
+| `release_funds` | `release_signer` | Escrow not already released/resolved. `release_signer` matches stored `roles.release_signer`. Escrow not disputed. All milestones are approved. Contract holds enough tokens. If `cross_chain_receiver` is configured (domain ≠ disabled sentinel), burns USDC via CCTP; otherwise transfers to `roles.receiver` on Stellar. | `DisEsc` (`tw_release`) | `/escrow/single-release/v2/release` |
 | `update_escrow` | `platform` | `platform` matches `roles.platform`. Escrow not disputed. Platform address cannot be changed. Flags in updated properties must be false. See property immutability below. | `ChgEsc` (`tw_update`) | `/escrow/single-release/v2/update` |
 | `get_escrow` | Public Read | Escrow must be initialized. | None | `/escrow/single-release/v2/get` |
 | `get_escrow_by_contract_id` | Public Read | Target contract exists and supports `get_escrow`. | None | - |
@@ -63,7 +63,7 @@ All exported functions in `EscrowContract` (`contracts/escrow/src/contract.rs`) 
 | `withdraw_remaining_funds` | `dispute_resolver` | `dispute_resolver` matches `roles.dispute_resolver`. Escrow is released, resolved, or disputed. Total <= current balance. All amounts > 0. | None | - |
 
 ### Escrow Property Immutability in `update_escrow`
-* **If Contract has Funds (Balance > 0)**: All metadata fields, roles, amount, and existing milestones are locked. The platform can **only append new unapproved milestones** (milestone index >= old milestone count) up to the limit of 50.
+* **If Contract has Funds (Balance > 0)**: All metadata fields, roles, amount, existing milestones, and `cross_chain_receiver` are locked. The platform can **only append new unapproved milestones** (milestone index >= old milestone count) up to the limit of 50.
 * **If Contract has No Funds (Balance = 0)**: Properties can be modified, but no milestone (existing or new) can be marked as approved.
 
 ---
@@ -85,8 +85,19 @@ pub struct Escrow {
     pub flags: Flags,
     pub trustline: Trustline,
     pub receiver_memo: u32,
+    pub cross_chain_receiver: CrossChainReceiver,
 }
 ```
+
+#### `CrossChainReceiver`
+```rust
+pub struct CrossChainReceiver {
+    pub destination_domain: u32,  // CCTP domain; u32::MAX = disabled (Stellar-only release)
+    pub recipient: BytesN<32>,    // 32-byte destination address (EVM: left-padded; Solana: pubkey)
+}
+```
+
+Use `default_cross_chain_receiver(env)` at init for backwards-compatible Stellar-only release.
 
 #### `Milestone`
 ```rust
@@ -104,7 +115,21 @@ pub struct Milestone {
 * **`platform`**: The specific platform instance integrating Trustless Work. Receives the platform fee, can modify milestones when contract holds no funds, and can extend contract TTL.
 * **`release_signer`**: An address (often a platform hot wallet or oracle) authorized to sign off and release the earnings once all milestones are approved.
 * **`dispute_resolver`**: The arbiter responsible for resolving disputes. Cannot dispute the escrow themselves.
-* **`receiver`**: The recipient of funds upon release (usually matches the `service_provider`).
+* **`receiver`**: The recipient of funds upon release (usually matches the `service_provider`). On cross-chain release, receives any 7th-decimal USDC remainder on Stellar.
+
+### Cross-Chain Release (CCTP)
+
+When `cross_chain_receiver.destination_domain` is not `u32::MAX` (disabled sentinel):
+
+1. TW fee and platform fee are deducted on Stellar (unchanged).
+2. Net receiver amount is truncated to 6 decimal places and burned via Circle `TokenMessengerMinter.deposit_for_burn`.
+3. Any 7th-decimal remainder is transferred to `roles.receiver` on Stellar.
+
+**Valid destination domains:** 0 (Ethereum), 1 (Avalanche), 2 (OP), 3 (Arbitrum), 5 (Solana), 6 (Base), 7 (Polygon).
+
+**Testnet TokenMessengerMinter:** `CDNG7HXAPBWICI2E3AUBP3YZWZELJLYSB6F5CC7WLDTLTHVM74SLRTHP`
+
+See `docs/CCTP_ARCHITECTURE_DECISION.md` for design rationale.
 
 ### Fee Calculations & Limits
 * **Trustless Work Fee**: 0.3% (30 BPS) of the total amount.
@@ -165,6 +190,8 @@ The following table lists the error codes defined in `contracts/escrow/src/error
 | 44 | `EscrowNotFullyProcessed` | The escrow must be fully processed before withdrawing remaining funds | Withdrawing remaining funds on active, non-finalized escrow. |
 | 45 | `TooManyDistributions` | Cannot define more than 50 distributions when resolving dispute | Distributions map size > 50. |
 | 46 | `MilestoneToUpdateDoesNotExist` | The milestone to update does not exist | Milestone index for status change is out of bounds. |
+| 47 | `InvalidCctpDestinationDomain` | Invalid CCTP destination domain; must be a supported domain (0-7, excluding Stellar domain 27) | Init/update with unsupported CCTP domain (e.g. 999). |
+| 48 | `InvalidCctpRecipient` | Invalid CCTP recipient; mint recipient bytes must be non-zero | Cross-chain receiver configured with all-zero 32-byte recipient. |
 
 ---
 
@@ -230,3 +257,4 @@ cargo test
 * **`milestone.rs`**: Validates milestone state changes (`change_milestone_status`) and client approval logic (`approve_milestone`).
 * **`dispute.rs`**: Covers dispute flag transitions (`dispute_escrow`), dispute resolution payouts (`resolve_dispute`), and remaining funds retrieval (`withdraw_remaining_funds`).
 * **`balance.rs`**: Validates batch contract balance queries (`get_multiple_escrow_balances`).
+* **`cctp.rs`**: Cross-chain CCTP validation, decimal truncation, mock TokenMessenger release, backwards-compat Stellar release.

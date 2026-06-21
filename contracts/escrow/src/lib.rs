@@ -9,6 +9,7 @@ mod core {
     pub use escrow::*;
     pub use milestone::*;
     pub mod validators {
+        pub mod cctp;
         pub mod dispute;
         pub mod escrow;
         pub mod milestone;
@@ -33,6 +34,8 @@ mod modules {
 
         pub use calculator::*;
     }
+
+    pub mod cctp;
 }
 
 /// This module is currently Work In Progress.

@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -69,6 +69,7 @@ fn test_initialize_excrow() {
         flags,
         trustline,
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -170,6 +171,7 @@ fn test_update_escrow() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -211,6 +213,7 @@ fn test_update_escrow() {
         flags,
         trustline,
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     // Update escrow properties
@@ -305,6 +308,7 @@ fn test_update_escrow_platform_fee_too_high() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -323,6 +327,7 @@ fn test_update_escrow_platform_fee_too_high() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let res = client.try_update_escrow(&platform, &invalid_update);
@@ -388,6 +393,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         flags,
         trustline,
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);

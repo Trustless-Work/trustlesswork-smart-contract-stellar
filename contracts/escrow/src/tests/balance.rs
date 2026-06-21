@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -56,6 +56,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     // Deploy two escrow contracts of the same code and initialize both

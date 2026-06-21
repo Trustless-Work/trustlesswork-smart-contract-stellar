@@ -1,5 +1,11 @@
 use soroban_sdk::{contracttype, Address, String, Vec};
 
+pub use cctp::{
+    default_cross_chain_receiver, is_cross_chain_configured, CrossChainReceiver,
+};
+
+mod cctp;
+
 #[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Escrow {
@@ -13,6 +19,8 @@ pub struct Escrow {
     pub flags: Flags,
     pub trustline: Trustline,
     pub receiver_memo: u32,
+    /// Cross-chain CCTP receiver. Use `CROSS_CHAIN_DISABLED_DOMAIN` for standard Stellar release.
+    pub cross_chain_receiver: CrossChainReceiver,
 }
 
 #[contracttype]

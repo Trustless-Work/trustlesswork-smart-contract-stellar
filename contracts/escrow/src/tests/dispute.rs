@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -64,6 +64,7 @@ fn test_dispute_management() {
         flags,
         trustline,
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -152,6 +153,7 @@ fn test_dispute_resolution_process() {
         flags,
         trustline,
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -305,6 +307,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);
@@ -391,6 +394,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        cross_chain_receiver: default_cross_chain_receiver(&env),
     };
 
     let test_data = create_escrow_contract(&env);

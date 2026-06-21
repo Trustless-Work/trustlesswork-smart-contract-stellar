@@ -50,6 +50,8 @@ pub enum ContractError {
     EscrowNotFullyProcessed = 44,
     TooManyDistributions = 45,
     MilestoneToUpdateDoesNotExist = 46,
+    InvalidCctpDestinationDomain = 47,
+    InvalidCctpRecipient = 48,
 }
 
 impl fmt::Display for ContractError {
@@ -193,6 +195,18 @@ impl fmt::Display for ContractError {
             }
             ContractError::MilestoneToUpdateDoesNotExist => {
                 write!(f, "The milestone to update does not exist")
+            }
+            ContractError::InvalidCctpDestinationDomain => {
+                write!(
+                    f,
+                    "Invalid CCTP destination domain; must be a supported domain (0-7, excluding Stellar domain 27)"
+                )
+            }
+            ContractError::InvalidCctpRecipient => {
+                write!(
+                    f,
+                    "Invalid CCTP recipient; mint recipient bytes must be non-zero"
+                )
             }
         }
     }

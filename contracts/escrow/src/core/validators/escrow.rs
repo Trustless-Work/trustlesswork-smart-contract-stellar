@@ -1,6 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 use crate::{
+    core::validators::cctp::validate_cross_chain_receiver,
     error::ContractError,
     storage::types::{DataKey, Escrow},
 };
@@ -63,6 +64,8 @@ pub fn validate_escrow_conditions(
         return Err(ContractError::TooManyMilestones);
     }
 
+    validate_cross_chain_receiver(&new_escrow.cross_chain_receiver)?;
+
     if is_init {
         if new_escrow.flags.released
             || new_escrow.flags.disputed
@@ -102,6 +105,7 @@ pub fn validate_escrow_conditions(
                 || existing.flags != new_escrow.flags
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
+                || existing.cross_chain_receiver != new_escrow.cross_chain_receiver
             {
                 return Err(ContractError::EscrowPropertiesMismatch);
             }
