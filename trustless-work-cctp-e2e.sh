@@ -4,6 +4,7 @@
 # TRUSTLESS WORK ESCROW - COMPLETE E2E AUTOMATION (FULL - NO STOPPING)
 # All 11 steps included - will complete fully
 # UPDATED: Auto-imports all wallet secrets on first run
+# UPDATED: Exit on any command failure
 # Usage: ./trustless-work-e2e-complete.sh
 ################################################################################
 
@@ -184,12 +185,11 @@ step_2_initialize() {
         --source alice \
         --network "$NETWORK" \
         -- initialize_escrow \
-        --escrow_properties "{\"amount\":\"$AMOUNT\",\"cross_chain_receiver\":{\"destination_domain\":0,\"recipient\":\"00000000000000000000000018C385B1748ae257179483564A5FB11bc5C18Ab7\"},\"description\":\"$DESCRIPTION\",\"engagement_id\":\"$ENGAGEMENT_ID\",\"flags\":{\"disputed\":false,\"released\":false,\"resolved\":false},\"milestones\":[{\"approved\":false,\"description\":\"$MILESTONE_DESCRIPTION\",\"evidence\":\"\",\"status\":\"Pending\"}],\"platform_fee\":$PLATFORM_FEE,\"receiver_memo\":0,\"roles\":{\"approver\":\"$APPROVER\",\"dispute_resolver\":\"$RESOLVER\",\"platform\":\"$PLATFORM\",\"receiver\":\"$RECEIVER\",\"release_signer\":\"$RELEASE_SIGNER\",\"service_provider\":\"$PROVIDER\"},\"title\":\"$TITLE\",\"trustline\":{\"address\":\"$USDC_TRUSTLINE\"}}" 2>&1)
+        --escrow_properties "{\"amount\":\"$AMOUNT\",\"cross_chain_receiver\":{\"Some\":{\"destination_domain\":0,\"recipient\":\"00000000000000000000000018C385B1748ae257179483564A5FB11bc5C18Ab7\"}},\"description\":\"$DESCRIPTION\",\"engagement_id\":\"$ENGAGEMENT_ID\",\"flags\":{\"disputed\":false,\"released\":false,\"resolved\":false},\"milestones\":[{\"approved\":false,\"description\":\"$MILESTONE_DESCRIPTION\",\"evidence\":\"\",\"status\":\"Pending\"}],\"platform_fee\":$PLATFORM_FEE,\"receiver_memo\":0,\"roles\":{\"approver\":\"$APPROVER\",\"dispute_resolver\":\"$RESOLVER\",\"platform\":\"$PLATFORM\",\"receiver\":\"$RECEIVER\",\"release_signer\":\"$RELEASE_SIGNER\",\"service_provider\":\"$PROVIDER\"},\"title\":\"$TITLE\",\"trustline\":{\"address\":\"$USDC_TRUSTLINE\"}}" 2>&1)
     
     if echo "$INIT_OUT" | grep -q "error\|Error\|ERROR"; then
         error "Initialize failed: $INIT_OUT"
-        echo "$INIT_OUT" >> "$LOG_FILE"
-        return 1
+        exit 1
     fi
     
     echo "$INIT_OUT" >> "$LOG_FILE"
@@ -243,7 +243,7 @@ step_4_fund() {
         --source alice \
         --network "$NETWORK" \
         -- fund_escrow \
-        --expected_escrow "{\"amount\":\"$AMOUNT\",\"cross_chain_receiver\":{\"destination_domain\":0,\"recipient\":\"00000000000000000000000018c385b1748ae257179483564a5fb11bc5c18ab7\"},\"description\":\"$DESCRIPTION\",\"engagement_id\":\"$ENGAGEMENT_ID\",\"flags\":{\"disputed\":false,\"released\":false,\"resolved\":false},\"milestones\":[{\"approved\":false,\"description\":\"$MILESTONE_DESCRIPTION\",\"evidence\":\"\",\"status\":\"Pending\"}],\"platform_fee\":$PLATFORM_FEE,\"receiver_memo\":0,\"roles\":{\"approver\":\"$APPROVER\",\"dispute_resolver\":\"$RESOLVER\",\"platform\":\"$PLATFORM\",\"receiver\":\"$RECEIVER\",\"release_signer\":\"$RELEASE_SIGNER\",\"service_provider\":\"$PROVIDER\"},\"title\":\"$TITLE\",\"trustline\":{\"address\":\"$USDC_TRUSTLINE\"}}" \
+        --expected_escrow "{\"amount\":\"$AMOUNT\",\"cross_chain_receiver\":{\"Some\":{\"destination_domain\":0,\"recipient\":\"00000000000000000000000018c385b1748ae257179483564a5fb11bc5c18ab7\"}},\"description\":\"$DESCRIPTION\",\"engagement_id\":\"$ENGAGEMENT_ID\",\"flags\":{\"disputed\":false,\"released\":false,\"resolved\":false},\"milestones\":[{\"approved\":false,\"description\":\"$MILESTONE_DESCRIPTION\",\"evidence\":\"\",\"status\":\"Pending\"}],\"platform_fee\":$PLATFORM_FEE,\"receiver_memo\":0,\"roles\":{\"approver\":\"$APPROVER\",\"dispute_resolver\":\"$RESOLVER\",\"platform\":\"$PLATFORM\",\"receiver\":\"$RECEIVER\",\"release_signer\":\"$RELEASE_SIGNER\",\"service_provider\":\"$PROVIDER\"},\"title\":\"$TITLE\",\"trustline\":{\"address\":\"$USDC_TRUSTLINE\"}}" \
         --signer alice \
         --amount "$AMOUNT" 2>&1)
     

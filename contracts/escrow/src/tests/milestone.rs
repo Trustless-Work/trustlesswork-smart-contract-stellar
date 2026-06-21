@@ -1,7 +1,7 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline,CrossChainReceiverOption};
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
+use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline, CrossChainReceiverOption, CrossChainReceiver};
+use soroban_sdk::{testutils::Address as _, vec, Address, BytesN, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
 
@@ -411,4 +411,170 @@ fn test_change_milestone_status_and_approved() {
     // Test for `change_approved` by invalid approver
     let result = escrow_approver.try_approve_milestone(&(0), &unauthorized_address);
     assert!(result.is_err());
+}
+
+#[test]
+fn test_milestone_status_change_with_cross_chain_eth_usdc() {
+   
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let approver_address = Address::generate(&env);
+    let service_provider_address = Address::generate(&env);
+    let admin = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer_address = Address::generate(&env);
+    let dispute_resolver_address = Address::generate(&env);
+    let receiver_address = service_provider_address.clone();
+
+    let amount: i128 = 10_000_000;
+    let platform_fee = 300;
+
+    let (token_client, token_admin) = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Work package 1 - Cross Chain"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approved: false,
+        },
+    ];
+
+    let roles: Roles = Roles {
+        approver: approver_address.clone(),
+        service_provider: service_provider_address.clone(),
+        platform: platform.clone(),
+        release_signer: release_signer_address.clone(),
+        dispute_resolver: dispute_resolver_address.clone(),
+        receiver: receiver_address.clone(),
+    };
+
+    let flags: Flags = Flags {
+        disputed: false,
+        released: false,
+        resolved: false,
+    };
+
+    let trustline: Trustline = Trustline {
+        address: token_client.address.clone(),
+    };
+
+    let eth_recipient_bytes: [u8; 32] = [
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x18, 0xC3, 0x85, 0xB1,
+        0x74, 0x8a, 0xe2, 0x57, 0x17, 0x94, 0x83, 0x56,
+        0x4A, 0x5F, 0xB1, 0x1b, 0xc5, 0xC1, 0x8A, 0xb7,
+    ];
+    let recipient_bytes_n = BytesN::<32>::from_array(&env, &eth_recipient_bytes);
+
+    // Cross-chain configuration for Ethereum (domain 0)
+    let cross_chain_receiver = CrossChainReceiver {
+        destination_domain: 0, // Ethereum domain
+        recipient: recipient_bytes_n.clone(),
+    };
+
+    let engagement_id = String::from_str(&env, "e2e-cross-chain-eth-test");
+    let escrow_properties: Escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "E2E Cross-Chain ETH USDC Test"),
+        description: String::from_str(&env, "Test milestone status change with cross-chain ETH receiver"),
+        roles: roles.clone(),
+        amount: amount,
+        platform_fee: platform_fee,
+        milestones: initial_milestones.clone(),
+        flags: flags.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+        cross_chain_receiver: CrossChainReceiverOption::Some(cross_chain_receiver.clone()),
+    };
+
+    let test_data = create_escrow_contract(&env);
+    let escrow_client = test_data.client;
+
+    escrow_client.initialize_escrow(&escrow_properties);
+    
+    let initialized_escrow = escrow_client.get_escrow();
+    assert_eq!(initialized_escrow.milestones.get(0).unwrap().status, String::from_str(&env, "Pending"));
+    assert!(!initialized_escrow.milestones.get(0).unwrap().approved);
+
+    match &initialized_escrow.cross_chain_receiver {
+        CrossChainReceiverOption::Some(ccr) => {
+            assert_eq!(ccr.destination_domain, 0, "Should be Ethereum domain");
+            assert_eq!(ccr.recipient.to_array(), eth_recipient_bytes, "Should match ETH address");
+        }
+        CrossChainReceiverOption::None => {
+            panic!("Cross-chain receiver should be configured");
+        }
+    }
+
+    token_admin.mint(&approver_address, &amount);
+    escrow_client.fund_escrow(&approver_address, &escrow_properties, &amount);
+    
+    let funded_escrow = escrow_client.get_escrow();
+    assert_eq!(funded_escrow.engagement_id, engagement_id);
+    assert_eq!(funded_escrow.milestones.len(), 1);
+
+    let new_status = String::from_str(&env, "Completed");
+    let new_evidence = Some(String::from_str(&env, "Work submitted - ready for cross-chain release"));
+    
+    escrow_client.change_milestone_status(
+        &0,
+        &new_status,
+        &new_evidence,
+        &service_provider_address,
+    );
+
+    let after_status_change = escrow_client.get_escrow();
+    assert_eq!(after_status_change.milestones.get(0).unwrap().status, new_status);
+    assert_eq!(
+        after_status_change.milestones.get(0).unwrap().evidence,
+        String::from_str(&env, "Work submitted - ready for cross-chain release")
+    );
+    assert!(!after_status_change.milestones.get(0).unwrap().approved, "Should not be approved yet");
+
+    match &after_status_change.cross_chain_receiver {
+        CrossChainReceiverOption::Some(ccr) => {
+            assert_eq!(ccr.destination_domain, 0, "ETH domain should persist");
+            assert_eq!(ccr.recipient.to_array(), eth_recipient_bytes, "ETH address should persist");
+        }
+        CrossChainReceiverOption::None => {
+            panic!("Cross-chain receiver should still be configured after status change");
+        }
+    }
+
+    escrow_client.approve_milestone(&0, &approver_address);
+
+    let after_approval = escrow_client.get_escrow();
+    assert!(after_approval.milestones.get(0).unwrap().approved, "Milestone should be approved");
+    assert_eq!(after_approval.milestones.get(0).unwrap().status, new_status, "Status should remain unchanged");
+    assert_eq!(
+        after_approval.milestones.get(0).unwrap().evidence,
+        String::from_str(&env, "Work submitted - ready for cross-chain release"),
+        "Evidence should remain unchanged"
+    );
+
+    match &after_approval.cross_chain_receiver {
+        CrossChainReceiverOption::Some(ccr) => {
+            assert_eq!(ccr.destination_domain, 0, "ETH domain should persist after approval");
+            assert_eq!(ccr.recipient.to_array(), eth_recipient_bytes, "ETH address should persist after approval");
+        }
+        CrossChainReceiverOption::None => {
+            panic!("Cross-chain receiver should still be configured after milestone approval");
+        }
+    }
+
+    assert_eq!(after_approval.engagement_id, engagement_id);
+    assert_eq!(after_approval.amount, amount);
+    assert_eq!(after_approval.platform_fee, platform_fee);
+    assert_eq!(after_approval.roles.service_provider, service_provider_address);
+    assert_eq!(after_approval.roles.approver, approver_address);
+    assert!(!after_approval.flags.disputed);
+    assert!(!after_approval.flags.released);
+    assert!(!after_approval.flags.resolved);
+   
+    assert!(after_approval.amount > 0, "Amount should be set");
+    assert!(after_approval.milestones.get(0).unwrap().approved, "Milestone approved");
+    assert_eq!(after_approval.milestones.get(0).unwrap().status, new_status);
 }
