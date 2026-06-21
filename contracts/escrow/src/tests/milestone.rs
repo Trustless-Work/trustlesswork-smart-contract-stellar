@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline,CrossChainReceiverOption};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -70,7 +70,7 @@ fn test_append_milestones_with_funds() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -106,7 +106,7 @@ fn test_append_milestones_with_funds() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     escrow_approver.update_escrow(&platform, &updated_escrow_properties);
@@ -206,7 +206,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -246,7 +246,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     escrow_client.update_escrow(&platform, &updated_escrow_properties);
@@ -351,7 +351,7 @@ fn test_change_milestone_status_and_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);

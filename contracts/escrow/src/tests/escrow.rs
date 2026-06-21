@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline,CrossChainReceiverOption};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -69,7 +69,7 @@ fn test_initialize_excrow() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -84,10 +84,7 @@ fn test_initialize_excrow() {
         escrow.roles.service_provider,
         escrow_properties.roles.service_provider
     );
-    assert_eq!(
-        escrow.roles.platform,
-        escrow_properties.roles.platform
-    );
+    assert_eq!(escrow.roles.platform, escrow_properties.roles.platform);
     assert_eq!(escrow.amount, amount);
     assert_eq!(escrow.platform_fee, platform_fee);
     assert_eq!(escrow.milestones, escrow_properties.milestones);
@@ -171,7 +168,7 @@ fn test_update_escrow() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -213,12 +210,11 @@ fn test_update_escrow() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     // Update escrow properties
-    let _updated_escrow =
-        escrow_approver.update_escrow(&platform, &updated_escrow_properties);
+    let _updated_escrow = escrow_approver.update_escrow(&platform, &updated_escrow_properties);
 
     // Verify updated escrow properties
     let escrow = escrow_approver.get_escrow();
@@ -246,8 +242,7 @@ fn test_update_escrow() {
 
     // Try to update escrow properties without platform address (should fail)
     let non_platform = Address::generate(&env);
-    let result =
-        escrow_approver.try_update_escrow(&non_platform, &updated_escrow_properties);
+    let result = escrow_approver.try_update_escrow(&non_platform, &updated_escrow_properties);
     assert!(result.is_err());
 }
 
@@ -308,7 +303,7 @@ fn test_update_escrow_platform_fee_too_high() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -327,7 +322,7 @@ fn test_update_escrow_platform_fee_too_high() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let res = client.try_update_escrow(&platform, &invalid_update);
@@ -393,7 +388,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);

@@ -2,7 +2,7 @@ use soroban_sdk::BytesN;
 
 use crate::error::ContractError;
 use crate::modules::cctp::constants::is_valid_cctp_destination_domain;
-use crate::storage::types::{is_cross_chain_configured, CrossChainReceiver};
+use crate::storage::types::CrossChainReceiverOption;
 
 #[inline]
 pub fn is_zero_bytes32(bytes: &BytesN<32>) -> bool {
@@ -11,19 +11,21 @@ pub fn is_zero_bytes32(bytes: &BytesN<32>) -> bool {
 
 #[inline]
 pub fn validate_cross_chain_receiver(
-    receiver: &CrossChainReceiver,
+    receiver: &CrossChainReceiverOption,
 ) -> Result<(), ContractError> {
-    if !is_cross_chain_configured(receiver) {
-        return Ok(());
-    }
+    match receiver {
+        CrossChainReceiverOption::None => Ok(()),
 
-    if !is_valid_cctp_destination_domain(receiver.destination_domain) {
-        return Err(ContractError::InvalidCctpDestinationDomain);
-    }
+        CrossChainReceiverOption::Some(receiver) => {
+            if !is_valid_cctp_destination_domain(receiver.destination_domain) {
+                return Err(ContractError::InvalidCctpDestinationDomain);
+            }
 
-    if is_zero_bytes32(&receiver.recipient) {
-        return Err(ContractError::InvalidCctpRecipient);
-    }
+            if is_zero_bytes32(&receiver.recipient) {
+                return Err(ContractError::InvalidCctpRecipient);
+            }
 
-    Ok(())
+            Ok(())
+        }
+    }
 }

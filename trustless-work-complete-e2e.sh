@@ -443,6 +443,29 @@ step_10_attestation() {
             
             log "Message: $MESSAGE"
             log "Attestation: $ATTESTATION"
+
+             echo ""
+            echo "═══════════════════════════════════════════════════════════════════"
+            echo "STEP 11 - MINT USDC ON SEPOLIA"
+            echo "═══════════════════════════════════════════════════════════════════"
+            echo ""
+            echo "Open:"
+            echo "https://sepolia.etherscan.io/address/0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275#writeProxyContract#F6"
+            echo ""
+            echo "Call function:"
+            echo "receiveMessage(bytes message, bytes attestation)"
+            echo ""
+            echo "MESSAGE:"
+            echo "$MESSAGE"
+            echo ""
+            echo "ATTESTATION:"
+            echo "$ATTESTATION"
+            echo ""
+            echo "Paste the MESSAGE value into the message field"
+            echo "Paste the ATTESTATION value into the attestation field"
+            echo "Connect your wallet and submit the transaction"
+            echo ""
+            echo "═══════════════════════════════════════════════════════════════════"
             
             ATTESTATION_FOUND=1
             return 0

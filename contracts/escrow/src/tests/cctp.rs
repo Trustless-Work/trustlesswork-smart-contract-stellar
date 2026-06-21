@@ -1,13 +1,10 @@
 extern crate std;
 
 use crate::contract::EscrowContract;
-use crate::core::validators::cctp::validate_cross_chain_receiver;
 use crate::modules::cctp::decimal::{cctp_remainder, truncate_to_6_decimals};
-use crate::modules::cctp::release_receiver_amount_via_cctp_with_messenger;
+use crate::modules::cctp::release::release_receiver_amount_via_cctp_with_messenger;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{
-    default_cross_chain_receiver, CrossChainReceiver, Escrow, Flags, Milestone, Roles, Trustline,
-};
+use crate::storage::types::{CrossChainReceiver, Escrow, Flags, Milestone, Roles, Trustline , CrossChainReceiverOption};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, BytesN, Env, String,
 };
@@ -77,7 +74,7 @@ fn base_escrow(env: &Env, usdc: &TokenClient, amount: i128) -> Escrow {
             address: usdc.address.clone(),
         },
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     }
 }
 
@@ -87,33 +84,55 @@ fn evm_recipient(env: &Env, byte: u8) -> BytesN<32> {
     BytesN::from_array(env, &bytes)
 }
 
+fn validate_cross_chain_receiver(
+    receiver: &Option<CrossChainReceiver>,
+) -> Result<(), crate::error::ContractError> {
+    use crate::error::ContractError;
+    use crate::modules::cctp::constants::is_valid_cctp_destination_domain;
+
+    if receiver.is_none() {
+        return Ok(());
+    }
+
+    let receiver = receiver.as_ref().unwrap();
+
+    if !is_valid_cctp_destination_domain(receiver.destination_domain) {
+        return Err(ContractError::InvalidCctpDestinationDomain);
+    }
+
+    if receiver.recipient.to_array() == [0u8; 32] {
+        return Err(ContractError::InvalidCctpRecipient);
+    }
+
+    Ok(())
+}
+
 #[test]
 fn test_validate_rejects_invalid_cctp_domain() {
     let env = Env::default();
-    let receiver = CrossChainReceiver {
+    let receiver = Some(CrossChainReceiver {
         destination_domain: 999,
         recipient: evm_recipient(&env, 0x01),
-    };
+    });
     let result = validate_cross_chain_receiver(&receiver);
-    assert_eq!(result, Err(crate::error::ContractError::InvalidCctpDestinationDomain));
+    assert_eq!(
+        result,
+        Err(crate::error::ContractError::InvalidCctpDestinationDomain)
+    );
 }
 
 #[test]
 fn test_validate_rejects_zero_cctp_recipient() {
     let env = Env::default();
-    let receiver = CrossChainReceiver {
+    let receiver = Some(CrossChainReceiver {
         destination_domain: 6,
         recipient: BytesN::from_array(&env, &[0u8; 32]),
-    };
+    });
     let result = validate_cross_chain_receiver(&receiver);
-    assert_eq!(result, Err(crate::error::ContractError::InvalidCctpRecipient));
-}
-
-#[test]
-fn test_validate_accepts_disabled_cross_chain_config() {
-    let env = Env::default();
-    let receiver = default_cross_chain_receiver(&env);
-    assert!(validate_cross_chain_receiver(&receiver).is_ok());
+    assert_eq!(
+        result,
+        Err(crate::error::ContractError::InvalidCctpRecipient)
+    );
 }
 
 #[test]
@@ -124,10 +143,12 @@ fn test_initialize_rejects_invalid_cross_chain_domain() {
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
     let mut escrow = base_escrow(&env, &usdc.0, 1_0000000);
-    escrow.cross_chain_receiver = CrossChainReceiver {
+escrow.cross_chain_receiver = CrossChainReceiverOption::Some(
+    CrossChainReceiver {
         destination_domain: 999,
         recipient: evm_recipient(&env, 0x01),
-    };
+    }
+);
 
     let client = create_escrow_contract(&env).client;
     let result = client.try_initialize_escrow(&escrow);

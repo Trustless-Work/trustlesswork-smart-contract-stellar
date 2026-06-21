@@ -1,12 +1,12 @@
 use crate::modules::cctp::constants::STELLAR_TO_CCTP_DECIMAL_FACTOR;
 
-/// Truncates a 7-decimal Stellar USDC amount to 6-decimal CCTP burn units (floor).
+/// truncates a 7-decimal stellar USDC amount to 6-decimal CCTP burn units
 #[inline]
 pub fn truncate_to_6_decimals(amount_7dec: i128) -> i128 {
     (amount_7dec / STELLAR_TO_CCTP_DECIMAL_FACTOR) * STELLAR_TO_CCTP_DECIMAL_FACTOR
 }
 
-/// Returns the 7th-decimal remainder after CCTP truncation.
+/// returns the 7th-decimal remainder after CCTP truncation
 #[inline]
 pub fn cctp_remainder(amount_7dec: i128) -> i128 {
     amount_7dec - truncate_to_6_decimals(amount_7dec)

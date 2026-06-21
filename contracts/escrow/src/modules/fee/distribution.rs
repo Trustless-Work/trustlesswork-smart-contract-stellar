@@ -1,8 +1,8 @@
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::{Address, Env, Map, Vec};
 
-use crate::error::ContractError;
 use super::StandardFeeResult;
+use crate::error::ContractError;
 use crate::modules::math::{BasicArithmetic, BasicMath};
 
 pub fn calculate_and_distribute_fees(
@@ -25,10 +25,8 @@ pub fn calculate_and_distribute_fees(
                 BasicMath::safe_mul(amount, fee_result.trustless_work_fee)?,
                 total,
             )?;
-            let recipient_platform_fee = BasicMath::safe_div(
-                BasicMath::safe_mul(amount, fee_result.platform_fee)?,
-                total,
-            )?;
+            let recipient_platform_fee =
+                BasicMath::safe_div(BasicMath::safe_mul(amount, fee_result.platform_fee)?, total)?;
 
             let total_recipient_fee =
                 BasicMath::safe_add(recipient_trustless_fee, recipient_platform_fee)?;
@@ -46,7 +44,11 @@ pub fn calculate_and_distribute_fees(
     }
 
     if actual_trustless_fees > 0 {
-        token_client.transfer(contract_address, trustless_work_address, &actual_trustless_fees);
+        token_client.transfer(
+            contract_address,
+            trustless_work_address,
+            &actual_trustless_fees,
+        );
     }
     if actual_platform_fees > 0 {
         token_client.transfer(contract_address, platform_address, &actual_platform_fees);

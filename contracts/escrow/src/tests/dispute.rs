@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline ,CrossChainReceiverOption};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -64,7 +64,7 @@ fn test_dispute_management() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -153,7 +153,7 @@ fn test_dispute_resolution_process() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -307,7 +307,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -394,7 +394,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -414,12 +414,12 @@ fn test_resolve_dispute_rounding_edge_case() {
     distributions.set(service_provider.clone(), 50_002);
 
     // This must NOT revert (old code would fail here due to insufficient balance)
-    let result = client.try_resolve_dispute(
-        &dispute_resolver,
-        &trustless_work_address,
-        &distributions,
+    let result =
+        client.try_resolve_dispute(&dispute_resolver, &trustless_work_address, &distributions);
+    assert!(
+        result.is_ok(),
+        "resolve_dispute should handle fee rounding correctly"
     );
-    assert!(result.is_ok(), "resolve_dispute should handle fee rounding correctly");
 
     // Verify contract has no negative balance and all funds were distributed
     let final_balance = usdc_token.0.balance(&client.address);

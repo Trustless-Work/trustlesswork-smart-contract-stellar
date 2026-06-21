@@ -1,14 +1,8 @@
 use soroban_sdk::{contractclient, Address, BytesN, Env};
 
-/// Soroban client for Circle's `TokenMessengerMinter` contract on Stellar.
-///
-/// Interface source: https://github.com/circlefin/stellar-cctp
-/// (`contracts/token-messenger-minter-v2`)
+#[allow(dead_code)]
 #[contractclient(name = "TokenMessengerMinterClient")]
 pub trait TokenMessengerMinter {
-    /// Burns USDC from `caller` and emits a cross-chain CCTP message.
-    ///
-    /// `caller` must authorize this call and approve `burn_token` spending beforehand.
     fn deposit_for_burn(
         e: &Env,
         caller: Address,

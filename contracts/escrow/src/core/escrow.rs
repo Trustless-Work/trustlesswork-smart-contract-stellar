@@ -8,7 +8,7 @@ use crate::core::validators::escrow::{
 use crate::error::ContractError;
 use crate::modules::cctp::release_receiver_amount_via_cctp;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
-use crate::storage::types::{is_cross_chain_configured, AddressBalance, DataKey, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow , CrossChainReceiverOption};
 
 pub struct EscrowManager;
 
@@ -82,31 +82,34 @@ impl EscrowManager {
 
         if fee_result.platform_fee > 0 {
             token_client.transfer(
-            &contract_address,
-            &escrow.roles.platform,
-            &fee_result.platform_fee,
+                &contract_address,
+                &escrow.roles.platform,
+                &fee_result.platform_fee,
             );
         }
 
         let receiver = Self::get_receiver(&escrow);
         if fee_result.receiver_amount > 0 {
-            if is_cross_chain_configured(&escrow.cross_chain_receiver) {
-                release_receiver_amount_via_cctp(
-                    e,
-                    &token_client,
-                    &contract_address,
-                    &escrow.trustline.address,
-                    fee_result.receiver_amount,
-                    &escrow.cross_chain_receiver,
-                    &receiver,
-                )?;
-            } else {
-                token_client.transfer(
-                    &contract_address,
-                    &receiver,
-                    &fee_result.receiver_amount,
-                );
-            }
+           match &escrow.cross_chain_receiver {
+    CrossChainReceiverOption::Some(ccr) => {
+        release_receiver_amount_via_cctp(
+            e,
+            &token_client,
+            &contract_address,
+            &escrow.trustline.address,
+            fee_result.receiver_amount,
+            ccr,
+            &receiver,
+        )?;
+    }
+    CrossChainReceiverOption::None => {
+        token_client.transfer(
+            &contract_address,
+            &receiver,
+            &fee_result.receiver_amount,
+        );
+    }
+}
         }
 
         Ok(())

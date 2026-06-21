@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::storage::types::{default_cross_chain_receiver, Escrow, Flags, Milestone, Roles, Trustline};
+use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline , CrossChainReceiverOption};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
@@ -66,7 +66,7 @@ fn test_fund_escrow_successful_deposit() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -165,7 +165,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -253,7 +253,7 @@ fn test_release_funds_successful_flow() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -373,7 +373,7 @@ fn test_release_funds_milestones_incomplete() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -454,7 +454,7 @@ fn test_release_funds_same_receiver_as_provider() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -564,7 +564,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         flags,
         trustline,
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -674,7 +674,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
-        cross_chain_receiver: default_cross_chain_receiver(&env),
+        cross_chain_receiver: CrossChainReceiverOption::None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -690,7 +690,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         &0,
         &String::from_str(&env, "Completed"),
         &Some(String::from_str(&env, "Done")),
-        &service_provider
+        &service_provider,
     );
 
     client.approve_milestone(&0, &approver);
@@ -719,7 +719,10 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         &trustless_work_address,
         &distributions,
     );
-    assert!(result.is_ok(), "withdraw_remaining_funds should handle fee rounding correctly");
+    assert!(
+        result.is_ok(),
+        "withdraw_remaining_funds should handle fee rounding correctly"
+    );
 
     // Verify the contract didn't underflow
     let final_balance = usdc_token.0.balance(&client.address);
