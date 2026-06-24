@@ -1,166 +1,156 @@
 ## TEST-03 — Batch Operations: Atomicity and Partial Failure Behavior — Results
 
-Validated against the **Multi-Release V2** contract (`feat/multi-release-v2`) with a
-reproducible Rust integration suite — `contracts/escrow/src/tests/batch_atomicity.rs` —
-run in the Soroban test environment (`soroban-sdk` 26.0.0). Each scenario deploys a fresh
-escrow, drives it to the failure condition described in the issue, asserts the **exact
-`#[contracterror]`** the contract returns, and then reads the escrow back
-(`get_escrow`) plus the relevant token balances to prove that *nothing* was partially
-applied. Reproduce with:
+Tested two ways, and they agree:
 
-```
-cargo test -p escrow batch_atomicity::
-```
-
-**Why this method for an atomicity test.** The single most important question here —
-"did the batch apply partial changes before failing?" — is answered most reliably by
-inspecting post-failure contract state deterministically, which is exactly what these
-tests do. The amounts use the token's smallest unit (USDC, 7 decimals, so
-`10_000_000` units = `1.0000000` USDC) and are multiples of `10_000`, so every fee split
-is exact with no rounding ambiguity.
-
-**Scope / caveat.** This is a **contract-level** verification of atomicity, not a live
-HTTP-API run, so there are no on-chain transaction hashes below. It proves the on-chain
-logic is atomic. It does **not** exercise the API serialization layer — in particular how
-the API renders these error codes, and how it handles a literal `milestone_index: []`.
-TEST-01 already found the API can surface a *misleading* message for an unrelated case, so
-the API-layer wording for these errors should still be confirmed on Testnet with the
-provided credentials. See "API-layer follow-ups" at the end.
+1. **Black-box against the deployed Testnet API** (`/escrow/multi-release/v2/*`),
+   authenticating with `x-api-key`, signing each returned `unsignedXdr` client-side, and
+   submitting via `/stellar/send-transaction`. Every scenario uses a **fresh escrow**. The
+   token is **native XLM** (testnet SAC `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`,
+   7 decimals), chosen so no classic trustlines are needed; amounts are checked to the
+   smallest unit (stroop). After each failing call I re-read the escrow
+   (`GET /escrow/multi-release/v2/{contractId}`) and the affected receivers' on-chain
+   balances to confirm nothing was partially applied.
+2. **Reproducible contract-level Rust tests** — `contracts/escrow/src/tests/batch_atomicity.rs`
+   (run with `cargo test -p escrow batch_atomicity::`). These assert the exact
+   `#[contracterror]` and read state/balances back deterministically. They are the
+   complementary, re-runnable proof behind the on-chain runs below.
 
 **Summary:** A Pass · B Pass · C Pass · D Pass · E Pass · F Pass.
 **Every scenario was atomic. No case applied partial changes before failing.**
 
-The mechanism is the same across all three batch entry points: each one runs a
-`validate_batch_*` pass over the **entire** index set first, then mutates an in-memory copy
-of the escrow, then commits it with a **single** `storage.set`. Any failure returns before
-that single write, so partial application is structurally impossible. Soroban's
-transaction-level rollback (a returned `Err` reverts all storage in the call) is a second
-line of defense.
+Notes up front:
+- **`platformFee` is a percent at the API layer** (sending `5` = 5% = 500 bps on-chain),
+  consistent with TEST-01.
+- The batch ops return a descriptive error and roll back entirely; the contract validates
+  the *whole* index set before mutating, then writes once, so there is no partial-write
+  window.
+- **Scenario E finding:** an empty `milestoneIndexes` is rejected by the API's request
+  validation (`HTTP 400`, before the contract is reached), not by the contract's own
+  empty-batch errors — see Scenario E.
+
+All transaction hashes are on Testnet; links go to stellar.expert.
 
 ---
 
 ```
 Scenario A — Batch approve with an out-of-range index:
-- Action executed: approve_milestones(milestone_index=[0, 1, 99], approver)
-  on a funded escrow of 3 milestones (M0, M1, M2), all status "Completed".
+- Action executed: POST /escrow/multi-release/v2/approve-milestones
+    { contractId, approver, milestoneIndexes: [0, 1, 99] }
+  on a funded 3-milestone escrow (M0, M1, M2), each amount 10 XLM, approvalsTarget 1.
 - Expected result: whole batch rejected; M0 and M1 NOT approved.
-- Actual result: rejected with MilestoneToApproveDoesNotExist. After the call,
-  every milestone still has approval_count = 0 and approved_by = [].
-- Was the operation atomic? YES. M0 and M1 were not partially approved.
-- Error received: MilestoneError::MilestoneToApproveDoesNotExist  ->  Error(Contract, #6)
+- Actual result: rejected at build/simulate. M0, M1, M2 all still approvalCount = 0.
+- Was the operation atomic? YES.
+- Error received: HTTP 404  ESCROW_MILESTONE_TO_APPROVE_DOES_NOT_EXIST
+    "Milestone to approve does not exist."
 - Wallet balances of affected receivers: N/A (approve moves no funds).
-- Escrow state after the call: milestones[0..3].approvals.approval_count = 0,
-  approved_by empty for all.
-- Transaction hash: N/A (contract-level test).
+- Escrow state after the call: milestones[0..3].approvals.approvalCount = 0.
+- Contract: CDUVSJX4HOR3GMVW5PTCZQKSVFTWZYML3V376O6E5RDWEMHFH22VGCNI
+- Transaction hashes:
+    deploy 02cb959a8f200fd1b14b4382c328657c6445c1f5eb6848e35076ff3cd05517fc
+    fund   57ca61fd0056163968ef49f68a5fa8a499dba4b01fba5717365ce2c79ae67768
+    (the approve call never produced a transaction — rejected before signing)
 - Result: Pass
 - Bug description: None.
 ```
 
 ```
 Scenario B — Batch release with one unapproved milestone:
-- Action executed: approve_milestones([0, 2]) (M1 left unapproved), then
-  release_funds(milestone_index=[0, 1, 2], release_signer, trustless_work).
+- Action executed: approve-milestones [0, 2] (M1 left unapproved), then
+    POST /escrow/multi-release/v2/release-funds { contractId, releaseSigner, milestoneIndexes: [0,1,2] }.
 - Expected result: entire batch fails; no funds transferred for M0 or M2.
-- Actual result: rejected with EscrowNotCompleted. No milestone released; all three
-  receivers still hold 0; contract balance unchanged at the funded total; TW = 0; platform = 0.
+- Actual result: rejected. No milestone released; all three receiver balances unchanged.
 - Was the operation atomic? YES. M0 and M2 were NOT released despite being approved.
-- Error received: ReleaseError::EscrowNotCompleted  ->  Error(Contract, #7)
-- Wallet balances of affected receivers (before -> after):
-    M0 receiver: 0 -> 0
-    M2 receiver: 0 -> 0
-    contract:    30_000_000 -> 30_000_000 (unchanged)
-- Escrow state after the call: milestones[0..3].released = false.
-- Transaction hash: N/A (contract-level test).
+- Error received: HTTP 409  ESCROW_NOT_COMPLETED
+    "Targeted milestone has pending approvals; release cannot proceed."
+- Wallet balances of affected receivers (delta across the failed call): M0 = 0, M1 = 0, M2 = 0.
+- Escrow state after the call: released = [false, false, false];
+    approvalCount = [1, 0, 1] (M0/M2 approved, M1 not).
+- Contract: CDEVWCZMQTNBY2A26AIA6WYUNZYJXEE2FNBBNYWSNLBO6C4QK2BARWDF
+- Transaction hash: none (release rejected before signing).
 - Result: Pass
-- Bug description: None. The release validator checks every index up front
-  (approval, dispute, resolved, released) before any auth or transfer.
+- Bug description: None.
 ```
 
 ```
 Scenario C — Batch release with one already-released milestone:
-- Action executed: approve_milestones([0, 1, 2]); release_funds([0]) individually;
-  then release_funds(milestone_index=[0, 1, 2]) again (M0 already released).
+- Action executed: approve-milestones [0,1,2]; release-funds [0] (individual, succeeds);
+    then release-funds [0,1,2] (M0 already released).
 - Expected result: the error on M0 prevents release of M1 and M2.
-- Actual result: rejected with MilestoneAlreadyReleased. M1 and M2 remain unreleased
-  and their receivers hold 0; M0's receiver balance is unchanged from the individual release.
-- Was the operation atomic? YES. M1 and M2 were not released by the failed batch.
-- Error received: ReleaseError::MilestoneAlreadyReleased  ->  Error(Contract, #8)
-- Wallet balances of affected receivers (before -> after the failed batch):
-    M0 receiver: 9_470_000 -> 9_470_000 (from the prior individual release; unchanged)
-    M1 receiver: 0 -> 0
-    M2 receiver: 0 -> 0
-    contract:    20_000_000 -> 20_000_000 (only M0's 10_000_000 ever left)
-- Escrow state after the call: M0.released = true, M1.released = false, M2.released = false.
-- Transaction hash: N/A (contract-level test).
+- Actual result: rejected. M1 and M2 remain unreleased; their receivers received nothing;
+    M0's receiver balance unchanged by the failed batch.
+- Was the operation atomic? YES.
+- Error received: HTTP 409  ESCROW_MILESTONE_ALREADY_RELEASED
+    "Targeted milestone was already released."
+- Wallet balances of affected receivers (delta across the failed batch): M0 = 0, M1 = 0, M2 = 0.
+- Escrow state after the call: released = [true, false, false].
+- Contract: CAKZII5JBV3LJPWE56R5376U7YK2BTVDAZ7FWQ3LWJKHKDOVTCFG5IFZ
+- Transaction hashes:
+    release M0 (individual) eec9084301b6036b2d1767ad761e904b4018900e39bcaf33b7f9620392dcac70
+    (the batch release never produced a transaction — rejected before signing)
 - Result: Pass
 - Bug description: None.
 ```
 
 ```
 Scenario D — Batch release of all milestones simultaneously:
-- Action executed: 5 milestones with amounts 10/20/30/40/50 (x1e7 units), platform_fee 5%,
-  all approved, then release_funds(milestone_index=[0, 1, 2, 3, 4]) in one call.
-- Expected result: confirms in a single transaction; each receiver gets the correct net.
-- Actual result: success. Per-milestone net amounts are exact and the contract drains to 0.
-    M0: net 9_470_000   (tw 30_000,  platform 500_000)
-    M1: net 18_940_000  (tw 60_000,  platform 1_000_000)
-    M2: net 28_410_000  (tw 90_000,  platform 1_500_000)
-    M3: net 37_880_000  (tw 120_000, platform 2_000_000)
-    M4: net 47_350_000  (tw 150_000, platform 2_500_000)
-    TW total 450_000 · platform total 7_500_000 · receivers total 142_050_000  (sums to 150_000_000)
-- Was the operation atomic? YES (success path). All five released in one call.
+- Action executed: 5 milestones amounts 10 / 20 / 30 / 40 / 50 XLM, platformFee 5%, all
+    approved, then POST /escrow/multi-release/v2/release-funds { milestoneIndexes: [0,1,2,3,4] }.
+- Expected result: confirms in a single transaction, no Soroban resource-limit error,
+    each receiver gets the correct net.
+- Actual result: confirmed (HTTP 200, no resource error). Receiver balance deltas (stroops):
+    M0  94,700,000   (9.47 XLM)   expected 94,700,000
+    M1 189,400,000  (18.94 XLM)   expected 189,400,000
+    M2 284,100,000  (28.41 XLM)   expected 284,100,000
+    M3 378,800,000  (37.88 XLM)   expected 378,800,000
+    M4 473,500,000  (47.35 XLM)   expected 473,500,000
+  Platform fee delta 75,000,000 (7.5 XLM) = expected. Every milestone released.
+  Fee model per milestone: tw = amount*30/10000 (0.3%), platform = amount*5/100 (5%).
+- Was the operation atomic? YES (success path); all five released in one transaction.
 - Error received: None.
-- Wallet balances: each receiver credited exactly its net (see above); contract = 0 after.
-- Escrow state after the call: milestones[0..5].released = true.
-- Transaction hash: N/A (contract-level test).
+- Escrow state after the call: released = [true, true, true, true, true].
+- Contract: CC3PQRZRPCF2GGAJVJIKYUN3ACON7O6NHOOHWPMD7GMUPWGNB3ZXGC53
+- Transaction hash (release):
+    c4ede26a9fd2b4761ca8b4173b03164b0ff9863b4416f7504f47f2367877f946
 - Result: Pass
-- Note on Soroban resource limits: the test environment does not enforce on-chain CPU/mem
-  metering, so this confirms FUNCTIONAL correctness (each receiver gets the right amount) but
-  NOT that a 5-way release stays inside Soroban's resource budget on Testnet. That should be
-  confirmed on-network. Context: approve_milestones is capped at MAX_BATCH_SIZE = 50 and
-  dispute is capped at the milestone count, but release_funds has no explicit batch cap — it is
-  bounded only by the milestone count (<= 50 at init), so a 50-way release is the realistic
-  worst case to validate against the resource budget.
-- Bug description: None at the contract level.
+- Bug description: None. A 5-way release stays within Soroban resource limits on Testnet and
+  every receiver is paid to the exact stroop.
 ```
 
 ```
 Scenario E — Empty batch:
-- Action executed (three calls, each with milestone_index = []):
-    approve_milestones([])
-    release_funds([])
-    dispute_milestones([])
+- Action executed (three calls, each with milestoneIndexes = []):
+    POST approve-milestones [], POST release-funds [], POST dispute-milestones [].
 - Expected result: a descriptive error each, NOT a silent no-op.
-- Actual result: each returns a descriptive, distinct error. No state change occurs.
-    approve_milestones([]) -> MilestoneError::BatchMilestoneApproveEmpty  -> Error(Contract, #9)
-    release_funds([])      -> ReleaseError::ReleaseMilestonesEmpty        -> Error(Contract, #4)
-    dispute_milestones([]) -> EscrowError::BatchMilestoneDisputeEmpty     -> Error(Contract, #42)
+- Actual result: all three return HTTP 400 BAD_REQUEST
+    "milestoneIndexes must contain at least 1 elements". Escrow state unchanged.
 - Was the operation atomic? YES (trivially — no mutation; verified state unchanged).
-- Error received: see the three codes above. (release_funds matches the issue's
-  "ReleaseMilestonesEmpty" hint exactly.)
+- Error received: HTTP 400 BAD_REQUEST (request-validation layer) for all three endpoints.
 - Escrow state after the calls: no milestone approved, released, or disputed.
-- Transaction hash: N/A (contract-level test).
+- Contract: CBL4TESRQAFKFSHOIA45UONERZK4REB346IKE3R5NJ4SUAYR3H6BMPN3
+- Transaction hash: none (rejected before signing).
 - Result: Pass
-- Bug description: None — none of the three silently succeed.
-- Ordering nuance worth noting: release_funds checks the release-signer ROLE *before* the
-  empty-batch check. So an empty array sent by a NON-release-signer returns
-  OnlyReleaseSignerCanReleaseEarnings (#2), not ReleaseMilestonesEmpty (#4). From a valid
-  release signer it returns ReleaseMilestonesEmpty. (approve and dispute check empty first.)
+- Finding: the empty batch is caught by the API's DTO validation BEFORE the contract runs,
+  so the contract's own dedicated errors (ReleaseMilestonesEmpty / BatchMilestoneApproveEmpty /
+  BatchMilestoneDisputeEmpty — confirmed reachable in the Rust tests) are never surfaced over
+  the API. The outcome the issue asked about is still correct: a descriptive error, never a
+  silent success. Only the SOURCE of the error differs (API validation vs. contract).
 ```
 
 ```
 Scenario F — Batch dispute including an already-disputed milestone:
-- Action executed: dispute_milestones([0]) individually, then
-  dispute_milestones(milestone_index=[0, 1]) (M0 already in dispute).
+- Action executed: dispute-milestones [0] (individual, succeeds), then
+    POST /escrow/multi-release/v2/dispute-milestones { signer, milestoneIndexes: [0,1], reason }.
 - Expected result: entire batch fails atomically; M1 does NOT end up disputed.
-- Actual result: rejected with MilestoneAlreadyDisputed. M1 is not disputed; M0 stays
-  disputed; M2 untouched.
-- Was the operation atomic? YES. M1 was not disputed despite being valid.
-- Error received: EscrowError::MilestoneAlreadyDisputed  ->  Error(Contract, #43)
+- Actual result: rejected. M1 is not disputed; M0 stays disputed.
+- Was the operation atomic? YES.
+- Error received: HTTP 409  ESCROW_MILESTONE_ALREADY_DISPUTED
+    "Targeted milestone is already in dispute."
 - Wallet balances of affected receivers: N/A (dispute moves no funds).
-- Escrow state after the call: M0.dispute.is_disputed = true, M1.dispute.is_disputed = false,
-  M2.dispute.is_disputed = false.
-- Transaction hash: N/A (contract-level test).
+- Escrow state after the call: dispute.isDisputed = [true, false, false].
+- Contract: CBZWTZKZXR4NM4PSTHT7MEBSD45KRFHSWWY52WRNIWYOAHDX4E6OHNQQ
+- Transaction hashes:
+    dispute M0 (individual) ab257a4ddde1aa282a183ddb2c9d87450b1a4f56a5eb69bda2188e49d692734e
+    (the batch dispute never produced a transaction — rejected before signing)
 - Result: Pass
 - Bug description: None.
 ```
@@ -169,33 +159,31 @@ Scenario F — Batch dispute including an already-disputed milestone:
 
 ### Findings & answers to the issue's questions
 
-- **No partial-failure bug exists at the contract level.** All six scenarios are fully
-  atomic — in every failure case, *zero* milestones were mutated and *zero* funds moved.
-  This is the critical finding the issue asked to surface, and it is the safe outcome.
-- **Root cause of the atomicity guarantee:** every batch op (`approve_milestones`,
-  `release_funds`, `dispute_milestones`) validates the whole index set first, mutates an
-  in-memory copy, then writes once. The error always precedes the single `storage.set`, so
-  there is no window in which some milestones are persisted and others are not. Soroban's
-  transaction rollback backs this up.
-- **Empty batches are handled explicitly** with three distinct, descriptive errors
-  (`BatchMilestoneApproveEmpty`, `ReleaseMilestonesEmpty`, `BatchMilestoneDisputeEmpty`) —
-  no silent no-op. One subtlety: `release_funds` validates the release-signer role before the
-  empty check, so the exact code for an empty release depends on the caller's role.
-- **Exact error codes** (each `#[contracterror]` has its own discriminant space):
-  A `MilestoneToApproveDoesNotExist` #6 · B `EscrowNotCompleted` #7 ·
-  C `MilestoneAlreadyReleased` #8 · E `BatchMilestoneApproveEmpty` #9 /
-  `ReleaseMilestonesEmpty` #4 / `BatchMilestoneDisputeEmpty` #42 ·
-  F `MilestoneAlreadyDisputed` #43.
+- **No partial-failure bug.** All six scenarios are fully atomic — in every failure case
+  *zero* milestones were mutated and *zero* funds moved, confirmed both on-chain (state +
+  balance deltas) and in the contract-level Rust tests. This is the critical question the
+  issue raised, and the result is the safe one.
+- **Why it's atomic:** each batch entry point (`approve_milestones`, `release_funds`,
+  `dispute_milestones`) validates the entire index set first, mutates an in-memory copy, then
+  commits with a single `storage.set`. The error returns before that write, so there is no
+  partial-write window; Soroban's transaction rollback backs it up.
+- **Error reporting is accurate** for these batch ops — the API maps contract errors to
+  specific, correct codes: `ESCROW_MILESTONE_TO_APPROVE_DOES_NOT_EXIST` (404),
+  `ESCROW_NOT_COMPLETED` (409), `ESCROW_MILESTONE_ALREADY_RELEASED` (409),
+  `ESCROW_MILESTONE_ALREADY_DISPUTED` (409). (Unlike the misleading message TEST-01 found on
+  the fee-cap path.)
+- **Empty batches (Scenario E)** never silently succeed. They are rejected at the API
+  request-validation layer with `HTTP 400 "milestoneIndexes must contain at least 1
+  elements"`. Note this shadows the contract's own empty-batch errors, which the Rust tests
+  confirm are otherwise reachable (`ReleaseMilestonesEmpty` #4, `BatchMilestoneApproveEmpty`
+  #9, `BatchMilestoneDisputeEmpty` #42).
+- **Scenario D** confirms a full 5-way release confirms in one transaction within Soroban's
+  resource budget, with each receiver paid the exact net amount.
 
-### API-layer follow-ups (need the Testnet credentials)
+### Reproducibility
 
-These can't be answered by contract tests and are worth a quick live-API pass:
-
-1. **Error mapping.** Confirm the API surfaces the codes above with accurate messages.
-   TEST-01 already caught the API returning *"One of the selected milestones to approve does
-   not exist"* for an over-cap platform fee — so don't assume the message matches the cause.
-2. **Empty array over the wire.** Confirm `milestone_index: []` reaches the contract as an
-   empty `Vec` (and thus returns the empty-batch error) rather than being dropped or rejected
-   by request validation first.
-3. **Scenario D resource budget.** Confirm a large real release (up to the 50-milestone
-   bound) confirms on Testnet without hitting Soroban CPU/memory limits.
+- Contract-level: `cargo test -p escrow batch_atomicity::` (deterministic, no network/keys).
+- On-chain: a small Node harness builds each operation against the Testnet API, signs the
+  returned XDR with `@stellar/stellar-sdk`, and submits via `/stellar/send-transaction`. The
+  contract IDs and transaction hashes above are verifiable on
+  `https://stellar.expert/explorer/testnet`.
