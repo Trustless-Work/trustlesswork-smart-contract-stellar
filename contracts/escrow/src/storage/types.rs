@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
@@ -28,6 +28,14 @@ pub struct Escrow {
     pub released: bool,
     pub trustline: Trustline,
     pub receiver_memo: u32,
+}
+
+/// Cross-chain payout target, set only by the receiver.
+#[contracttype]
+#[derive(Clone, PartialEq, Eq)]
+pub struct CrossChainDestination {
+    pub destination_domain: u32,
+    pub mint_recipient: BytesN<32>,
 }
 
 #[contracttype]
@@ -105,4 +113,5 @@ pub enum DataKey {
     FundedAmount,
     Reentrancy,
     ApprovedWasmHash,
+    CrossChainDestination,
 }

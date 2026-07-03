@@ -55,6 +55,15 @@ pub enum EscrowError {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[contracterror]
+pub enum CctpError {
+    InvalidDestinationDomain = 1,
+    InvalidRecipient = 2,
+    OnlyReceiverCanSetDestination = 3,
+    DestinationNotSet = 4,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[contracterror]
 pub enum MilestoneError {
     NoMilestoneDefined = 1,
     InvalidMilestoneIndex = 2,

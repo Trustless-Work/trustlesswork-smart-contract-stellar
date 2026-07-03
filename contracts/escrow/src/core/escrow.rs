@@ -1,14 +1,17 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Symbol, Vec};
+use soroban_sdk::{Address, BytesN, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
     validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_conditions,
 };
-use crate::error::EscrowError;
+use crate::error::{CctpError, EscrowError};
+use crate::modules::cctp::release::{release_receiver_amount_via_cctp, validate_destination};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult};
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
+use crate::storage::types::{
+    AddressBalance, CrossChainDestination, DataKey, Escrow, Milestone, MilestoneUpdate,
+};
 
 pub struct EscrowManager;
 
@@ -128,10 +131,87 @@ impl EscrowManager {
 
         let receiver = Self::get_receiver(&escrow);
         if fee_result.receiver_amount > 0 {
-            token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+            // Route by the receiver's own registered preference.
+            match Self::get_cross_chain_destination_opt(e) {
+                Some(destination) => {
+                    release_receiver_amount_via_cctp(
+                        e,
+                        &token_client,
+                        &contract_address,
+                        &escrow.trustline.address,
+                        fee_result.receiver_amount,
+                        destination.destination_domain,
+                        &destination.mint_recipient,
+                        &receiver,
+                    );
+                }
+                None => {
+                    token_client.transfer(
+                        &contract_address,
+                        &receiver,
+                        &fee_result.receiver_amount,
+                    );
+                }
+            }
         }
 
         Ok((escrow, fee_result))
+    }
+
+    /// Registers the receiver's cross-chain payout target. Only the receiver.
+    pub fn set_cross_chain_destination(
+        e: &Env,
+        receiver: &Address,
+        destination_domain: u32,
+        mint_recipient: &BytesN<32>,
+    ) -> Result<(), CctpError> {
+        Self::assert_receiver(e, receiver)?;
+        receiver.require_auth();
+        validate_destination(destination_domain, mint_recipient)?;
+
+        let destination = CrossChainDestination {
+            destination_domain,
+            mint_recipient: mint_recipient.clone(),
+        };
+        e.storage()
+            .persistent()
+            .set(&DataKey::CrossChainDestination, &destination);
+        e.storage()
+            .persistent()
+            .extend_ttl(&DataKey::CrossChainDestination, 17280, 31536000);
+        Ok(())
+    }
+
+    /// Clears the cross-chain target, reverting to a Stellar payout.
+    pub fn clear_cross_chain_destination(
+        e: &Env,
+        receiver: &Address,
+    ) -> Result<(), CctpError> {
+        Self::assert_receiver(e, receiver)?;
+        receiver.require_auth();
+        e.storage()
+            .persistent()
+            .remove(&DataKey::CrossChainDestination);
+        Ok(())
+    }
+
+    pub fn get_cross_chain_destination(
+        e: &Env,
+    ) -> Result<CrossChainDestination, CctpError> {
+        Self::get_cross_chain_destination_opt(e).ok_or(CctpError::DestinationNotSet)
+    }
+
+    #[inline]
+    fn get_cross_chain_destination_opt(e: &Env) -> Option<CrossChainDestination> {
+        e.storage().persistent().get(&DataKey::CrossChainDestination)
+    }
+
+    fn assert_receiver(e: &Env, receiver: &Address) -> Result<(), CctpError> {
+        let escrow = Self::get_escrow(e).map_err(|_| CctpError::DestinationNotSet)?;
+        if *receiver != escrow.roles.receiver {
+            return Err(CctpError::OnlyReceiverCanSetDestination);
+        }
+        Ok(())
     }
 
     pub fn change_escrow_properties(

@@ -1,14 +1,14 @@
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
-use crate::error::{EscrowError, MilestoneError};
+use crate::error::{CctpError, EscrowError, MilestoneError};
 use crate::events::handler::{
     DisputeResolved, EscrowDisputed, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
     MilestoneStatusChanged, MilestonesApproved, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
 use crate::storage::types::{
-    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
-    MilestoneStatusUpdate, MilestoneUpdate,
+    AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow, Milestone,
+    MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
 };
 
 #[contract]
@@ -156,6 +156,37 @@ impl EscrowContract {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow(e)
+    }
+
+    ////////////////////////
+    // Cross-chain payout (receiver-controlled) /////
+    ////////////////////////
+
+    pub fn set_cross_chain_destination(
+        e: &Env,
+        receiver: Address,
+        destination_domain: u32,
+        mint_recipient: BytesN<32>,
+    ) -> Result<(), CctpError> {
+        EscrowManager::set_cross_chain_destination(
+            e,
+            &receiver,
+            destination_domain,
+            &mint_recipient,
+        )
+    }
+
+    pub fn clear_cross_chain_destination(
+        e: &Env,
+        receiver: Address,
+    ) -> Result<(), CctpError> {
+        EscrowManager::clear_cross_chain_destination(e, &receiver)
+    }
+
+    pub fn get_cross_chain_destination(
+        e: &Env,
+    ) -> Result<CrossChainDestination, CctpError> {
+        EscrowManager::get_cross_chain_destination(e)
     }
 
     pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {
