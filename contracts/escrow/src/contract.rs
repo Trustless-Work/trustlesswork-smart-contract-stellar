@@ -1,14 +1,14 @@
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
-use crate::error::{EscrowError, MilestoneError, ReleaseError};
+use crate::error::{CctpError, EscrowError, MilestoneError, ReleaseError};
 use crate::events::handler::{
     DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc, MilestoneStatusChanged,
     MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
 use crate::storage::types::{
-    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
-    MilestoneStatusUpdate, MilestoneUpdate,
+    AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow, Milestone,
+    MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
 };
 
 #[contract]
@@ -163,6 +163,41 @@ impl EscrowContract {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow(e)
+    }
+
+    ////////////////////////
+    // Cross-chain payout (per-milestone, receiver-controlled) /////
+    ////////////////////////
+
+    pub fn set_cross_chain_destination(
+        e: &Env,
+        receiver: Address,
+        milestone_index: u32,
+        destination_domain: u32,
+        mint_recipient: BytesN<32>,
+    ) -> Result<(), CctpError> {
+        EscrowManager::set_cross_chain_destination(
+            e,
+            &receiver,
+            milestone_index,
+            destination_domain,
+            &mint_recipient,
+        )
+    }
+
+    pub fn clear_cross_chain_destination(
+        e: &Env,
+        receiver: Address,
+        milestone_index: u32,
+    ) -> Result<(), CctpError> {
+        EscrowManager::clear_cross_chain_destination(e, &receiver, milestone_index)
+    }
+
+    pub fn get_cross_chain_destination(
+        e: &Env,
+        milestone_index: u32,
+    ) -> Result<CrossChainDestination, CctpError> {
+        EscrowManager::get_cross_chain_destination(e, milestone_index)
     }
 
     pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {

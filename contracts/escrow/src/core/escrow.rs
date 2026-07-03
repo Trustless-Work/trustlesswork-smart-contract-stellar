@@ -1,15 +1,17 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Symbol, Vec};
+use soroban_sdk::{Address, BytesN, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
     validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_milestones_conditions,
 };
-use crate::error::{EscrowError, ReleaseError};
+use crate::error::{CctpError, EscrowError, ReleaseError};
+use crate::modules::cctp::release::{release_receiver_amount_via_cctp, validate_destination};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::storage::types::{
-    AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate,
+    AddressBalance, CrossChainDestination, DataKey, Escrow, Milestone, MilestonePayout,
+    MilestoneUpdate,
 };
 
 pub struct EscrowManager;
@@ -153,7 +155,28 @@ impl EscrowManager {
 
             let receiver = Self::get_receiver(&milestone);
             if fee_result.receiver_amount > 0 {
-                token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
+                // Route by the milestone receiver's own registered preference.
+                match Self::get_cross_chain_destination_opt(e, index) {
+                    Some(destination) => {
+                        release_receiver_amount_via_cctp(
+                            e,
+                            &token_client,
+                            &contract_address,
+                            &escrow.trustline.address,
+                            fee_result.receiver_amount,
+                            destination.destination_domain,
+                            &destination.mint_recipient,
+                            &receiver,
+                        );
+                    }
+                    None => {
+                        token_client.transfer(
+                            &contract_address,
+                            &receiver,
+                            &fee_result.receiver_amount,
+                        );
+                    }
+                }
             }
 
             payouts.push_back(MilestonePayout {
@@ -167,6 +190,77 @@ impl EscrowManager {
         }
 
         Ok(payouts)
+    }
+
+    /// Registers a milestone's cross-chain payout target. Only that milestone's
+    /// receiver may set it.
+    pub fn set_cross_chain_destination(
+        e: &Env,
+        receiver: &Address,
+        milestone_index: u32,
+        destination_domain: u32,
+        mint_recipient: &BytesN<32>,
+    ) -> Result<(), CctpError> {
+        Self::assert_milestone_receiver(e, receiver, milestone_index)?;
+        receiver.require_auth();
+        validate_destination(destination_domain, mint_recipient)?;
+
+        let destination = CrossChainDestination {
+            destination_domain,
+            mint_recipient: mint_recipient.clone(),
+        };
+        let key = DataKey::CrossChainDestination(milestone_index);
+        e.storage().persistent().set(&key, &destination);
+        e.storage().persistent().extend_ttl(&key, 17280, 31536000);
+        Ok(())
+    }
+
+    /// Clears a milestone's cross-chain target, reverting to a Stellar payout.
+    pub fn clear_cross_chain_destination(
+        e: &Env,
+        receiver: &Address,
+        milestone_index: u32,
+    ) -> Result<(), CctpError> {
+        Self::assert_milestone_receiver(e, receiver, milestone_index)?;
+        receiver.require_auth();
+        e.storage()
+            .persistent()
+            .remove(&DataKey::CrossChainDestination(milestone_index));
+        Ok(())
+    }
+
+    pub fn get_cross_chain_destination(
+        e: &Env,
+        milestone_index: u32,
+    ) -> Result<CrossChainDestination, CctpError> {
+        Self::get_cross_chain_destination_opt(e, milestone_index)
+            .ok_or(CctpError::DestinationNotSet)
+    }
+
+    fn assert_milestone_receiver(
+        e: &Env,
+        receiver: &Address,
+        milestone_index: u32,
+    ) -> Result<(), CctpError> {
+        let escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
+        let milestone = escrow
+            .milestones
+            .get(milestone_index)
+            .ok_or(CctpError::MilestoneNotFound)?;
+        if *receiver != milestone.receiver {
+            return Err(CctpError::OnlyReceiverCanSetDestination);
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn get_cross_chain_destination_opt(
+        e: &Env,
+        milestone_index: u32,
+    ) -> Option<CrossChainDestination> {
+        e.storage()
+            .persistent()
+            .get(&DataKey::CrossChainDestination(milestone_index))
     }
 
     pub fn change_escrow_properties(
