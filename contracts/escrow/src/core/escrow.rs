@@ -7,7 +7,9 @@ use crate::core::validators::escrow::{
     validate_release_milestones_conditions,
 };
 use crate::error::{CctpError, EscrowError, ReleaseError};
-use crate::modules::cctp::release::{release_receiver_amount_via_cctp, validate_destination};
+use crate::modules::cctp::release::{
+    release_receiver_amount_via_cctp_forwarding, validate_destination,
+};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::storage::types::{
     AddressBalance, CrossChainDestination, DataKey, Escrow, Milestone, MilestonePayout,
@@ -158,7 +160,7 @@ impl EscrowManager {
                 // Route by the milestone receiver's own registered preference.
                 match Self::get_cross_chain_destination_opt(e, index) {
                     Some(destination) => {
-                        release_receiver_amount_via_cctp(
+                        release_receiver_amount_via_cctp_forwarding(
                             e,
                             &token_client,
                             &contract_address,
