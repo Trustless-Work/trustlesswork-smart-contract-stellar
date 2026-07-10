@@ -5,20 +5,25 @@ pub const CCTP_MIN_FINALITY_THRESHOLD_STANDARD: u32 = 2000;
 pub const CCTP_DEFAULT_MAX_FEE: i128 = 0;
 pub const STELLAR_TO_CCTP_DECIMAL_FACTOR: i128 = 10;
 
-/// Circle's Forwarding Service flat fee: $0.20 USD, expressed in Stellar's
-/// 7-decimal stroops (same unit as the burn `amount`), deducted from the
-/// minted amount on top of whatever CCTP protocol fee applies to the route.
-/// This is the one part of `max_fee` we can't compute on-chain — it's a flat
-/// rate Circle states directly in their forwarding-service docs, not derived
-/// from the token/route. The protocol-fee portion is NOT guessed: it's
-/// queried live from the messenger via `get_min_fee_amount` in
-/// `release.rs`, since the real `TokenMessengerMinter` interface (confirmed
-/// via `stellar contract info interface` against the testnet deployment)
-/// exposes exactly that. Circle's docs note the forwarder consumes ~the full
-/// `max_fee` rather than refunding the unused portion, so this still needs a
-/// real testnet burn to confirm — but the guesswork is now limited to this
-/// single flat-rate constant, not the whole fee.
-pub const CCTP_FORWARDING_SERVICE_FEE_STROOPS: i128 = 2_000_000;
+/// Circle's Forwarding Service fee, expressed in Stellar's 7-decimal
+/// stroops (same unit as the burn `amount`), deducted from the minted
+/// amount on top of whatever CCTP protocol fee applies to the route. This
+/// is the one part of `max_fee` we can't compute on-chain — Circle doesn't
+/// expose it to a Soroban contract (no HTTP oracle), only via their REST
+/// API (`GET /v2/burn/USDC/fees/{source}/{dest}?forward=true`, `forwardFee`
+/// field). The protocol-fee portion is NOT guessed: it's queried live from
+/// the messenger via `get_min_fee_amount` in `release.rs`.
+///
+/// CALIBRATED against a real testnet forward (2026-07-10, Stellar→Base
+/// domain 6): a first attempt at 2_000_000 ($0.20, from Circle's blog post)
+/// failed with `INSUFFICIENT_FEE` — Iris's live quote for that route was
+/// 202_863–203_078 (6-decimal units, ~$0.203), not $0.20 flat. This constant
+/// is set with a margin over that observed range. Circle's docs note the
+/// forwarder consumes ~the full `max_fee` rather than refunding the unused
+/// portion, so don't pad this much further than necessary — re-check
+/// `GET /v2/burn/USDC/fees/27/{dest}?forward=true` if forwards start failing
+/// with `INSUFFICIENT_FEE` again (the fee can drift over time).
+pub const CCTP_FORWARDING_SERVICE_FEE_STROOPS: i128 = 2_500_000;
 
 /// Reserved hook data that opts a burn into Circle's Forwarding Service:
 /// 24 bytes of the ASCII magic `cctp-forward` (zero-padded to 24), a `u32`
