@@ -175,6 +175,7 @@ impl EscrowContract {
         milestone_index: u32,
         destination_domain: u32,
         mint_recipient: BytesN<32>,
+        max_fee: i128,
     ) -> Result<(), CctpError> {
         EscrowManager::set_cross_chain_destination(
             e,
@@ -182,6 +183,7 @@ impl EscrowContract {
             milestone_index,
             destination_domain,
             &mint_recipient,
+            max_fee,
         )
     }
 

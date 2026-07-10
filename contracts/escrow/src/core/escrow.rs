@@ -168,6 +168,7 @@ impl EscrowManager {
                             fee_result.receiver_amount,
                             destination.destination_domain,
                             &destination.mint_recipient,
+                            destination.max_fee,
                             &receiver,
                         );
                     }
@@ -195,21 +196,25 @@ impl EscrowManager {
     }
 
     /// Registers a milestone's cross-chain payout target. Only that milestone's
-    /// receiver may set it.
+    /// receiver may set it. `max_fee` is the Forwarding Service ceiling that
+    /// receiver approves — the API sizes it from a live Circle quote when
+    /// building this call, the caller of the API never supplies it directly.
     pub fn set_cross_chain_destination(
         e: &Env,
         receiver: &Address,
         milestone_index: u32,
         destination_domain: u32,
         mint_recipient: &BytesN<32>,
+        max_fee: i128,
     ) -> Result<(), CctpError> {
-        Self::assert_milestone_receiver(e, receiver, milestone_index)?;
+        let milestone_amount = Self::assert_milestone_receiver(e, receiver, milestone_index)?;
         receiver.require_auth();
-        validate_destination(destination_domain, mint_recipient)?;
+        validate_destination(destination_domain, mint_recipient, max_fee, milestone_amount)?;
 
         let destination = CrossChainDestination {
             destination_domain,
             mint_recipient: mint_recipient.clone(),
+            max_fee,
         };
         let key = DataKey::CrossChainDestination(milestone_index);
         e.storage().persistent().set(&key, &destination);
@@ -239,11 +244,13 @@ impl EscrowManager {
             .ok_or(CctpError::DestinationNotSet)
     }
 
+    /// Returns the milestone's amount on success — the caller needs it to
+    /// bound `max_fee`.
     fn assert_milestone_receiver(
         e: &Env,
         receiver: &Address,
         milestone_index: u32,
-    ) -> Result<(), CctpError> {
+    ) -> Result<i128, CctpError> {
         let escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
         let milestone = escrow
             .milestones
@@ -252,7 +259,7 @@ impl EscrowManager {
         if *receiver != milestone.receiver {
             return Err(CctpError::OnlyReceiverCanSetDestination);
         }
-        Ok(())
+        Ok(milestone.amount)
     }
 
     #[inline]
