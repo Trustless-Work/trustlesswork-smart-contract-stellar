@@ -31,11 +31,19 @@ pub struct Escrow {
 }
 
 /// Cross-chain payout target, set only by the receiver.
+///
+/// `max_fee` is the CCTP Forwarding Service ceiling (Stellar 7-decimal
+/// stroops) the receiver approves for the burn — sized by the API from a
+/// live Circle fee quote at the time this is set, not a value the API's
+/// caller supplies. Living here (not as a `release_funds` argument) keeps
+/// the release signer unable to influence it: only the receiver's own
+/// signature on this call authorizes it.
 #[contracttype]
 #[derive(Clone, PartialEq, Eq)]
 pub struct CrossChainDestination {
     pub destination_domain: u32,
     pub mint_recipient: BytesN<32>,
+    pub max_fee: i128,
 }
 
 #[contracttype]

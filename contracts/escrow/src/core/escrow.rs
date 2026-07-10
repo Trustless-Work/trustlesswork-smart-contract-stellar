@@ -144,6 +144,7 @@ impl EscrowManager {
                         fee_result.receiver_amount,
                         destination.destination_domain,
                         &destination.mint_recipient,
+                        destination.max_fee,
                         &receiver,
                     );
                 }
@@ -161,19 +162,24 @@ impl EscrowManager {
     }
 
     /// Registers the receiver's cross-chain payout target. Only the receiver.
+    /// `max_fee` is the Forwarding Service ceiling the receiver approves —
+    /// the API sizes it from a live Circle quote when building this call, the
+    /// caller of the API never supplies it directly.
     pub fn set_cross_chain_destination(
         e: &Env,
         receiver: &Address,
         destination_domain: u32,
         mint_recipient: &BytesN<32>,
+        max_fee: i128,
     ) -> Result<(), CctpError> {
-        Self::assert_receiver(e, receiver)?;
+        let escrow = Self::assert_receiver(e, receiver)?;
         receiver.require_auth();
-        validate_destination(destination_domain, mint_recipient)?;
+        validate_destination(destination_domain, mint_recipient, max_fee, escrow.amount)?;
 
         let destination = CrossChainDestination {
             destination_domain,
             mint_recipient: mint_recipient.clone(),
+            max_fee,
         };
         e.storage()
             .persistent()
@@ -208,12 +214,12 @@ impl EscrowManager {
         e.storage().persistent().get(&DataKey::CrossChainDestination)
     }
 
-    fn assert_receiver(e: &Env, receiver: &Address) -> Result<(), CctpError> {
+    fn assert_receiver(e: &Env, receiver: &Address) -> Result<Escrow, CctpError> {
         let escrow = Self::get_escrow(e).map_err(|_| CctpError::DestinationNotSet)?;
         if *receiver != escrow.roles.receiver {
             return Err(CctpError::OnlyReceiverCanSetDestination);
         }
-        Ok(())
+        Ok(escrow)
     }
 
     pub fn change_escrow_properties(

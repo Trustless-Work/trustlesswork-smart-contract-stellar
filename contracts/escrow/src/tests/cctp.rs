@@ -166,7 +166,7 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &amount);
 
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.release_funds(&f.release_signer, &tw_address);
@@ -225,6 +225,7 @@ fn only_receiver_can_set_destination() {
         &f.release_signer,
         &6,
         &evm_recipient(&env, 0xAB),
+        &200_000i128,
     );
     assert_eq!(
         res,
@@ -247,7 +248,7 @@ fn set_destination_rejects_invalid_domain() {
     client.initialize_escrow(&f.escrow);
 
     let res =
-        client.try_set_cross_chain_destination(&f.receiver, &999, &evm_recipient(&env, 0xAB));
+        client.try_set_cross_chain_destination(&f.receiver, &999, &evm_recipient(&env, 0xAB), &200_000i128);
     assert_eq!(res, Err(Ok(CctpError::InvalidDestinationDomain)));
 }
 
@@ -269,8 +270,46 @@ fn set_destination_rejects_zero_recipient() {
         &f.receiver,
         &6,
         &BytesN::from_array(&env, &[0u8; 32]),
+        &200_000i128,
     );
     assert_eq!(res, Err(Ok(CctpError::InvalidRecipient)));
+}
+
+#[test]
+fn set_destination_rejects_max_fee_exceeding_cap() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+
+    // amount = 100_000_000 -> cap is amount / 10 = 10_000_000.
+    let amount: i128 = 100_000_000;
+    let f = base_escrow(&env, &usdc.0.address, amount, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+
+    let too_high = client.try_set_cross_chain_destination(
+        &f.receiver,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &10_000_001i128,
+    );
+    assert_eq!(too_high, Err(Ok(CctpError::MaxFeeExceedsCap)));
+
+    let negative = client.try_set_cross_chain_destination(
+        &f.receiver,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &-1i128,
+    );
+    assert_eq!(negative, Err(Ok(CctpError::MaxFeeExceedsCap)));
+
+    // Exactly at the cap is fine.
+    let at_cap =
+        client.try_set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &10_000_000i128);
+    assert!(at_cap.is_ok());
 }
 
 #[test]
@@ -290,7 +329,7 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &amount);
 
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
     client.clear_cross_chain_destination(&f.receiver);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
@@ -360,6 +399,7 @@ fn forwarding_helper_sends_seventh_decimal_remainder_to_stellar() {
         amount,
         6,
         &evm_recipient(&env, 0xAB),
+        1000,
         &stellar_receiver,
     );
 
