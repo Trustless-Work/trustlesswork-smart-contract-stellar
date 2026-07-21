@@ -7,7 +7,7 @@ use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_with_messenger,
 };
 use crate::storage::types::{
-    Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline,
+    Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneUpdate, Roles, Trustline,
 };
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, Bytes, BytesN, Env,
@@ -361,6 +361,73 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
     assert_eq!(usdc.0.balance(&f.receiver0), net);
+}
+
+/// Security regression: reducing a milestone's amount via `manage_milestones`
+/// must clear its registered CrossChainDestination so a `max_fee` validated
+/// against the old (larger) amount can't survive as a stale value exceeding the
+/// 10% cap of the new (smaller) amount. The payout then reverts to Stellar.
+#[test]
+fn reducing_milestone_amount_clears_cross_chain_destination() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+
+    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
+
+    let each: i128 = 50_000_000;
+    let platform_fee: u32 = 500;
+    let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
+    let tw_address = Address::generate(&env);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+
+    // Receiver approves a max_fee at the 10% cap of the original amount.
+    let original_max_fee = each / 10;
+    client.set_cross_chain_destination(
+        &f.receiver0,
+        &0u32,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &original_max_fee,
+    );
+    assert_eq!(
+        client.get_cross_chain_destination(&0u32).max_fee,
+        original_max_fee
+    );
+
+    // Admin reduces milestone 0's amount while the contract is unfunded. The
+    // stale max_fee would now be 100% of the new amount, violating the cap.
+    let reduced: i128 = each / 10;
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0u32,
+            new_description: None,
+            new_amount: Some(reduced),
+        },
+    ];
+    client.manage_milestones(&f.admin, &vec![&env], &updates);
+
+    // The destination must have been cleared.
+    assert_eq!(
+        client.try_get_cross_chain_destination(&0u32).err(),
+        Some(Ok(CctpError::DestinationNotSet))
+    );
+
+    // And at release the milestone 0 payout reverts to the Stellar receiver
+    // instead of burning via the messenger.
+    usdc.1.mint(&client.address, &reduced);
+    client.approve_milestones(&vec![&env, 0u32], &f.approver);
+    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+
+    let (_tw, _plat, net) = net_of(reduced, platform_fee);
+    assert_eq!(usdc.0.balance(&f.receiver0), net);
+    assert_eq!(usdc.0.balance(&messenger), 0);
 }
 
 #[test]
