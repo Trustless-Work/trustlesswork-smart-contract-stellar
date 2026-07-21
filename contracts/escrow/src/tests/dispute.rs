@@ -953,3 +953,151 @@ fn test_dispute_milestones_unauthorized_reverts() {
         "Dispute resolver must not be able to dispute milestones"
     );
 }
+
+#[test]
+fn test_receiver_cannot_dispute_other_receiver_milestone() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver_a = Address::generate(&env);
+    let receiver_b = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone A"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver_a.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone B"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver_b.clone(),
+        },
+    ];
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "cross_receiver_dispute"),
+        title: String::from_str(&env, "Cross-Receiver Dispute Test"),
+        description: String::from_str(&env, "Test receiver cannot dispute another receiver's milestone"),
+        roles,
+        platform_fee: 0,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+
+    // 1. Receiver A can dispute their own milestone (index 0)
+    let result = client.try_dispute_milestones(
+        &receiver_a,
+        &vec![&env, 0u32],
+        &String::from_str(&env, "Issue with milestone A"),
+    );
+    assert!(
+        result.is_ok(),
+        "Receiver A must be able to dispute their own milestone"
+    );
+
+    // 2. Receiver A cannot dispute Receiver B's milestone (index 1)
+    let result = client.try_dispute_milestones(
+        &receiver_a,
+        &vec![&env, 1u32],
+        &String::from_str(&env, "Issue with milestone B"),
+    );
+    assert!(
+        result.is_err(),
+        "Receiver A must NOT be able to dispute Receiver B's milestone"
+    );
+
+    // Verify no state change occurred for milestone 1
+    let escrow = client.get_escrow();
+    assert!(
+        !escrow.milestones.get(1).unwrap().dispute.is_disputed,
+        "Milestone 1 must not be disputed after unauthorized attempt"
+    );
+
+    // 3. Receiver A cannot dispute a mixed batch [own, other]
+    let result = client.try_dispute_milestones(
+        &receiver_a,
+        &vec![&env, 0u32, 1u32],
+        &String::from_str(&env, "Mixed dispute"),
+    );
+    assert!(
+        result.is_err(),
+        "Receiver A must NOT be able to dispute a batch containing another receiver's milestone"
+    );
+
+    // Verify no partial mutation occurred: milestone 0 must still be disputed
+    // (from the successful first call) but milestone 1 must remain undisputed
+    let escrow = client.get_escrow();
+    assert!(
+        escrow.milestones.get(0).unwrap().dispute.is_disputed,
+        "Milestone 0 must remain disputed from the first successful call"
+    );
+    assert!(
+        !escrow.milestones.get(1).unwrap().dispute.is_disputed,
+        "Milestone 1 must remain undisputed (rejected mixed batch did not partially apply)"
+    );
+
+    // 4. Verify global roles (approver) can still dispute any milestone
+    let result = client.try_dispute_milestones(
+        &approver,
+        &vec![&env, 1u32],
+        &String::from_str(&env, "Approver disputes milestone B"),
+    );
+    assert!(
+        result.is_ok(),
+        "Approver (global role) must be able to dispute any milestone"
+    );
+}
