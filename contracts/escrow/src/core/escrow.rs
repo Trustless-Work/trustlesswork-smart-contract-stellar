@@ -333,6 +333,22 @@ impl EscrowManager {
                 milestone.description = desc;
             }
             if let Some(amount) = update.new_amount {
+                // A registered CrossChainDestination stores a receiver-approved
+                // `max_fee` that `set_cross_chain_destination` validated against
+                // the milestone amount at registration time (<= 10% of it).
+                // Changing the amount here would leave that `max_fee` bound to a
+                // stale amount — if the amount is reduced, the stored `max_fee`
+                // could exceed the 10% cap and let the CCTP forwarding fee eat a
+                // larger share of the payout than the invariant allows. We clear
+                // the destination (option a: simplest/safest) so the receiver
+                // must re-register it against the new amount, re-running
+                // validate_destination. Cleared unconditionally on any amount
+                // change to keep the rule trivial to reason about.
+                if amount != milestone.amount {
+                    e.storage()
+                        .persistent()
+                        .remove(&DataKey::CrossChainDestination(update.index));
+                }
                 milestone.amount = amount;
             }
             existing_escrow.milestones.set(update.index, milestone);
