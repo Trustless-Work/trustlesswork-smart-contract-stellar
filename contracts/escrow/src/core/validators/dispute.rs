@@ -133,14 +133,24 @@ pub fn validate_batch_milestone_dispute_conditions(
         return Err(EscrowError::DisputeResolverCannotDisputeTheEscrow);
     }
 
-    let is_authorized = escrow.roles.approvers.contains(signer)
+    let is_global_role = escrow.roles.approvers.contains(signer)
         || escrow.roles.service_providers.contains(signer)
         || signer == &escrow.roles.platform
-        || escrow.roles.release_signers.contains(signer)
-        || escrow.milestones.iter().any(|m| &m.receiver == signer);
+        || escrow.roles.release_signers.contains(signer);
 
-    if !is_authorized {
-        return Err(EscrowError::UnauthorizedToChangeDisputeFlag);
+    if !is_global_role {
+        let is_receiver_for_all = milestone_indices
+            .iter()
+            .all(|index| {
+                escrow
+                    .milestones
+                    .get(index)
+                    .is_some_and(|m| &m.receiver == signer)
+            });
+
+        if !is_receiver_for_all {
+            return Err(EscrowError::UnauthorizedToChangeDisputeFlag);
+        }
     }
 
     for index in milestone_indices.iter() {
