@@ -8,6 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{EscrowError, ReleaseError};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
+use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
     AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate,
 };
@@ -102,7 +103,12 @@ impl EscrowManager {
         let mut total_amount: i128 = 0;
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
-            total_amount += milestone.amount;
+            total_amount =
+                BasicMath::safe_add(total_amount, milestone.amount).map_err(|err| match err {
+                    EscrowError::Overflow => ReleaseError::Overflow,
+                    EscrowError::Underflow => ReleaseError::Underflow,
+                    _ => ReleaseError::DivisionError,
+                })?;
         }
 
         let contract_address = e.current_contract_address();
