@@ -107,12 +107,9 @@ impl EscrowManager {
         let mut total_amount: i128 = 0;
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
-            total_amount =
-                BasicMath::safe_add(total_amount, milestone.amount).map_err(|err| match err {
-                    EscrowError::Overflow => ReleaseError::Overflow,
-                    EscrowError::Underflow => ReleaseError::Underflow,
-                    _ => ReleaseError::DivisionError,
-                })?;
+            // safe_add can only fail with Overflow, so map straight to it.
+            total_amount = BasicMath::safe_add(total_amount, milestone.amount)
+                .map_err(|_| ReleaseError::Overflow)?;
         }
 
         let contract_address = e.current_contract_address();
