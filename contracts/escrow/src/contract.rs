@@ -6,6 +6,7 @@ use crate::events::handler::{
     DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc, MilestoneStatusChanged,
     MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
+use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
     AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow, Milestone,
     MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
@@ -73,7 +74,7 @@ impl EscrowContract {
         let milestone_count = initialized_escrow.milestones.len();
         let mut total_amount: i128 = 0;
         for milestone in initialized_escrow.milestones.iter() {
-            total_amount += milestone.amount;
+            total_amount = BasicMath::safe_add(total_amount, milestone.amount)?;
         }
         InitEsc {
             engagement_id: initialized_escrow.engagement_id.clone(),
