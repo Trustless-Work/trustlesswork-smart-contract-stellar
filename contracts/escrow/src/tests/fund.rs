@@ -46,7 +46,7 @@ fn test_fund_escrow_successful_deposit() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -150,7 +150,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -201,6 +201,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
 fn test_release_funds_successful_flow() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -237,7 +238,7 @@ fn test_release_funds_successful_flow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -255,7 +256,7 @@ fn test_release_funds_successful_flow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -321,7 +322,7 @@ fn test_release_funds_successful_flow() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&receiver_address),
+        usdc_token.0.balance(&messenger),
         receiver_amount,
         "Receiver received incorrect amount"
     );
@@ -379,7 +380,7 @@ fn test_release_funds_milestones_incomplete() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -397,7 +398,7 @@ fn test_release_funds_milestones_incomplete() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -448,6 +449,7 @@ fn test_release_funds_milestones_incomplete() {
 fn test_release_funds_same_receiver_as_provider() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -485,7 +487,7 @@ fn test_release_funds_same_receiver_as_provider() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -550,7 +552,7 @@ fn test_release_funds_same_receiver_as_provider() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&service_provider_address),
+        usdc_token.0.balance(&messenger),
         service_provider_amount,
         "Service Provider should receive funds when receiver is set to same address"
     );
@@ -566,6 +568,7 @@ fn test_release_funds_same_receiver_as_provider() {
 fn test_release_funds_invalid_receiver_fallback() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -604,7 +607,7 @@ fn test_release_funds_invalid_receiver_fallback() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -670,7 +673,7 @@ fn test_release_funds_invalid_receiver_fallback() {
 
     // Funds should go to the receiver (not service provider)
     assert_eq!(
-        usdc_token.0.balance(&receiver_address),
+        usdc_token.0.balance(&messenger),
         receiver_amount,
         "Receiver should receive funds when set to a different address than service provider"
     );
@@ -694,6 +697,7 @@ fn test_batch_release_partial_then_full() {
     // Release milestone 0 first, then milestone 1, verifying partial and full release logic.
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -728,7 +732,7 @@ fn test_batch_release_partial_then_full() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -746,7 +750,7 @@ fn test_batch_release_partial_then_full() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -796,7 +800,7 @@ fn test_batch_release_partial_then_full() {
 
     assert_eq!(usdc_token.0.balance(&trustless_work_address), tw_fee_0);
     assert_eq!(usdc_token.0.balance(&platform), platform_fee_0);
-    assert_eq!(usdc_token.0.balance(&receiver_address), receiver_0);
+    assert_eq!(usdc_token.0.balance(&messenger), receiver_0);
 
     // Escrow should not be fully released yet
     let escrow_after_first = client.get_escrow();
@@ -835,10 +839,7 @@ fn test_batch_release_partial_then_full() {
         usdc_token.0.balance(&platform),
         platform_fee_0 + platform_fee_1
     );
-    assert_eq!(
-        usdc_token.0.balance(&receiver_address),
-        receiver_0 + receiver_1
-    );
+    assert_eq!(usdc_token.0.balance(&messenger), receiver_0 + receiver_1);
     assert_eq!(usdc_token.0.balance(&client.address), 0);
 
     // Now all milestones released — escrow flag should be set
@@ -881,7 +882,7 @@ fn test_release_unapproved_milestone_fails() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -971,7 +972,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -1064,6 +1065,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 fn test_approve_and_release_milestones_success() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -1104,7 +1106,7 @@ fn test_approve_and_release_milestones_success() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
 
     let escrow_properties = Escrow {
@@ -1130,7 +1132,7 @@ fn test_approve_and_release_milestones_success() {
     assert!(client.get_escrow().milestones.get(0).unwrap().released);
     assert_eq!(token_client.balance(&client.address), 0);
     let tw_fee = milestone_amount * 30 / 10_000;
-    assert_eq!(token_client.balance(&receiver), milestone_amount - tw_fee);
+    assert_eq!(token_client.balance(&messenger), milestone_amount - tw_fee);
 }
 
 #[test]
@@ -1178,7 +1180,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
 
     let escrow_properties = Escrow {
@@ -1209,6 +1211,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
 fn test_full_flow_init_without_milestones() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -1270,7 +1273,7 @@ fn test_full_flow_init_without_milestones() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
     let escrow_with_milestones =
         client.manage_milestones(&escrow_admin, &vec![&env, new_milestone], &vec![&env]);
@@ -1301,6 +1304,6 @@ fn test_full_flow_init_without_milestones() {
     // TW cobra 30 bps (0.3%), platform_fee=0 → receiver recibe el resto
     let tw_fee = milestone_amount * 30 / 10_000;
     assert_eq!(token_client.balance(&trustless_work), tw_fee);
-    assert_eq!(token_client.balance(&receiver), milestone_amount - tw_fee);
+    assert_eq!(token_client.balance(&messenger), milestone_amount - tw_fee);
     assert!(client.get_escrow().milestones.get(0).unwrap().released);
 }

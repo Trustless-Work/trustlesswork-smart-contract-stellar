@@ -49,7 +49,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 

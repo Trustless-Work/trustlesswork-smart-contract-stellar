@@ -53,6 +53,7 @@ pub enum EscrowError {
     TargetExceedsApprovers = 48,
     StringTooLong = 49,
     SignerMustBeApproverAndReleaseSigner = 50,
+    InvalidCrossChainDestination = 51,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

@@ -34,6 +34,7 @@ const BASIS_POINTS_DENOMINATOR: i128 = 10_000;
 
 struct Setup<'a> {
     client: EscrowContractClient<'a>,
+    messenger: Address,
     token: TokenClient<'a>,
     token_admin: StellarAssetClient<'a>,
     approver: Address,
@@ -83,7 +84,7 @@ fn build_escrow<'a>(env: &'a Env, amounts: &[i128], target: u32, platform_fee: u
                 resolved: false,
             },
             released: false,
-            receiver,
+            receiver: crate::tests::helpers::test_receiver(env, &receiver),
         });
     }
 
@@ -110,11 +111,13 @@ fn build_escrow<'a>(env: &'a Env, amounts: &[i128], target: u32, platform_fee: u
         receiver_memo: 0,
     };
 
+    let messenger = crate::tests::helpers::register_mock_token_messenger(env);
     let client = create_escrow_contract(env, &escrow_admin).client;
     client.initialize_escrow(&escrow);
 
     Setup {
         client,
+        messenger,
         token,
         token_admin,
         approver,
@@ -237,11 +240,12 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
     let r1 = receiver(&s, 1);
     let r2 = receiver(&s, 2);
 
-    let r0_after_individual = s.token.balance(&r0);
+    let burned_after_individual = s.token.balance(&s.messenger);
     assert!(
-        r0_after_individual > 0,
-        "M0 receiver should hold funds from the individual release"
+        burned_after_individual > 0,
+        "the messenger should hold M0's burned funds from the individual release"
     );
+    assert_eq!(s.token.balance(&r0), 0);
     assert_eq!(s.token.balance(&r1), 0);
     assert_eq!(s.token.balance(&r2), 0);
 
@@ -269,9 +273,9 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
     assert_eq!(s.token.balance(&r1), 0, "M1 receiver must not be paid");
     assert_eq!(s.token.balance(&r2), 0, "M2 receiver must not be paid");
     assert_eq!(
-        s.token.balance(&r0),
-        r0_after_individual,
-        "M0 receiver balance must be unchanged by the failed batch"
+        s.token.balance(&s.messenger),
+        burned_after_individual,
+        "burned total must be unchanged by the failed batch"
     );
     assert_eq!(
         s.token.balance(&s.client.address),
@@ -310,6 +314,7 @@ fn scenario_d_release_all_milestones_distributes_correctly() {
     // integer division is exact (no rounding ambiguity).
     let mut tw_total = 0i128;
     let mut platform_total = 0i128;
+    let mut net_total = 0i128;
     for (i, amount) in amounts.iter().enumerate() {
         let tw_fee = amount * TRUSTLESS_WORK_FEE_BPS / BASIS_POINTS_DENOMINATOR;
         let platform_cut = amount * platform_fee as i128 / BASIS_POINTS_DENOMINATOR;
@@ -317,13 +322,20 @@ fn scenario_d_release_all_milestones_distributes_correctly() {
         tw_total += tw_fee;
         platform_total += platform_cut;
 
+        net_total += net;
         let r = receiver(&s, i as u32);
         assert_eq!(
             s.token.balance(&r),
-            net,
-            "M{i} receiver received the wrong net amount"
+            0,
+            "M{i} receiver must not hold funds; the payout burns via CCTP"
         );
     }
+
+    assert_eq!(
+        s.token.balance(&s.messenger),
+        net_total,
+        "the messenger must hold every burned net amount"
+    );
 
     assert_eq!(
         s.token.balance(&s.trustless_work),

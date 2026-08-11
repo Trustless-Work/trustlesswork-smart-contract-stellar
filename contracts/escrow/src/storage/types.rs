@@ -18,7 +18,8 @@ pub struct DistributionEntry {
 #[derive(Clone)]
 pub struct MilestonePayout {
     pub index: u32,
-    pub receiver: Address,
+    pub destination_domain: u32,
+    pub mint_recipient: BytesN<32>,
     pub amount: i128,
     pub platform_fee: i128,
     pub trustless_work_fee: i128,
@@ -38,16 +39,28 @@ pub struct Escrow {
     pub receiver_memo: u32,
 }
 
-/// Per-milestone cross-chain payout target, set by that milestone's receiver.
+/// A milestone's receiver in a CCTP-only contract: the payout always leaves
+/// Stellar via CCTP, so the destination is required from initialization.
+///
+/// `stellar_address` is auth-only — it lets that milestone's receiver
+/// self-manage the destination (`set_cross_chain_destination`) and collects
+/// the sub-stroop burn remainder, but never receives the payout. The admin
+/// can also update it via `update_escrow`, under the same rule as every
+/// other milestone property: only while the escrow holds no funds.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Receiver {
+    pub stellar_address: Option<Address>,
+    pub cctp: CrossChainDestination,
+}
+
+/// Cross-chain payout target.
 ///
 /// `max_fee` is the CCTP Forwarding Service ceiling (Stellar 7-decimal
-/// stroops) that milestone's receiver approves for the burn — sized by the
-/// API from a live Circle fee quote at the time this is set, not a value
-/// the API's caller supplies. Living here (not as a `release_funds`
-/// argument) keeps the release signer unable to influence it: only the
-/// receiver's own signature on this call authorizes it.
+/// stroops) approved for the burn — sized by the API from a live Circle
+/// fee quote at the time this is set, not a value the API's caller supplies.
 #[contracttype]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {
     pub destination_domain: u32,
     pub mint_recipient: BytesN<32>,
@@ -72,7 +85,7 @@ pub struct Milestone {
     pub amount: i128,
     pub dispute: Dispute,
     pub released: bool,
-    pub receiver: Address,
+    pub receiver: Receiver,
 }
 
 #[contracttype]
@@ -133,5 +146,4 @@ pub enum DataKey {
     FundedAmount,
     Reentrancy,
     ApprovedWasmHash,
-    CrossChainDestination(u32),
 }

@@ -2,6 +2,7 @@ use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
     error::{EscrowError, ReleaseError},
+    modules::cctp::release::validate_destination,
     storage::types::{DataKey, Escrow, Milestone, MilestoneUpdate, Roles},
 };
 
@@ -175,6 +176,19 @@ pub fn validate_escrow_conditions(
     validate_role_limits(&new_escrow.roles)?;
     validate_dispute_resolver_role_overlap(&new_escrow.roles)?;
 
+    // CCTP-only contract: every milestone's destination must be valid from
+    // initialization and stay valid through every admin update, bounded
+    // against that milestone's own amount.
+    for milestone in new_escrow.milestones.iter() {
+        validate_destination(
+            milestone.receiver.cctp.destination_domain,
+            &milestone.receiver.cctp.mint_recipient,
+            milestone.receiver.cctp.max_fee,
+            milestone.amount,
+        )
+        .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
+    }
+
     if is_init {
         if new_escrow.milestones.len() > 50 {
             return Err(EscrowError::TooManyMilestones);
@@ -296,6 +310,13 @@ pub fn validate_manage_milestones_conditions(
             {
                 return Err(EscrowError::FlagsMustBeFalse);
             }
+            validate_destination(
+                milestone.receiver.cctp.destination_domain,
+                &milestone.receiver.cctp.mint_recipient,
+                milestone.receiver.cctp.max_fee,
+                milestone.amount,
+            )
+            .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
             if milestone.approvals.target > existing_escrow.roles.approvers.len() {
                 return Err(EscrowError::TargetExceedsApprovers);
             }

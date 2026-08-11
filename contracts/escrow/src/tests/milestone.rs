@@ -45,7 +45,7 @@ fn test_append_milestones_with_funds() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -63,7 +63,7 @@ fn test_append_milestones_with_funds() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -121,7 +121,7 @@ fn test_append_milestones_with_funds() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -192,7 +192,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -210,7 +210,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -275,7 +275,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -357,7 +357,7 @@ fn test_change_milestone_status_and_approved() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -375,7 +375,7 @@ fn test_change_milestone_status_and_approved() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -510,7 +510,7 @@ fn test_change_milestone_status_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -528,7 +528,7 @@ fn test_change_milestone_status_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -546,7 +546,7 @@ fn test_change_milestone_status_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -659,7 +659,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -677,7 +677,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -770,7 +770,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -816,6 +816,7 @@ fn test_target_requires_multiple_approvers() {
     // until the required number of unique approvers have voted.
     let env = Env::default();
     env.mock_all_auths();
+    crate::tests::helpers::register_mock_token_messenger(&env);
 
     let approver_a = Address::generate(&env);
     let approver_b = Address::generate(&env);
@@ -849,7 +850,7 @@ fn test_target_requires_multiple_approvers() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -974,7 +975,7 @@ fn test_batch_approve_milestones_multiple_indices() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -992,7 +993,7 @@ fn test_batch_approve_milestones_multiple_indices() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -1010,7 +1011,7 @@ fn test_batch_approve_milestones_multiple_indices() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -1121,7 +1122,7 @@ fn test_manage_milestones() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -1169,7 +1170,7 @@ fn test_manage_milestones() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -1187,7 +1188,7 @@ fn test_manage_milestones() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -1241,7 +1242,7 @@ fn test_manage_milestones() {
                 resolved: false,
             },
             released: true,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
     let result = client.try_manage_milestones(&escrow_admin, &already_released, &no_updates);
@@ -1266,7 +1267,7 @@ fn test_manage_milestones() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
     let result = client.try_manage_milestones(&escrow_admin, &bad_target, &no_updates);
@@ -1404,7 +1405,7 @@ fn test_add_milestones_after_init_without_milestones() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 

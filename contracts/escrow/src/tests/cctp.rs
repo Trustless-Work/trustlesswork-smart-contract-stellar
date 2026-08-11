@@ -94,7 +94,7 @@ fn milestone(env: &Env, amount: i128, receiver: &Address) -> Milestone {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     }
 }
 
@@ -182,7 +182,13 @@ fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
     usdc.1.mint(&client.address, &(each * 2));
 
     // Only milestone 0's receiver registers a cross-chain destination.
-    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+    client.set_cross_chain_destination(
+        &f.receiver0,
+        &0u32,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &200_000i128,
+    );
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.approve_milestones(&vec![&env, 1u32], &f.approver);
@@ -190,20 +196,25 @@ fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
 
-    // Milestone 0 -> burned via the messenger; milestone 1 -> Stellar receiver.
-    assert_eq!(usdc.0.balance(&messenger), net);
+    // CCTP-only contract: both milestones burn via the messenger — milestone
+    // 0 to the destination its receiver registered, milestone 1 to the one
+    // provided at initialize.
+    assert_eq!(usdc.0.balance(&messenger), net * 2);
     assert_eq!(usdc.0.balance(&f.receiver0), 0);
-    assert_eq!(usdc.0.balance(&f.receiver1), net);
+    assert_eq!(usdc.0.balance(&f.receiver1), 0);
     assert_eq!(usdc.0.balance(&client.address), 0);
 }
 
 #[test]
-fn release_stays_on_stellar_without_registered_destination() {
+fn release_burns_via_destination_registered_at_initialize() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+
+    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
 
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
@@ -214,11 +225,14 @@ fn release_stays_on_stellar_without_registered_destination() {
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &(each * 2));
 
+    // No set_cross_chain_destination call: the destination provided at
+    // initialize_escrow is enough for the release to burn via CCTP.
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
-    assert_eq!(usdc.0.balance(&f.receiver0), net);
+    assert_eq!(usdc.0.balance(&messenger), net);
+    assert_eq!(usdc.0.balance(&f.receiver0), 0);
 }
 
 #[test]
@@ -241,10 +255,7 @@ fn only_milestone_receiver_can_set_destination() {
         &evm_recipient(&env, 0xAB),
         &200_000i128,
     );
-    assert_eq!(
-        res,
-        Err(Ok(CctpError::OnlyReceiverCanSetDestination))
-    );
+    assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
 }
 
 #[test]
@@ -281,8 +292,13 @@ fn set_destination_rejects_invalid_domain_and_zero_recipient() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let bad_domain =
-        client.try_set_cross_chain_destination(&f.receiver0, &0u32, &999, &evm_recipient(&env, 1), &200_000i128);
+    let bad_domain = client.try_set_cross_chain_destination(
+        &f.receiver0,
+        &0u32,
+        &999,
+        &evm_recipient(&env, 1),
+        &200_000i128,
+    );
     assert_eq!(bad_domain, Err(Ok(CctpError::InvalidDestinationDomain)));
 
     let zero_recipient = client.try_set_cross_chain_destination(
@@ -337,7 +353,7 @@ fn set_destination_rejects_max_fee_exceeding_cap() {
 }
 
 #[test]
-fn receiver_can_clear_destination_to_revert_to_stellar() {
+fn receiver_update_overrides_initialize_destination() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -347,41 +363,40 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
-    usdc.1.mint(&client.address, &(each * 2));
 
-    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB), &200_000i128);
-    client.clear_cross_chain_destination(&f.receiver0, &0u32);
+    client.set_cross_chain_destination(
+        &f.receiver0,
+        &0u32,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &200_000i128,
+    );
 
-    client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
-
-    let (_tw, _plat, net) = net_of(each, platform_fee);
-    assert_eq!(usdc.0.balance(&f.receiver0), net);
+    let stored = client.get_cross_chain_destination(&0u32);
+    assert_eq!(stored.destination_domain, 6);
+    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
+    assert_eq!(stored.max_fee, 200_000i128);
 }
 
 /// Security regression: reducing a milestone's amount via `manage_milestones`
-/// must clear its registered CrossChainDestination so a `max_fee` validated
-/// against the old (larger) amount can't survive as a stale value exceeding the
-/// 10% cap of the new (smaller) amount. The payout then reverts to Stellar.
+/// must not leave a stale `max_fee` (validated against the old, larger
+/// amount) exceeding the 10% cap of the new amount. In a CCTP-only contract
+/// the destination can't be cleared, so the reduction is rejected until the
+/// destination is updated to fit the new amount.
 #[test]
-fn reducing_milestone_amount_clears_cross_chain_destination() {
+fn reducing_milestone_amount_rejects_stale_max_fee() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
-    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
-    env.register_at(&messenger, MockTokenMessenger, ());
-
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -395,13 +410,10 @@ fn reducing_milestone_amount_clears_cross_chain_destination() {
         &evm_recipient(&env, 0xAB),
         &original_max_fee,
     );
-    assert_eq!(
-        client.get_cross_chain_destination(&0u32).max_fee,
-        original_max_fee
-    );
 
     // Admin reduces milestone 0's amount while the contract is unfunded. The
-    // stale max_fee would now be 100% of the new amount, violating the cap.
+    // stale max_fee would now be 100% of the new amount, violating the cap —
+    // the update must be rejected.
     let reduced: i128 = each / 10;
     let updates = vec![
         &env,
@@ -411,23 +423,34 @@ fn reducing_milestone_amount_clears_cross_chain_destination() {
             new_amount: Some(reduced),
         },
     ];
-    client.manage_milestones(&f.admin, &vec![&env], &updates);
-
-    // The destination must have been cleared.
-    assert_eq!(
-        client.try_get_cross_chain_destination(&0u32).err(),
-        Some(Ok(CctpError::DestinationNotSet))
+    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
+    assert!(
+        res.is_err(),
+        "amount reduction must reject the stale max_fee"
     );
 
-    // And at release the milestone 0 payout reverts to the Stellar receiver
-    // instead of burning via the messenger.
-    usdc.1.mint(&client.address, &reduced);
-    client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+    // The destination and the amount stay untouched.
+    assert_eq!(
+        client.get_cross_chain_destination(&0u32).max_fee,
+        original_max_fee
+    );
 
-    let (_tw, _plat, net) = net_of(reduced, platform_fee);
-    assert_eq!(usdc.0.balance(&f.receiver0), net);
-    assert_eq!(usdc.0.balance(&messenger), 0);
+    // After the receiver re-approves a max_fee that fits the new amount,
+    // the same reduction goes through.
+    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB), &0i128);
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0u32,
+            new_description: None,
+            new_amount: Some(reduced),
+        },
+    ];
+    client.manage_milestones(&f.admin, &vec![&env], &updates);
+    assert_eq!(
+        client.get_escrow().milestones.get(0).unwrap().amount,
+        reduced
+    );
 }
 
 #[test]

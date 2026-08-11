@@ -188,14 +188,6 @@ impl EscrowContract {
         )
     }
 
-    pub fn clear_cross_chain_destination(
-        e: &Env,
-        receiver: Address,
-        milestone_index: u32,
-    ) -> Result<(), CctpError> {
-        EscrowManager::clear_cross_chain_destination(e, &receiver, milestone_index)
-    }
-
     pub fn get_cross_chain_destination(
         e: &Env,
         milestone_index: u32,

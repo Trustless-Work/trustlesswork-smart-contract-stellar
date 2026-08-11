@@ -23,7 +23,7 @@ fn overflow_milestone(env: &Env, receiver: &Address, amount: i128) -> Milestone 
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     }
 }
 
@@ -59,7 +59,7 @@ fn test_initialize_excrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -77,7 +77,7 @@ fn test_initialize_excrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -173,7 +173,7 @@ fn test_update_escrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone"),
@@ -191,7 +191,7 @@ fn test_update_escrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -247,7 +247,7 @@ fn test_update_escrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Second milestone updated"),
@@ -265,7 +265,7 @@ fn test_update_escrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
         Milestone {
             description: String::from_str(&env, "Third milestone new"),
@@ -283,7 +283,7 @@ fn test_update_escrow() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -361,7 +361,7 @@ fn test_update_escrow_platform_fee_too_high() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -448,7 +448,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -522,7 +522,7 @@ fn test_admin_role_overlap() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_address.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         },
     ];
 
@@ -615,7 +615,7 @@ fn test_role_limit_exceeded() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
 
     let make_escrow = |approvers: soroban_sdk::Vec<Address>| Escrow {
@@ -702,7 +702,7 @@ fn test_duplicate_address_in_role() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
 
     let escrow = Escrow {
@@ -761,7 +761,7 @@ fn test_dispute_resolver_role_overlap() {
             resolved: false,
         },
         released: false,
-        receiver: receiver.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
     };
 
     let make_escrow = |dispute_resolvers: soroban_sdk::Vec<Address>| Escrow {

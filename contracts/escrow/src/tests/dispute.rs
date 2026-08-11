@@ -44,7 +44,7 @@ fn test_dispute_management() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -155,7 +155,7 @@ fn test_dispute_resolution_process() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -350,7 +350,7 @@ fn test_dispute_milestones_authorized_and_unauthorized() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -419,7 +419,7 @@ fn test_dispute_milestones_authorized_and_unauthorized() {
                     resolved: false,
                 },
                 released: false,
-                receiver: receiver.clone(),
+                receiver: crate::tests::helpers::test_receiver(&env, &receiver),
             },
         ],
         trustline: Trustline {
@@ -513,7 +513,7 @@ fn test_resolve_dispute_rounding_edge_case() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -619,7 +619,7 @@ fn test_dispute_milestones_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 2"),
@@ -637,7 +637,7 @@ fn test_dispute_milestones_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
         Milestone {
             description: String::from_str(&env, "Milestone 3"),
@@ -655,7 +655,7 @@ fn test_dispute_milestones_batch() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -744,7 +744,7 @@ fn test_dispute_milestones_invalid_index_reverts() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -819,7 +819,7 @@ fn test_dispute_milestones_already_disputed_reverts() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -902,7 +902,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         },
     ];
 
@@ -989,7 +989,7 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_a.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_a),
         },
         Milestone {
             description: String::from_str(&env, "Milestone B"),
@@ -1007,7 +1007,7 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
                 resolved: false,
             },
             released: false,
-            receiver: receiver_b.clone(),
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_b),
         },
     ];
 
@@ -1024,7 +1024,10 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
     let escrow_properties = Escrow {
         engagement_id: String::from_str(&env, "cross_receiver_dispute"),
         title: String::from_str(&env, "Cross-Receiver Dispute Test"),
-        description: String::from_str(&env, "Test receiver cannot dispute another receiver's milestone"),
+        description: String::from_str(
+            &env,
+            "Test receiver cannot dispute another receiver's milestone",
+        ),
         roles,
         platform_fee: 0,
         milestones,
