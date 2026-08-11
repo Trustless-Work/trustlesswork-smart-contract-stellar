@@ -33,13 +33,6 @@ mod modules {
 
         pub use calculator::*;
     }
-
-    pub mod cctp {
-        pub mod client;
-        pub mod constants;
-        pub mod decimal;
-        pub mod release;
-    }
 }
 
 /// This module is currently Work In Progress.
