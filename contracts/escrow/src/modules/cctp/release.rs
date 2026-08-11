@@ -19,13 +19,10 @@ const APPROVE_LEDGER_TTL: u32 = 100_000;
 const MAX_FEE_CAP_DIVISOR: i128 = 10;
 
 /// Validates a destination before it is stored, so a burn at release never
-/// fails. `route_amount` is the escrow amount (single-release) or the
-/// milestone amount (multi-release) `max_fee` is bounded against.
+/// fails.
 pub fn validate_destination(
     destination_domain: u32,
     mint_recipient: &BytesN<32>,
-    max_fee: i128,
-    route_amount: i128,
 ) -> Result<(), CctpError> {
     if !is_valid_cctp_destination_domain(destination_domain) {
         return Err(CctpError::InvalidDestinationDomain);
@@ -33,6 +30,15 @@ pub fn validate_destination(
     if mint_recipient.to_array() == [0u8; 32] {
         return Err(CctpError::InvalidRecipient);
     }
+    Ok(())
+}
+
+/// Bounds a release-supplied `max_fee` against the route's amount (the
+/// escrow amount in single-release, the milestone amount in multi-release).
+/// The API prices the real value from a live Circle quote when building the
+/// release; this on-chain cap only limits what a caller bypassing the API
+/// could claim.
+pub fn validate_max_fee(max_fee: i128, route_amount: i128) -> Result<(), CctpError> {
     if max_fee < 0 || max_fee > route_amount / MAX_FEE_CAP_DIVISOR {
         return Err(CctpError::MaxFeeExceedsCap);
     }

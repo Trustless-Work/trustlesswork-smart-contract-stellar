@@ -164,10 +164,10 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &amount);
 
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
+    client.release_funds(&f.release_signer, &tw_address, &0i128);
 
     let tw_fee = amount * 30 / 10_000;
     let platform_commission = amount * platform_fee as i128 / 10_000;
@@ -203,7 +203,7 @@ fn release_burns_via_destination_registered_at_initialize() {
     // No set_cross_chain_destination call: the destination provided at
     // initialize_escrow is enough for the release to burn via CCTP.
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
+    client.release_funds(&f.release_signer, &tw_address, &0i128);
 
     let receiver_amount =
         amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
@@ -225,12 +225,8 @@ fn only_receiver_can_set_destination() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let res = client.try_set_cross_chain_destination(
-        &f.release_signer,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &200_000i128,
-    );
+    let res =
+        client.try_set_cross_chain_destination(&f.release_signer, &6, &evm_recipient(&env, 0xAB));
     assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
 }
 
@@ -248,12 +244,7 @@ fn set_destination_rejects_invalid_domain() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let res = client.try_set_cross_chain_destination(
-        &f.receiver,
-        &999,
-        &evm_recipient(&env, 0xAB),
-        &200_000i128,
-    );
+    let res = client.try_set_cross_chain_destination(&f.receiver, &999, &evm_recipient(&env, 0xAB));
     assert_eq!(res, Err(Ok(CctpError::InvalidDestinationDomain)));
 }
 
@@ -275,50 +266,42 @@ fn set_destination_rejects_zero_recipient() {
         &f.receiver,
         &6,
         &BytesN::from_array(&env, &[0u8; 32]),
-        &200_000i128,
     );
     assert_eq!(res, Err(Ok(CctpError::InvalidRecipient)));
 }
 
 #[test]
-fn set_destination_rejects_max_fee_exceeding_cap() {
+fn release_rejects_max_fee_exceeding_cap() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
+    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
+
     // amount = 100_000_000 -> cap is amount / 10 = 10_000_000.
     let amount: i128 = 100_000_000;
-    let f = base_escrow(&env, &usdc.0.address, amount, 500);
+    let platform_fee: u32 = 500;
+    let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
+    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
+    usdc.1.mint(&client.address, &amount);
+    client.approve_milestones(&vec![&env, 0u32], &f.approver);
 
-    let too_high = client.try_set_cross_chain_destination(
-        &f.receiver,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &10_000_001i128,
-    );
-    assert_eq!(too_high, Err(Ok(CctpError::MaxFeeExceedsCap)));
-
-    let negative = client.try_set_cross_chain_destination(
-        &f.receiver,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &-1i128,
-    );
-    assert_eq!(negative, Err(Ok(CctpError::MaxFeeExceedsCap)));
+    // Above the cap and negative are both rejected.
+    let too_high = client.try_release_funds(&f.release_signer, &tw_address, &(amount / 10 + 1));
+    assert!(too_high.is_err(), "max_fee above the cap must fail");
+    let negative = client.try_release_funds(&f.release_signer, &tw_address, &-1i128);
+    assert!(negative.is_err(), "negative max_fee must fail");
 
     // Exactly at the cap is fine.
-    let at_cap = client.try_set_cross_chain_destination(
-        &f.receiver,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &10_000_000i128,
-    );
-    assert!(at_cap.is_ok());
+    client.release_funds(&f.release_signer, &tw_address, &(amount / 10));
+    let net = amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
+    assert_eq!(usdc.0.balance(&messenger), net);
 }
 
 #[test]
@@ -336,12 +319,11 @@ fn receiver_update_overrides_initialize_destination() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
 
     let stored = client.get_cross_chain_destination();
     assert_eq!(stored.destination_domain, 6);
     assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
-    assert_eq!(stored.max_fee, 200_000i128);
 }
 
 #[test]

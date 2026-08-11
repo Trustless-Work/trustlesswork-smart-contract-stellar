@@ -837,7 +837,8 @@ fn test_target_requires_multiple_approvers() {
     );
 
     // Release must fail — target not yet reached
-    let result = escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result =
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &0i128);
     assert!(
         result.is_err(),
         "Release must fail when target is not reached"
@@ -867,7 +868,8 @@ fn test_target_requires_multiple_approvers() {
     );
 
     // Release must now succeed
-    let result = escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result =
+        escrow_client.try_release_funds(&release_signer_address, &trustless_work_address, &0i128);
     assert!(
         result.is_ok(),
         "Release must succeed after target is reached"

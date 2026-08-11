@@ -289,7 +289,7 @@ fn test_release_funds_successful_flow() {
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     escrow_approver.approve_milestones(&vec![&env, 1u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &0i128);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -418,7 +418,7 @@ fn test_release_funds_milestones_incomplete() {
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
     let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address, &0i128);
     assert!(result.is_err());
 }
 
@@ -504,7 +504,7 @@ fn test_release_funds_same_receiver_as_provider() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &0i128);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -620,7 +620,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address, &trustless_work_address, &0i128);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -888,7 +888,7 @@ fn test_full_flow_init_without_milestones() {
     assert!(milestone.approvals.approval_count >= milestone.approvals.target);
 
     // 6. Release funds
-    client.release_funds(&release_signer, &trustless_work);
+    client.release_funds(&release_signer, &trustless_work, &0i128);
 
     assert!(client.get_escrow().released);
     assert_eq!(token_client.balance(&client.address), 0);
@@ -964,7 +964,7 @@ fn test_approve_and_release_milestones_success() {
     client.initialize_escrow(&escrow_properties);
     client.fund_escrow(&dual_signer, &escrow_properties, &amount);
 
-    client.approve_and_release_milestones(&dual_signer, &trustless_work, &vec![&env, 0u32]);
+    client.approve_and_release_milestones(&dual_signer, &trustless_work, &vec![&env, 0u32], &0i128);
 
     assert!(client.get_escrow().released);
     assert_eq!(token_client.balance(&client.address), 0);
@@ -1039,7 +1039,11 @@ fn test_approve_and_release_milestones_only_approver_fails() {
     client.fund_escrow(&approver, &escrow_properties, &amount);
 
     // approver no es release_signer → debe fallar
-    let result =
-        client.try_approve_and_release_milestones(&approver, &trustless_work, &vec![&env, 0u32]);
+    let result = client.try_approve_and_release_milestones(
+        &approver,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &0i128,
+    );
     assert!(result.is_err());
 }

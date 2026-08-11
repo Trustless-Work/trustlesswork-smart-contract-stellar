@@ -171,8 +171,6 @@ pub fn validate_escrow_conditions(
     validate_destination(
         new_escrow.roles.receiver.cctp.destination_domain,
         &new_escrow.roles.receiver.cctp.mint_recipient,
-        new_escrow.roles.receiver.cctp.max_fee,
-        new_escrow.amount,
     )
     .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
 

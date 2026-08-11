@@ -8,7 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{CctpError, EscrowError};
 use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding, validate_destination,
+    release_receiver_amount_via_cctp_forwarding, validate_destination, validate_max_fee,
 };
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult};
 use crate::storage::types::{
@@ -72,28 +72,36 @@ impl EscrowManager {
         e: &Env,
         release_signer: &Address,
         trustless_work_address: &Address,
+        max_fee: i128,
     ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
         let escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
         release_signer.require_auth();
-        Self::release_funds_execute(e, trustless_work_address, escrow)
+        Self::release_funds_execute(e, trustless_work_address, max_fee, escrow)
     }
 
     pub(crate) fn release_funds_inner(
         e: &Env,
         release_signer: &Address,
         trustless_work_address: &Address,
+        max_fee: i128,
     ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
         let escrow = Self::get_escrow(e)?;
         validate_release_conditions(&escrow, release_signer)?;
-        Self::release_funds_execute(e, trustless_work_address, escrow)
+        Self::release_funds_execute(e, trustless_work_address, max_fee, escrow)
     }
 
     fn release_funds_execute(
         e: &Env,
         trustless_work_address: &Address,
+        max_fee: i128,
         mut escrow: Escrow,
     ) -> Result<(Escrow, StandardFeeResult), EscrowError> {
+        // `max_fee` is priced by the API from a live Circle quote when the
+        // release is built; the on-chain cap bounds a caller bypassing it.
+        validate_max_fee(max_fee, escrow.amount)
+            .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
+
         escrow.released = true;
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()
@@ -145,7 +153,7 @@ impl EscrowManager {
                 fee_result.receiver_amount,
                 destination.destination_domain,
                 &destination.mint_recipient,
-                destination.max_fee,
+                max_fee,
                 &remainder_recipient,
             );
         }
@@ -155,24 +163,20 @@ impl EscrowManager {
 
     /// Updates the receiver's cross-chain payout target. Only the receiver's
     /// auth address (when registered) may call this; the admin updates it
-    /// through `update_escrow` instead. `max_fee` is the Forwarding Service
-    /// ceiling the receiver approves — the API sizes it from a live Circle
-    /// quote when building this call.
+    /// through `update_escrow` instead.
     pub fn set_cross_chain_destination(
         e: &Env,
         receiver: &Address,
         destination_domain: u32,
         mint_recipient: &BytesN<32>,
-        max_fee: i128,
     ) -> Result<(), CctpError> {
         let mut escrow = Self::assert_receiver(e, receiver)?;
         receiver.require_auth();
-        validate_destination(destination_domain, mint_recipient, max_fee, escrow.amount)?;
+        validate_destination(destination_domain, mint_recipient)?;
 
         escrow.roles.receiver.cctp = CrossChainDestination {
             destination_domain,
             mint_recipient: mint_recipient.clone(),
-            max_fee,
         };
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
         e.storage()

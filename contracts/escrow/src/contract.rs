@@ -109,9 +109,10 @@ impl EscrowContract {
         e: &Env,
         release_signer: Address,
         trustless_work_address: Address,
+        max_fee: i128,
     ) -> Result<(), EscrowError> {
         let (escrow, fee_result) =
-            EscrowManager::release_funds(e, &release_signer, &trustless_work_address)?;
+            EscrowManager::release_funds(e, &release_signer, &trustless_work_address, max_fee)?;
         ReleaseEsc {
             engagement_id: escrow.engagement_id,
             release_signer,
@@ -174,14 +175,12 @@ impl EscrowContract {
         receiver: Address,
         destination_domain: u32,
         mint_recipient: BytesN<32>,
-        max_fee: i128,
     ) -> Result<(), CctpError> {
         EscrowManager::set_cross_chain_destination(
             e,
             &receiver,
             destination_domain,
             &mint_recipient,
-            max_fee,
         )
     }
 
@@ -279,6 +278,7 @@ impl EscrowContract {
         signer: Address,
         trustless_work_address: Address,
         milestone_indices: Vec<u32>,
+        max_fee: i128,
     ) -> Result<(), EscrowError> {
         let escrow = EscrowManager::get_escrow(&e)?;
         if !escrow.roles.approvers.contains(&signer)
@@ -299,7 +299,7 @@ impl EscrowContract {
         }
         .publish(&e);
         let (release_escrow, fee_result) =
-            EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address)?;
+            EscrowManager::release_funds_inner(&e, &signer, &trustless_work_address, max_fee)?;
         ReleaseEsc {
             engagement_id: release_escrow.engagement_id,
             release_signer: signer,

@@ -88,7 +88,7 @@ fn test_dispute_management() {
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
     let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address, &0i128);
     assert!(result.is_err());
 
     let _ = escrow_approver.try_dispute_escrow(&approver_address, &String::from_str(&env, "Again"));
