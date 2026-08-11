@@ -1418,3 +1418,125 @@ fn test_add_milestones_after_init_without_milestones() {
     let escrow = client.get_escrow();
     assert_eq!(escrow.milestones.len(), 1);
 }
+
+#[test]
+fn test_manage_milestones_rejects_oversized_strings() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let (token_client, _token_admin) = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_base = Escrow {
+        engagement_id: String::from_str(&env, "manage_milestones_lengths"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: initial_milestones,
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_base);
+
+    let long_desc = String::from_str(&env, std::str::from_utf8(&[b'a'; 501]).unwrap());
+    let long_status = String::from_str(&env, std::str::from_utf8(&[b'a'; 51]).unwrap());
+    let long_evidence = String::from_str(&env, std::str::from_utf8(&[b'a'; 501]).unwrap());
+    let no_updates: soroban_sdk::Vec<MilestoneUpdate> = vec![&env];
+
+    let base_milestone = Milestone {
+        description: String::from_str(&env, "ok"),
+        status: String::from_str(&env, "Pending"),
+        evidence: String::from_str(&env, ""),
+        approvals: MilestoneApprovals {
+            target: 1,
+            approval_count: 0,
+            approved_by: vec![&env],
+        },
+        amount: 25_000_000,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        receiver: receiver.clone(),
+    };
+
+    let mut bad_desc = base_milestone.clone();
+    bad_desc.description = long_desc.clone();
+    let result = client.try_manage_milestones(&escrow_admin, &vec![&env, bad_desc], &no_updates);
+    assert!(result.is_err());
+
+    let mut bad_status = base_milestone.clone();
+    bad_status.status = long_status;
+    let result = client.try_manage_milestones(&escrow_admin, &vec![&env, bad_status], &no_updates);
+    assert!(result.is_err());
+
+    let mut bad_evidence = base_milestone.clone();
+    bad_evidence.evidence = long_evidence;
+    let result =
+        client.try_manage_milestones(&escrow_admin, &vec![&env, bad_evidence], &no_updates);
+    assert!(result.is_err());
+
+    let no_new: soroban_sdk::Vec<Milestone> = vec![&env];
+    let bad_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: Some(long_desc),
+            new_amount: None,
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &no_new, &bad_update);
+    assert!(result.is_err());
+
+    let escrow = client.get_escrow();
+    assert_eq!(escrow.milestones.len(), 1);
+    assert_eq!(
+        escrow.milestones.get(0).unwrap().description,
+        String::from_str(&env, "Milestone 1")
+    );
+}

@@ -11,6 +11,17 @@ const MAX_STATUS_LEN: u32 = 50;
 const MAX_EVIDENCE_LEN: u32 = 500;
 
 #[inline]
+fn validate_milestone_string_lengths(milestone: &Milestone) -> Result<(), EscrowError> {
+    if milestone.description.len() > MAX_LONG_STRING
+        || milestone.status.len() > MAX_STATUS_LEN
+        || milestone.evidence.len() > MAX_EVIDENCE_LEN
+    {
+        return Err(EscrowError::StringTooLong);
+    }
+    Ok(())
+}
+
+#[inline]
 fn validate_escrow_string_lengths(escrow: &Escrow) -> Result<(), EscrowError> {
     if escrow.engagement_id.len() > MAX_SHORT_STRING
         || escrow.title.len() > MAX_SHORT_STRING
@@ -19,12 +30,7 @@ fn validate_escrow_string_lengths(escrow: &Escrow) -> Result<(), EscrowError> {
         return Err(EscrowError::StringTooLong);
     }
     for milestone in escrow.milestones.iter() {
-        if milestone.description.len() > MAX_LONG_STRING
-            || milestone.status.len() > MAX_STATUS_LEN
-            || milestone.evidence.len() > MAX_EVIDENCE_LEN
-        {
-            return Err(EscrowError::StringTooLong);
-        }
+        validate_milestone_string_lengths(&milestone)?;
     }
     Ok(())
 }
@@ -284,6 +290,7 @@ pub fn validate_manage_milestones_conditions(
             return Err(EscrowError::TooManyMilestones);
         }
         for milestone in new_milestones.iter() {
+            validate_milestone_string_lengths(&milestone)?;
             if milestone.amount <= 0 {
                 return Err(EscrowError::AmountCannotBeZero);
             }
@@ -308,6 +315,11 @@ pub fn validate_manage_milestones_conditions(
         for update in milestone_updates.iter() {
             if update.index >= existing_escrow.milestones.len() {
                 return Err(EscrowError::InvalidMilestoneIndex);
+            }
+            if let Some(ref desc) = update.new_description {
+                if desc.len() > MAX_LONG_STRING {
+                    return Err(EscrowError::StringTooLong);
+                }
             }
         }
     }
