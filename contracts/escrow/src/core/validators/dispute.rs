@@ -21,7 +21,7 @@ pub fn validate_withdraw_remaining_funds_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
-    if !escrow.dispute.is_disputed && !escrow.dispute.resolved {
+    if !escrow.dispute.is_disputed && !escrow.dispute.resolved && !escrow.released {
         return Err(EscrowError::EscrowNotInDispute);
     }
 
@@ -84,6 +84,10 @@ pub fn validate_dispute_flag_change_conditions(
     escrow: &Escrow,
     signer: &Address,
 ) -> Result<(), EscrowError> {
+    if escrow.released {
+        return Err(EscrowError::EscrowAlreadyReleased);
+    }
+
     if escrow.dispute.is_disputed {
         return Err(EscrowError::EscrowAlreadyInDispute);
     }
