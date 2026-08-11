@@ -57,22 +57,6 @@ pub enum EscrowError {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[contracterror]
-pub enum CctpError {
-    InvalidDestinationDomain = 1,
-    InvalidRecipient = 2,
-    OnlyReceiverCanSetDestination = 3,
-    DestinationNotSet = 4,
-    MilestoneNotFound = 5,
-    /// `max_fee` must be non-negative and can't exceed a sane share of the
-    /// milestone's amount — defense-in-depth against a bogus/compromised
-    /// max_fee (the API computes this from a live Circle quote, but the
-    /// contract itself doesn't trust that; anyone with the receiver's key
-    /// can call this entrypoint directly, bypassing the API).
-    MaxFeeExceedsCap = 6,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[contracterror]
 pub enum ReleaseError {
     EscrowAlreadyResolved = 1,
     OnlyReleaseSignerCanReleaseEarnings = 2,

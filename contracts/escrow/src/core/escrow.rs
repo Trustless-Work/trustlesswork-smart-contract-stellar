@@ -1,20 +1,16 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
     validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_milestones_conditions,
 };
-use crate::error::{CctpError, EscrowError, ReleaseError};
-use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding, validate_destination,
-};
+use crate::error::{EscrowError, ReleaseError};
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
-    AddressBalance, CrossChainDestination, DataKey, Escrow, Milestone, MilestonePayout,
-    MilestoneUpdate,
+    AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate,
 };
 
 pub struct EscrowManager;
@@ -160,29 +156,7 @@ impl EscrowManager {
 
             let receiver = Self::get_receiver(&milestone);
             if fee_result.receiver_amount > 0 {
-                // Route by the milestone receiver's own registered preference.
-                match Self::get_cross_chain_destination_opt(e, index) {
-                    Some(destination) => {
-                        release_receiver_amount_via_cctp_forwarding(
-                            e,
-                            &token_client,
-                            &contract_address,
-                            &escrow.trustline.address,
-                            fee_result.receiver_amount,
-                            destination.destination_domain,
-                            &destination.mint_recipient,
-                            destination.max_fee,
-                            &receiver,
-                        );
-                    }
-                    None => {
-                        token_client.transfer(
-                            &contract_address,
-                            &receiver,
-                            &fee_result.receiver_amount,
-                        );
-                    }
-                }
+                token_client.transfer(&contract_address, &receiver, &fee_result.receiver_amount);
             }
 
             payouts.push_back(MilestonePayout {
@@ -196,83 +170,6 @@ impl EscrowManager {
         }
 
         Ok(payouts)
-    }
-
-    /// Registers a milestone's cross-chain payout target. Only that milestone's
-    /// receiver may set it. `max_fee` is the Forwarding Service ceiling that
-    /// receiver approves — the API sizes it from a live Circle quote when
-    /// building this call, the caller of the API never supplies it directly.
-    pub fn set_cross_chain_destination(
-        e: &Env,
-        receiver: &Address,
-        milestone_index: u32,
-        destination_domain: u32,
-        mint_recipient: &BytesN<32>,
-        max_fee: i128,
-    ) -> Result<(), CctpError> {
-        let milestone_amount = Self::assert_milestone_receiver(e, receiver, milestone_index)?;
-        receiver.require_auth();
-        validate_destination(destination_domain, mint_recipient, max_fee, milestone_amount)?;
-
-        let destination = CrossChainDestination {
-            destination_domain,
-            mint_recipient: mint_recipient.clone(),
-            max_fee,
-        };
-        let key = DataKey::CrossChainDestination(milestone_index);
-        e.storage().persistent().set(&key, &destination);
-        e.storage().persistent().extend_ttl(&key, 17280, 31536000);
-        Ok(())
-    }
-
-    /// Clears a milestone's cross-chain target, reverting to a Stellar payout.
-    pub fn clear_cross_chain_destination(
-        e: &Env,
-        receiver: &Address,
-        milestone_index: u32,
-    ) -> Result<(), CctpError> {
-        Self::assert_milestone_receiver(e, receiver, milestone_index)?;
-        receiver.require_auth();
-        e.storage()
-            .persistent()
-            .remove(&DataKey::CrossChainDestination(milestone_index));
-        Ok(())
-    }
-
-    pub fn get_cross_chain_destination(
-        e: &Env,
-        milestone_index: u32,
-    ) -> Result<CrossChainDestination, CctpError> {
-        Self::get_cross_chain_destination_opt(e, milestone_index)
-            .ok_or(CctpError::DestinationNotSet)
-    }
-
-    /// Returns the milestone's amount on success — the caller needs it to
-    /// bound `max_fee`.
-    fn assert_milestone_receiver(
-        e: &Env,
-        receiver: &Address,
-        milestone_index: u32,
-    ) -> Result<i128, CctpError> {
-        let escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
-        let milestone = escrow
-            .milestones
-            .get(milestone_index)
-            .ok_or(CctpError::MilestoneNotFound)?;
-        if *receiver != milestone.receiver {
-            return Err(CctpError::OnlyReceiverCanSetDestination);
-        }
-        Ok(milestone.amount)
-    }
-
-    #[inline]
-    fn get_cross_chain_destination_opt(
-        e: &Env,
-        milestone_index: u32,
-    ) -> Option<CrossChainDestination> {
-        e.storage()
-            .persistent()
-            .get(&DataKey::CrossChainDestination(milestone_index))
     }
 
     pub fn change_escrow_properties(
@@ -336,22 +233,6 @@ impl EscrowManager {
                 milestone.description = desc;
             }
             if let Some(amount) = update.new_amount {
-                // A registered CrossChainDestination stores a receiver-approved
-                // `max_fee` that `set_cross_chain_destination` validated against
-                // the milestone amount at registration time (<= 10% of it).
-                // Changing the amount here would leave that `max_fee` bound to a
-                // stale amount — if the amount is reduced, the stored `max_fee`
-                // could exceed the 10% cap and let the CCTP forwarding fee eat a
-                // larger share of the payout than the invariant allows. We clear
-                // the destination (option a: simplest/safest) so the receiver
-                // must re-register it against the new amount, re-running
-                // validate_destination. Cleared unconditionally on any amount
-                // change to keep the rule trivial to reason about.
-                if amount != milestone.amount {
-                    e.storage()
-                        .persistent()
-                        .remove(&DataKey::CrossChainDestination(update.index));
-                }
                 milestone.amount = amount;
             }
             existing_escrow.milestones.set(update.index, milestone);
