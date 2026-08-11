@@ -15,6 +15,10 @@ pub fn calculate_and_distribute_fees(
     distributions: &Map<Address, i128>,
     total: i128,
 ) -> Result<Vec<(Address, i128)>, EscrowError> {
+    if total <= 0 {
+        return Err(EscrowError::TotalAmountCannotBeZero);
+    }
+
     // Use exact global fee totals to prevent per-recipient rounding from
     // underpaying fee recipients. Distribute only (total - fees) to recipients.
     let global_trustless_fee = fee_result.trustless_work_fee;
@@ -62,4 +66,41 @@ pub fn calculate_and_distribute_fees(
     }
 
     Ok(net_distributions)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use soroban_sdk::testutils::Address as _;
+    use soroban_sdk::{token, Address, Env};
+
+    #[test]
+    fn rejects_zero_total() {
+        let e = Env::default();
+        let admin = Address::generate(&e);
+        let sac = e.register_stellar_asset_contract_v2(admin);
+        let token_client = token::Client::new(&e, &sac.address());
+
+        let contract = Address::generate(&e);
+        let tw = Address::generate(&e);
+        let platform = Address::generate(&e);
+        let fee_result = StandardFeeResult {
+            trustless_work_fee: 0,
+            platform_fee: 0,
+            receiver_amount: 0,
+        };
+        let distributions: Map<Address, i128> = Map::new(&e);
+
+        let result = calculate_and_distribute_fees(
+            &e,
+            &token_client,
+            &contract,
+            &tw,
+            &platform,
+            &fee_result,
+            &distributions,
+            0,
+        );
+        assert_eq!(result.err(), Some(EscrowError::TotalAmountCannotBeZero));
+    }
 }
