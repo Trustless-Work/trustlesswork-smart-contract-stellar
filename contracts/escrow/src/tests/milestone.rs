@@ -1540,3 +1540,75 @@ fn test_manage_milestones_rejects_oversized_strings() {
         String::from_str(&env, "Milestone 1")
     );
 }
+
+#[test]
+fn test_approve_milestones_unauthorized_fails_fast_before_duplicate_check() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    let outsider = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "completed"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 100_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "fail_fast_auth"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+
+    // A non-approver submitting a batch with duplicate indices must be rejected
+    // for authorization first, before the duplicate-check loop runs.
+    let result = client.try_approve_milestones(&vec![&env, 0u32, 0u32], &outsider);
+    assert_eq!(
+        result.err(),
+        Some(Ok(crate::error::MilestoneError::UnauthorizedApprover))
+    );
+}
