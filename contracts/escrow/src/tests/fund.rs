@@ -1410,3 +1410,90 @@ fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
     client.withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &full);
     assert_eq!(usdc_token.0.balance(&client.address), 0);
 }
+
+#[test]
+fn test_dispute_resolver_can_sweep_surplus_after_release() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    let trustless_work = Address::generate(&env);
+
+    let usdc = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Completed"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "sweep_after_release"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones,
+        trustline: Trustline {
+            address: usdc.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+
+    usdc.1.mint(&approver, &amount);
+    client.fund_escrow(&approver, &escrow_properties, &amount);
+    client.approve_milestones(&vec![&env, 0u32], &approver);
+    client.release_funds(&release_signer, &trustless_work, &vec![&env, 0u32]);
+
+    // Clean release: contract holds nothing.
+    assert_eq!(usdc.0.balance(&client.address), 0);
+
+    // Surplus lands in the contract (overfunding or stray transfer).
+    let surplus: i128 = 5_000_000;
+    usdc.1.mint(&client.address, &surplus);
+
+    // The dispute_resolver sweeps it via withdraw_remaining_funds WITHOUT any
+    // dispute, since all milestones are released.
+    let recipient = Address::generate(&env);
+    let mut distributions = soroban_sdk::Map::new(&env);
+    distributions.set(recipient.clone(), surplus);
+    client.withdraw_remaining_funds(&dispute_resolver, &trustless_work, &distributions);
+
+    assert_eq!(usdc.0.balance(&client.address), 0);
+    assert!(usdc.0.balance(&recipient) > 0);
+}

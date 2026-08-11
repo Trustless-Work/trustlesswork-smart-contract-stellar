@@ -25,10 +25,13 @@ pub fn validate_withdraw_remaining_funds_conditions(
         return Err(EscrowError::OnlyDisputeResolverCanExecuteThisFunction);
     }
 
+    let all_released =
+        !escrow.milestones.is_empty() && escrow.milestones.iter().all(|m| m.released);
     if !escrow
         .milestones
         .iter()
         .any(|m| m.dispute.is_disputed || m.dispute.resolved)
+        && !all_released
     {
         return Err(EscrowError::EscrowNotInDispute);
     }
