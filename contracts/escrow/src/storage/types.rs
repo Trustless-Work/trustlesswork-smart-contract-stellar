@@ -39,25 +39,14 @@ pub struct Escrow {
     pub receiver_memo: u32,
 }
 
-/// A milestone's receiver in a CCTP-only contract: the payout always leaves
-/// Stellar via CCTP, so the destination is required from initialization.
-///
-/// `stellar_address` is auth-only — it lets that milestone's receiver
-/// self-manage the destination (`set_cross_chain_destination`) and collects
-/// the sub-stroop burn remainder, but never receives the payout. The admin
-/// can also update it via `update_escrow`, under the same rule as every
-/// other milestone property: only while the escrow holds no funds.
-#[contracttype]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Receiver {
-    pub stellar_address: Option<Address>,
-    pub cctp: CrossChainDestination,
-}
-
-/// Cross-chain payout target. The forwarding `max_fee` is NOT stored here:
-/// it is supplied per milestone at release time (priced by the API from a
-/// live Circle quote) so it can never go stale, and bounded on-chain by the
-/// 10% cap.
+/// A milestone's cross-chain payout target in a CCTP-only contract: the
+/// payout always leaves Stellar via CCTP, so this destination is required
+/// from initialization — set with the rest of the milestone and updatable
+/// by the admin through `update_escrow` only while the escrow holds no
+/// funds, like every milestone property. The forwarding `max_fee` is NOT
+/// stored here: it is supplied per milestone at release time (priced by the
+/// API from a live Circle quote) so it can never go stale, and bounded
+/// on-chain by the 10% cap.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {
@@ -83,7 +72,7 @@ pub struct Milestone {
     pub amount: i128,
     pub dispute: Dispute,
     pub released: bool,
-    pub receiver: Receiver,
+    pub receiver: CrossChainDestination,
 }
 
 #[contracttype]
@@ -100,6 +89,10 @@ pub struct MilestoneUpdate {
     pub index: u32,
     pub new_description: Option<String>,
     pub new_amount: Option<i128>,
+    /// Both must be present together to retarget the milestone's
+    /// cross-chain destination (the SDK cannot encode Option<struct>).
+    pub new_destination_domain: Option<u32>,
+    pub new_mint_recipient: Option<BytesN<32>>,
 }
 
 #[contracttype]

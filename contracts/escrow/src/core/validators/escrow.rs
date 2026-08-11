@@ -181,8 +181,8 @@ pub fn validate_escrow_conditions(
     // against that milestone's own amount.
     for milestone in new_escrow.milestones.iter() {
         validate_destination(
-            milestone.receiver.cctp.destination_domain,
-            &milestone.receiver.cctp.mint_recipient,
+            milestone.receiver.destination_domain,
+            &milestone.receiver.mint_recipient,
         )
         .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
     }
@@ -309,8 +309,8 @@ pub fn validate_manage_milestones_conditions(
                 return Err(EscrowError::FlagsMustBeFalse);
             }
             validate_destination(
-                milestone.receiver.cctp.destination_domain,
-                &milestone.receiver.cctp.mint_recipient,
+                milestone.receiver.destination_domain,
+                &milestone.receiver.mint_recipient,
             )
             .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
             if milestone.approvals.target > existing_escrow.roles.approvers.len() {

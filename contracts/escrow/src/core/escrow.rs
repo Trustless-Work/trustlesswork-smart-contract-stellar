@@ -1,12 +1,12 @@
 use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{Address, Env, Symbol, Vec};
 
 use crate::core::validators::escrow::{
     validate_escrow_property_change_conditions, validate_fund_escrow_conditions,
     validate_initialize_escrow_conditions, validate_manage_milestones_conditions,
     validate_release_milestones_conditions,
 };
-use crate::error::{CctpError, EscrowError, ReleaseError};
+use crate::error::{EscrowError, ReleaseError};
 use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_forwarding, validate_destination, validate_max_fee,
 };
@@ -181,17 +181,12 @@ impl EscrowManager {
                 );
             }
 
-            let destination = milestone.receiver.cctp.clone();
+            let destination = milestone.receiver.clone();
             if fee_result.receiver_amount > 0 {
                 // CCTP-only contract: the payout always burns cross-chain.
                 // The sub-stroop remainder CCTP cannot burn goes to the
-                // receiver's auth address if they have one, otherwise to
-                // the platform.
-                let remainder_recipient = milestone
-                    .receiver
-                    .stellar_address
-                    .clone()
-                    .unwrap_or_else(|| escrow.roles.platform.clone());
+                // platform.
+                let remainder_recipient = escrow.roles.platform.clone();
                 release_receiver_amount_via_cctp_forwarding(
                     e,
                     &token_client,
@@ -217,52 +212,6 @@ impl EscrowManager {
         }
 
         Ok(payouts)
-    }
-
-    /// Updates a milestone's cross-chain payout target. Only that milestone's
-    /// receiver auth address (when registered) may call this; the admin
-    /// updates it through `update_escrow` instead.
-    pub fn set_cross_chain_destination(
-        e: &Env,
-        receiver: &Address,
-        milestone_index: u32,
-        destination_domain: u32,
-        mint_recipient: &BytesN<32>,
-    ) -> Result<(), CctpError> {
-        let mut escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
-        let mut milestone = escrow
-            .milestones
-            .get(milestone_index)
-            .ok_or(CctpError::MilestoneNotFound)?;
-        match &milestone.receiver.stellar_address {
-            Some(auth) if auth == receiver => {}
-            _ => return Err(CctpError::OnlyReceiverCanSetDestination),
-        }
-        receiver.require_auth();
-        validate_destination(destination_domain, mint_recipient)?;
-
-        milestone.receiver.cctp = CrossChainDestination {
-            destination_domain,
-            mint_recipient: mint_recipient.clone(),
-        };
-        escrow.milestones.set(milestone_index, milestone);
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
-        Ok(())
-    }
-
-    pub fn get_cross_chain_destination(
-        e: &Env,
-        milestone_index: u32,
-    ) -> Result<CrossChainDestination, CctpError> {
-        let escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
-        let milestone = escrow
-            .milestones
-            .get(milestone_index)
-            .ok_or(CctpError::MilestoneNotFound)?;
-        Ok(milestone.receiver.cctp)
     }
 
     pub fn change_escrow_properties(
@@ -327,6 +276,19 @@ impl EscrowManager {
             }
             if let Some(amount) = update.new_amount {
                 milestone.amount = amount;
+            }
+            match (update.new_destination_domain, update.new_mint_recipient) {
+                (Some(domain), Some(recipient)) => {
+                    validate_destination(domain, &recipient)
+                        .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
+                    milestone.receiver = CrossChainDestination {
+                        destination_domain: domain,
+                        mint_recipient: recipient,
+                    };
+                }
+                (None, None) => {}
+                // Half a destination is never valid.
+                _ => return Err(EscrowError::InvalidCrossChainDestination),
             }
             existing_escrow.milestones.set(update.index, milestone);
         }

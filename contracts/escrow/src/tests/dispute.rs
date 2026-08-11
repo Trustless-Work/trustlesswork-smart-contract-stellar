@@ -387,62 +387,8 @@ fn test_dispute_milestones_authorized_and_unauthorized() {
         "Dispute flag should be set to true for authorized address"
     );
 
-    // Also verify the receiver can dispute (since receiver is now per-milestone)
-    let escrow_base_for_receiver = Escrow {
-        engagement_id: String::from_str(&env, "engagement_002"),
-        title: String::from_str(&env, "Escrow for receiver test"),
-        description: String::from_str(&env, "Test receiver can dispute"),
-        roles: Roles {
-            approvers: vec![&env, approver.clone()],
-            service_providers: vec![&env, service_provider.clone()],
-            platform: platform.clone(),
-            release_signers: vec![&env, release_signer.clone()],
-            dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            admin: escrow_admin.clone(),
-            observers: vec![&env],
-        },
-        platform_fee: 0,
-        milestones: vec![
-            &env,
-            Milestone {
-                description: String::from_str(&env, "First milestone"),
-                status: String::from_str(&env, "Completed"),
-                evidence: String::from_str(&env, "Initial evidence"),
-                approvals: MilestoneApprovals {
-                    target: 1,
-                    approval_count: 0,
-                    approved_by: vec![&env],
-                },
-                amount: 100_000_000,
-                dispute: Dispute {
-                    is_disputed: false,
-                    reason: String::from_str(&env, ""),
-                    resolved: false,
-                },
-                released: false,
-                receiver: crate::tests::helpers::test_receiver(&env, &receiver),
-            },
-        ],
-        trustline: Trustline {
-            address: usdc_token.0.address.clone(),
-        },
-        receiver_memo: 0,
-    };
-
-    let test_data_receiver = create_escrow_contract(&env, &escrow_admin);
-    let escrow_client_receiver = test_data_receiver.client;
-    escrow_client_receiver.initialize_escrow(&escrow_base_for_receiver);
-    // Receiver should be able to dispute
-    escrow_client_receiver.dispute_milestones(
-        &receiver,
-        &vec![&env, 0u32],
-        &String::from_str(&env, "Issue with payment"),
-    );
-    let updated = escrow_client_receiver.get_escrow();
-    assert!(
-        updated.milestones.iter().any(|m| m.dispute.is_disputed),
-        "Receiver should be able to dispute"
-    );
+    // Receivers have no Stellar identity in a CCTP-only contract, so they
+    // cannot open disputes: only the global roles can.
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let escrow_client_2 = test_data.client;
@@ -956,7 +902,7 @@ fn test_dispute_milestones_unauthorized_reverts() {
 }
 
 #[test]
-fn test_receiver_cannot_dispute_other_receiver_milestone() {
+fn test_receivers_cannot_dispute_in_cctp_only_contract() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -1042,15 +988,16 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
     let client = test_data.client;
     client.initialize_escrow(&escrow_properties);
 
-    // 1. Receiver A can dispute their own milestone (index 0)
+    // Receivers have no Stellar identity in a CCTP-only contract, so even
+    // "their own" milestone cannot be disputed by them.
     let result = client.try_dispute_milestones(
         &receiver_a,
         &vec![&env, 0u32],
         &String::from_str(&env, "Issue with milestone A"),
     );
     assert!(
-        result.is_ok(),
-        "Receiver A must be able to dispute their own milestone"
+        result.is_err(),
+        "Receivers must not be able to dispute in a CCTP-only contract"
     );
 
     // 2. Receiver A cannot dispute Receiver B's milestone (index 1)
@@ -1082,16 +1029,15 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
         "Receiver A must NOT be able to dispute a batch containing another receiver's milestone"
     );
 
-    // Verify no partial mutation occurred: milestone 0 must still be disputed
-    // (from the successful first call) but milestone 1 must remain undisputed
+    // Verify nothing was mutated by any of the rejected attempts.
     let escrow = client.get_escrow();
     assert!(
-        escrow.milestones.get(0).unwrap().dispute.is_disputed,
-        "Milestone 0 must remain disputed from the first successful call"
+        !escrow.milestones.get(0).unwrap().dispute.is_disputed,
+        "Milestone 0 must remain undisputed"
     );
     assert!(
         !escrow.milestones.get(1).unwrap().dispute.is_disputed,
-        "Milestone 1 must remain undisputed (rejected mixed batch did not partially apply)"
+        "Milestone 1 must remain undisputed"
     );
 
     // 4. Verify global roles (approver) can still dispute any milestone

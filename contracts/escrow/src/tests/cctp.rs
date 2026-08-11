@@ -1,6 +1,5 @@
 extern crate std;
 
-use crate::error::CctpError;
 use crate::modules::cctp::constants::{cctp_forward_hook_data, CCTP_TOKEN_MESSENGER_STRKEY};
 use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_forwarding_with_messenger,
@@ -162,49 +161,6 @@ fn net_of(amount: i128, platform_fee: u32) -> (i128, i128, i128) {
 }
 
 #[test]
-fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
-    env.register_at(&messenger, MockTokenMessenger, ());
-
-    let each: i128 = 50_000_000;
-    let platform_fee: u32 = 500;
-    let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-    usdc.1.mint(&client.address, &(each * 2));
-
-    // Only milestone 0's receiver registers a cross-chain destination.
-    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB));
-
-    client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.approve_milestones(&vec![&env, 1u32], &f.approver);
-    client.release_funds(
-        &f.release_signer,
-        &tw_address,
-        &vec![&env, 0u32, 1u32],
-        &vec![&env, 0i128, 0i128],
-    );
-
-    let (_tw, _plat, net) = net_of(each, platform_fee);
-
-    // CCTP-only contract: both milestones burn via the messenger — milestone
-    // 0 to the destination its receiver registered, milestone 1 to the one
-    // provided at initialize.
-    assert_eq!(usdc.0.balance(&messenger), net * 2);
-    assert_eq!(usdc.0.balance(&f.receiver0), 0);
-    assert_eq!(usdc.0.balance(&f.receiver1), 0);
-    assert_eq!(usdc.0.balance(&client.address), 0);
-}
-
-#[test]
 fn release_burns_via_destination_registered_at_initialize() {
     let env = Env::default();
     env.mock_all_auths();
@@ -240,67 +196,91 @@ fn release_burns_via_destination_registered_at_initialize() {
 }
 
 #[test]
-fn only_milestone_receiver_can_set_destination() {
+fn initialize_rejects_invalid_destination_domain_and_zero_recipient() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
-    let f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
+    let mut f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
+    let mut m0 = f.escrow.milestones.get(0).unwrap();
+    m0.receiver.destination_domain = 999;
+    f.escrow.milestones.set(0, m0);
     let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
+    let res = client.try_initialize_escrow(&f.escrow);
+    assert!(res.is_err(), "invalid destination domain must fail at init");
 
-    // receiver1 tries to set the destination for milestone 0 (not theirs).
-    let res =
-        client.try_set_cross_chain_destination(&f.receiver1, &0u32, &6, &evm_recipient(&env, 0xAB));
-    assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
+    let mut f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
+    let mut m1 = f.escrow.milestones.get(1).unwrap();
+    m1.receiver.mint_recipient = BytesN::from_array(&env, &[0u8; 32]);
+    f.escrow.milestones.set(1, m1);
+    let client = create_escrow_contract(&env, &f.admin).client;
+    let res = client.try_initialize_escrow(&f.escrow);
+    assert!(res.is_err(), "zero mint recipient must fail at init");
 }
 
 #[test]
-fn set_destination_rejects_invalid_milestone_index() {
+fn admin_updates_destination_via_manage_milestones_without_funds() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
-    let f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
+    let each: i128 = 50_000_000;
+    let f = base_escrow(&env, &usdc.0.address, each, 500);
+
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let res = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &99u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-    );
-    assert_eq!(res, Err(Ok(CctpError::MilestoneNotFound)));
-}
+    // Without funds the admin can retarget a milestone's destination.
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0u32,
+            new_description: None,
+            new_amount: None,
+            new_destination_domain: Some(6),
+            new_mint_recipient: Some(evm_recipient(&env, 0xAB)),
+        },
+    ];
+    client.manage_milestones(&f.admin, &vec![&env], &updates);
+    let stored = client.get_escrow().milestones.get(0).unwrap().receiver;
+    assert_eq!(stored.destination_domain, 6);
+    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
 
-#[test]
-fn set_destination_rejects_invalid_domain_and_zero_recipient() {
-    let env = Env::default();
-    env.mock_all_auths();
+    // Half a destination is rejected.
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0u32,
+            new_description: None,
+            new_amount: None,
+            new_destination_domain: Some(1),
+            new_mint_recipient: None,
+        },
+    ];
+    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
+    assert!(res.is_err(), "half a destination must be rejected");
 
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    let bad_domain =
-        client.try_set_cross_chain_destination(&f.receiver0, &0u32, &999, &evm_recipient(&env, 1));
-    assert_eq!(bad_domain, Err(Ok(CctpError::InvalidDestinationDomain)));
-
-    let zero_recipient = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &BytesN::from_array(&env, &[0u8; 32]),
-    );
-    assert_eq!(zero_recipient, Err(Ok(CctpError::InvalidRecipient)));
+    // With funds milestone updates are rejected entirely, destination included.
+    let funder = Address::generate(&env);
+    let funded_escrow = client.get_escrow();
+    usdc.1.mint(&funder, &(each * 2));
+    client.fund_escrow(&funder, &funded_escrow, &(each * 2));
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0u32,
+            new_description: None,
+            new_amount: None,
+            new_destination_domain: Some(7),
+            new_mint_recipient: Some(evm_recipient(&env, 0xCD)),
+        },
+    ];
+    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
+    assert!(res.is_err(), "destination must be frozen once funded");
 }
 
 #[test]
@@ -358,28 +338,6 @@ fn release_rejects_max_fee_exceeding_cap() {
     );
     let (_tw, _plat, net) = net_of(each, platform_fee);
     assert_eq!(usdc.0.balance(&messenger), net);
-}
-
-#[test]
-fn receiver_update_overrides_initialize_destination() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let each: i128 = 50_000_000;
-    let platform_fee: u32 = 500;
-    let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB));
-
-    let stored = client.get_cross_chain_destination(&0u32);
-    assert_eq!(stored.destination_domain, 6);
-    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
 }
 
 #[test]
