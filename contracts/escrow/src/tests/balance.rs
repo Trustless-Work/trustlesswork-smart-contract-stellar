@@ -27,7 +27,6 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: receiver.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -51,6 +50,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
         title: String::from_str(&env, "Escrow for registry test"),
         description: String::from_str(&env, "Test for multiple balances"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount: 50_000_000,
         platform_fee: 100, // 1%
         milestones,

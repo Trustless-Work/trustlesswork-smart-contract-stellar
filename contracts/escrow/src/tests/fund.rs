@@ -48,7 +48,6 @@ fn test_fund_escrow_successful_deposit() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -63,6 +62,7 @@ fn test_fund_escrow_successful_deposit() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
@@ -152,7 +152,6 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -167,6 +166,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
@@ -201,6 +201,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
 fn test_release_funds_successful_flow() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -249,7 +250,6 @@ fn test_release_funds_successful_flow() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: _receiver_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -264,6 +264,7 @@ fn test_release_funds_successful_flow() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
@@ -309,9 +310,9 @@ fn test_release_funds_successful_flow() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&_receiver_address),
+        usdc_token.0.balance(&messenger),
         receiver_amount,
-        "Receiver received incorrect amount"
+        "CCTP messenger should hold the burned receiver amount"
     );
 
     assert_eq!(
@@ -379,7 +380,6 @@ fn test_release_funds_milestones_incomplete() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -393,6 +393,7 @@ fn test_release_funds_milestones_incomplete() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: incomplete_milestones.clone(),
@@ -425,6 +426,7 @@ fn test_release_funds_milestones_incomplete() {
 fn test_release_funds_same_receiver_as_provider() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -464,7 +466,6 @@ fn test_release_funds_same_receiver_as_provider() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: _receiver_address.clone(), // Set to service_provider to test same-address case
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -479,6 +480,7 @@ fn test_release_funds_same_receiver_as_provider() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
@@ -523,9 +525,9 @@ fn test_release_funds_same_receiver_as_provider() {
     );
 
     assert_eq!(
-        usdc_token.0.balance(&service_provider_address),
+        usdc_token.0.balance(&messenger),
         service_provider_amount,
-        "Service Provider should receive funds when receiver is set to same address"
+        "CCTP messenger should hold the burned receiver amount"
     );
 
     assert_eq!(
@@ -539,6 +541,7 @@ fn test_release_funds_same_receiver_as_provider() {
 fn test_release_funds_invalid_receiver_fallback() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -579,7 +582,6 @@ fn test_release_funds_invalid_receiver_fallback() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: _receiver_address.clone(), // Different receiver address than service provider
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -594,6 +596,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones.clone(),
@@ -639,9 +642,9 @@ fn test_release_funds_invalid_receiver_fallback() {
 
     // Funds should go to the receiver (not service provider)
     assert_eq!(
-        usdc_token.0.balance(&_receiver_address),
+        usdc_token.0.balance(&messenger),
         receiver_amount,
-        "Receiver should receive funds when set to a different address than service provider"
+        "CCTP messenger should hold the burned receiver amount"
     );
 
     // The service provider should not receive funds when a different receiver is set
@@ -685,7 +688,6 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: service_provider.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -709,6 +711,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
         title: String::from_str(&env, "Rounding Withdraw Test"),
         description: String::from_str(&env, "Test floor division rounding in withdraw"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider),
         amount: escrow_amount,
         platform_fee,
         milestones: milestones.clone(),
@@ -797,6 +800,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
 fn test_full_flow_init_without_milestones() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -818,7 +822,6 @@ fn test_full_flow_init_without_milestones() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: receiver.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -829,6 +832,7 @@ fn test_full_flow_init_without_milestones() {
         title: String::from_str(&env, "Full Flow Test"),
         description: String::from_str(&env, "Complete lifecycle starting without milestones"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount,
         platform_fee: 0,
         milestones: vec![&env],
@@ -891,13 +895,14 @@ fn test_full_flow_init_without_milestones() {
     // TW cobra 30 bps (0.3%), platform_fee=0 → receiver recibe el resto
     let tw_fee = amount * 30 / 10_000;
     assert_eq!(token_client.balance(&trustless_work), tw_fee);
-    assert_eq!(token_client.balance(&receiver), amount - tw_fee);
+    assert_eq!(token_client.balance(&messenger), amount - tw_fee);
 }
 
 #[test]
 fn test_approve_and_release_milestones_success() {
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let admin = Address::generate(&env);
     let escrow_admin = Address::generate(&env);
@@ -918,7 +923,6 @@ fn test_approve_and_release_milestones_success() {
         platform: platform.clone(),
         release_signers: vec![&env, dual_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: receiver.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -939,6 +943,7 @@ fn test_approve_and_release_milestones_success() {
         title: String::from_str(&env, "Approve and Release Test"),
         description: String::from_str(&env, ""),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount,
         platform_fee: 0,
         milestones: vec![&env, milestone],
@@ -964,7 +969,7 @@ fn test_approve_and_release_milestones_success() {
     assert!(client.get_escrow().released);
     assert_eq!(token_client.balance(&client.address), 0);
     let tw_fee = amount * 30 / 10_000;
-    assert_eq!(token_client.balance(&receiver), amount - tw_fee);
+    assert_eq!(token_client.balance(&messenger), amount - tw_fee);
 }
 
 #[test]
@@ -992,7 +997,6 @@ fn test_approve_and_release_milestones_only_approver_fails() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer.clone()],
         dispute_resolvers: vec![&env, dispute_resolver.clone()],
-        receiver: receiver.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -1013,6 +1017,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
         title: String::from_str(&env, "Only Approver Test"),
         description: String::from_str(&env, ""),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount,
         platform_fee: 0,
         milestones: vec![&env, milestone],

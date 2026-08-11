@@ -2,6 +2,7 @@ use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
     error::EscrowError,
+    modules::cctp::release::validate_destination,
     storage::types::{DataKey, Escrow, Milestone, MilestoneUpdate, Roles},
 };
 
@@ -70,12 +71,13 @@ pub fn validate_release_conditions(
 }
 
 #[inline]
-fn validate_admin_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
+fn validate_admin_role_overlap(escrow: &Escrow) -> Result<(), EscrowError> {
+    let roles = &escrow.roles;
     if roles.approvers.contains(&roles.admin)
         || roles.service_providers.contains(&roles.admin)
         || roles.release_signers.contains(&roles.admin)
         || roles.dispute_resolvers.contains(&roles.admin)
-        || roles.admin == roles.receiver
+        || escrow.receiver.stellar_address.as_ref() == Some(&roles.admin)
     {
         return Err(EscrowError::AdminAddressOverlapsWithOtherRole);
     }
@@ -117,12 +119,13 @@ fn validate_role_limits(roles: &Roles) -> Result<(), EscrowError> {
 }
 
 #[inline]
-fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
+fn validate_dispute_resolver_role_overlap(escrow: &Escrow) -> Result<(), EscrowError> {
+    let roles = &escrow.roles;
     for resolver in roles.dispute_resolvers.iter() {
         if roles.approvers.contains(&resolver)
             || roles.service_providers.contains(&resolver)
             || roles.release_signers.contains(&resolver)
-            || resolver == roles.receiver
+            || escrow.receiver.stellar_address.as_ref() == Some(&resolver)
         {
             return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
         }
@@ -163,8 +166,18 @@ pub fn validate_escrow_conditions(
         return Err(EscrowError::AmountCannotBeZero);
     }
 
+    // CCTP-only contract: the receiver's destination must be valid from
+    // initialization and stay valid through every admin update.
+    validate_destination(
+        new_escrow.receiver.cctp.destination_domain,
+        &new_escrow.receiver.cctp.mint_recipient,
+        new_escrow.receiver.cctp.max_fee,
+        new_escrow.amount,
+    )
+    .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
+
     validate_role_limits(&new_escrow.roles)?;
-    validate_dispute_resolver_role_overlap(&new_escrow.roles)?;
+    validate_dispute_resolver_role_overlap(new_escrow)?;
 
     if is_init {
         if new_escrow.milestones.len() > 50 {
@@ -200,7 +213,7 @@ pub fn validate_escrow_conditions(
                 return Err(EscrowError::TargetExceedsApprovers);
             }
         }
-        validate_admin_role_overlap(&new_escrow.roles)?;
+        validate_admin_role_overlap(new_escrow)?;
     } else {
         let existing = existing_escrow.ok_or(EscrowError::EscrowNotFound)?;
         let caller = admin.ok_or(EscrowError::OnlyAdminAddressExecuteThisFunction)?;
@@ -238,7 +251,7 @@ pub fn validate_escrow_conditions(
                 return Err(EscrowError::EscrowPropertiesMismatch);
             }
         }
-        validate_admin_role_overlap(&new_escrow.roles)?;
+        validate_admin_role_overlap(new_escrow)?;
     }
 
     Ok(())

@@ -1,4 +1,4 @@
-use soroban_sdk::{contractevent, Address, String, Vec};
+use soroban_sdk::{contractevent, Address, BytesN, String, Vec};
 
 use crate::storage::types::{DistributionEntry, MilestoneStatusEntry};
 
@@ -10,7 +10,8 @@ pub struct InitEsc {
     pub amount: i128,
     pub platform_fee: u32,
     pub trustline: Address,
-    pub receiver: Address,
+    pub destination_domain: u32,
+    pub mint_recipient: BytesN<32>,
 }
 
 #[contractevent(topics = ["tw_fund"])]
@@ -29,7 +30,8 @@ pub struct ReleaseEsc {
     #[topic]
     pub engagement_id: String,
     pub release_signer: Address,
-    pub receiver: Address,
+    pub destination_domain: u32,
+    pub mint_recipient: BytesN<32>,
     pub amount: i128,
     pub platform_fee: i128,
     pub trustless_work_fee: i128,

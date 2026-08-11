@@ -57,7 +57,6 @@ fn test_append_milestones_with_funds() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: receiver_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -72,6 +71,7 @@ fn test_append_milestones_with_funds() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
@@ -191,7 +191,6 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: receiver_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -206,6 +205,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         title: String::from_str(&env, "Test Escrow Approved"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
@@ -343,7 +343,6 @@ fn test_change_milestone_status_and_approved() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -358,6 +357,7 @@ fn test_change_milestone_status_and_approved() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
@@ -499,7 +499,6 @@ fn test_change_milestone_status_batch() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -513,6 +512,7 @@ fn test_change_milestone_status_batch() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
@@ -622,7 +622,6 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -636,6 +635,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
@@ -715,7 +715,6 @@ fn test_batch_milestone_status_empty_batch_fails() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -729,6 +728,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee,
         milestones: initial_milestones.clone(),
@@ -759,6 +759,7 @@ fn test_target_requires_multiple_approvers() {
     // until the required number of unique approvers have voted.
     let env = Env::default();
     env.mock_all_auths();
+    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
 
     let approver_a = Address::generate(&env);
     let approver_b = Address::generate(&env);
@@ -793,7 +794,6 @@ fn test_target_requires_multiple_approvers() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -803,6 +803,7 @@ fn test_target_requires_multiple_approvers() {
         title: String::from_str(&env, "Target Test Escrow"),
         description: String::from_str(&env, "Test target approval"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee,
         milestones: milestones.clone(),
@@ -930,7 +931,6 @@ fn test_batch_approve_milestones_multiple_indices() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -940,6 +940,7 @@ fn test_batch_approve_milestones_multiple_indices() {
         title: String::from_str(&env, "Batch Approve Test"),
         description: String::from_str(&env, "Test batch milestone approval"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee,
         milestones: milestones.clone(),
@@ -1044,10 +1045,10 @@ fn test_manage_milestones() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            receiver: service_provider.clone(),
             admin: escrow_admin.clone(),
             observers: vec![&env],
         },
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider),
         amount: 100_000_000,
         platform_fee: 300,
         milestones: initial_milestones.clone(),
@@ -1173,6 +1174,7 @@ fn test_manage_milestones() {
         title: String::from_str(&env, "Updated Title"),
         description: String::from_str(&env, "Updated Desc"),
         roles: escrow_base.roles.clone(),
+        receiver: escrow_base.receiver.clone(),
         amount: escrow_base.amount,
         platform_fee: escrow_base.platform_fee,
         milestones: initial_milestones.clone(),

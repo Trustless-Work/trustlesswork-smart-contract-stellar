@@ -75,7 +75,8 @@ impl EscrowContract {
             amount: initialized_escrow.amount,
             platform_fee: initialized_escrow.platform_fee,
             trustline: initialized_escrow.trustline.address.clone(),
-            receiver: initialized_escrow.roles.receiver.clone(),
+            destination_domain: initialized_escrow.receiver.cctp.destination_domain,
+            mint_recipient: initialized_escrow.receiver.cctp.mint_recipient.clone(),
         }
         .publish(e);
         Ok(initialized_escrow)
@@ -109,7 +110,8 @@ impl EscrowContract {
         ReleaseEsc {
             engagement_id: escrow.engagement_id,
             release_signer,
-            receiver: escrow.roles.receiver,
+            destination_domain: escrow.receiver.cctp.destination_domain,
+            mint_recipient: escrow.receiver.cctp.mint_recipient.clone(),
             amount: escrow.amount,
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,
@@ -178,16 +180,7 @@ impl EscrowContract {
         )
     }
 
-    pub fn clear_cross_chain_destination(
-        e: &Env,
-        receiver: Address,
-    ) -> Result<(), CctpError> {
-        EscrowManager::clear_cross_chain_destination(e, &receiver)
-    }
-
-    pub fn get_cross_chain_destination(
-        e: &Env,
-    ) -> Result<CrossChainDestination, CctpError> {
+    pub fn get_cross_chain_destination(e: &Env) -> Result<CrossChainDestination, CctpError> {
         EscrowManager::get_cross_chain_destination(e)
     }
 
@@ -305,7 +298,8 @@ impl EscrowContract {
         ReleaseEsc {
             engagement_id: release_escrow.engagement_id,
             release_signer: signer,
-            receiver: release_escrow.roles.receiver,
+            destination_domain: release_escrow.receiver.cctp.destination_domain,
+            mint_recipient: release_escrow.receiver.cctp.mint_recipient.clone(),
             amount: release_escrow.amount,
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,

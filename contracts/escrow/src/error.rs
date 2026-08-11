@@ -51,6 +51,7 @@ pub enum EscrowError {
     StringTooLong = 46,
     Reentrancy = 47,
     SignerMustBeApproverAndReleaseSigner = 48,
+    InvalidCrossChainDestination = 49,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

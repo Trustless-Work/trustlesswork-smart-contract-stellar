@@ -54,7 +54,6 @@ fn test_initialize_excrow() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -68,6 +67,7 @@ fn test_initialize_excrow() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: milestones,
@@ -105,7 +105,7 @@ fn test_initialize_excrow() {
         escrow.roles.dispute_resolvers,
         escrow_properties.roles.dispute_resolvers
     );
-    assert_eq!(escrow.roles.receiver, escrow_properties.roles.receiver);
+    assert_eq!(escrow.receiver, escrow_properties.receiver);
     assert_eq!(escrow.receiver_memo, escrow_properties.receiver_memo);
 
     let result = escrow_approver.try_initialize_escrow(&escrow_properties);
@@ -161,7 +161,6 @@ fn test_update_escrow() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -176,6 +175,7 @@ fn test_update_escrow() {
         title: String::from_str(&env, "Test Escrow"),
         description: String::from_str(&env, "Test Escrow Description"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount: amount,
         platform_fee: platform_fee,
         milestones: initial_milestones.clone(),
@@ -234,6 +234,7 @@ fn test_update_escrow() {
         title: String::from_str(&env, "Test Escrow Updated"),
         description: String::from_str(&env, "Test Escrow Description Updated"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &_receiver_address),
         amount: amount * 2,
         platform_fee: platform_fee * 2,
         milestones: new_milestones.clone(),
@@ -265,10 +266,7 @@ fn test_update_escrow() {
         escrow.roles.dispute_resolvers,
         updated_escrow_properties.roles.dispute_resolvers
     );
-    assert_eq!(
-        escrow.roles.receiver,
-        updated_escrow_properties.roles.receiver
-    );
+    assert_eq!(escrow.receiver, updated_escrow_properties.receiver);
     assert_eq!(
         escrow.receiver_memo,
         updated_escrow_properties.receiver_memo
@@ -322,7 +320,6 @@ fn test_update_escrow_platform_fee_too_high() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -332,6 +329,7 @@ fn test_update_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee: platform_fee_valid,
         milestones: milestones.clone(),
@@ -355,6 +353,7 @@ fn test_update_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles: roles.clone(),
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
@@ -416,7 +415,6 @@ fn test_initialize_escrow_platform_fee_too_high() {
         platform: platform.clone(),
         release_signers: vec![&env, release_signer_address.clone()],
         dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-        receiver: service_provider_address.clone(),
         admin: escrow_admin.clone(),
         observers: vec![&env],
     };
@@ -426,6 +424,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         title: String::from_str(&env, "Escrow"),
         description: String::from_str(&env, "Desc"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &service_provider_address),
         amount,
         platform_fee: platform_fee_invalid,
         milestones: milestones.clone(),
@@ -490,10 +489,10 @@ fn test_admin_role_overlap() {
                 platform: platform.clone(),
                 release_signers: vec![&env, release_signer_address.clone()],
                 dispute_resolvers: vec![&env, dispute_resolver_address.clone()],
-                receiver: receiver_address.clone(),
                 admin: escrow_admin,
                 observers: vec![&env],
             },
+            receiver: crate::tests::helpers::test_receiver(&env, &receiver_address),
             amount: 1_000_000,
             platform_fee: 300,
             milestones: milestones.clone(),
@@ -587,10 +586,10 @@ fn test_role_limit_exceeded() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            receiver: receiver.clone(),
             admin: escrow_admin.clone(),
             observers: vec![&env],
         },
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env, milestone.clone()],
@@ -663,10 +662,10 @@ fn test_duplicate_address_in_role() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            receiver: receiver.clone(),
             admin: escrow_admin.clone(),
             observers: vec![&env],
         },
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![
@@ -734,10 +733,10 @@ fn test_dispute_resolver_role_overlap() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers,
-            receiver: receiver.clone(),
             admin: escrow_admin.clone(),
             observers: vec![&env],
         },
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env, milestone.clone()],
@@ -797,10 +796,10 @@ fn test_initialize_escrow_without_milestones() {
             platform: platform.clone(),
             release_signers: vec![&env, release_signer.clone()],
             dispute_resolvers: vec![&env, dispute_resolver.clone()],
-            receiver: receiver.clone(),
             admin: escrow_admin.clone(),
             observers: vec![&env],
         },
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount: 100_000_000,
         platform_fee: 0,
         milestones: vec![&env],

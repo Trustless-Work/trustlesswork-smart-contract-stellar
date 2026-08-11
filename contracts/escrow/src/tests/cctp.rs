@@ -6,9 +6,7 @@ use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_forwarding_with_messenger,
     release_receiver_amount_via_cctp_with_messenger,
 };
-use crate::storage::types::{
-    Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline,
-};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, Bytes, BytesN, Env,
     String,
@@ -99,7 +97,6 @@ fn base_escrow(env: &Env, usdc: &Address, amount: i128, platform_fee: u32) -> Es
         platform: platform.clone(),
         release_signers: vec![env, release_signer.clone()],
         dispute_resolvers: vec![env, Address::generate(env)],
-        receiver: receiver.clone(),
         admin: admin.clone(),
         observers: vec![env],
     };
@@ -109,6 +106,7 @@ fn base_escrow(env: &Env, usdc: &Address, amount: i128, platform_fee: u32) -> Es
         title: String::from_str(env, "CCTP Test"),
         description: String::from_str(env, "Cross-chain release"),
         roles,
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount,
         platform_fee,
         milestones: vec![
@@ -183,12 +181,15 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
 }
 
 #[test]
-fn release_stays_on_stellar_without_registered_destination() {
+fn release_burns_via_destination_registered_at_initialize() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+
+    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
 
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
@@ -199,12 +200,15 @@ fn release_stays_on_stellar_without_registered_destination() {
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &amount);
 
+    // No set_cross_chain_destination call: the destination provided at
+    // initialize_escrow is enough for the release to burn via CCTP.
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.release_funds(&f.release_signer, &tw_address);
 
     let receiver_amount =
         amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
-    assert_eq!(usdc.0.balance(&f.receiver), receiver_amount);
+    assert_eq!(usdc.0.balance(&messenger), receiver_amount);
+    assert_eq!(usdc.0.balance(&f.receiver), 0);
 }
 
 #[test]
@@ -227,10 +231,7 @@ fn only_receiver_can_set_destination() {
         &evm_recipient(&env, 0xAB),
         &200_000i128,
     );
-    assert_eq!(
-        res,
-        Err(Ok(CctpError::OnlyReceiverCanSetDestination))
-    );
+    assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
 }
 
 #[test]
@@ -247,8 +248,12 @@ fn set_destination_rejects_invalid_domain() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let res =
-        client.try_set_cross_chain_destination(&f.receiver, &999, &evm_recipient(&env, 0xAB), &200_000i128);
+    let res = client.try_set_cross_chain_destination(
+        &f.receiver,
+        &999,
+        &evm_recipient(&env, 0xAB),
+        &200_000i128,
+    );
     assert_eq!(res, Err(Ok(CctpError::InvalidDestinationDomain)));
 }
 
@@ -307,13 +312,17 @@ fn set_destination_rejects_max_fee_exceeding_cap() {
     assert_eq!(negative, Err(Ok(CctpError::MaxFeeExceedsCap)));
 
     // Exactly at the cap is fine.
-    let at_cap =
-        client.try_set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &10_000_000i128);
+    let at_cap = client.try_set_cross_chain_destination(
+        &f.receiver,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &10_000_000i128,
+    );
     assert!(at_cap.is_ok());
 }
 
 #[test]
-fn receiver_can_clear_destination_to_revert_to_stellar() {
+fn receiver_update_overrides_initialize_destination() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -323,21 +332,16 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
-    usdc.1.mint(&client.address, &amount);
 
     client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
-    client.clear_cross_chain_destination(&f.receiver);
 
-    client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
-
-    let receiver_amount =
-        amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
-    assert_eq!(usdc.0.balance(&f.receiver), receiver_amount);
+    let stored = client.get_cross_chain_destination();
+    assert_eq!(stored.destination_domain, 6);
+    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
+    assert_eq!(stored.max_fee, 200_000i128);
 }
 
 #[test]
@@ -348,7 +352,10 @@ fn helper_sends_seventh_decimal_remainder_to_stellar() {
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
-    let escrow_contract = env.register(crate::contract::EscrowContract, (&admin, &BytesN::from_array(&env, &[0u8; 32])));
+    let escrow_contract = env.register(
+        crate::contract::EscrowContract,
+        (&admin, &BytesN::from_array(&env, &[0u8; 32])),
+    );
     let amount: i128 = 1_0000003;
     usdc.1.mint(&escrow_contract, &amount);
 
