@@ -1121,3 +1121,104 @@ fn test_fund_escrow_accumulation_overflow_is_controlled() {
     let result = client.try_fund_escrow(&approver, &escrow_properties, &1i128);
     assert_eq!(result, Err(Ok(EscrowError::Overflow)));
 }
+
+#[test]
+fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let trustless_work_address = Address::generate(&env);
+    let recipient = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let escrow_amount: i128 = 1_000_000;
+    let platform_fee: u32 = 300;
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        receiver: service_provider.clone(),
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "partial_withdraw"),
+        title: String::from_str(&env, "Partial Withdraw Test"),
+        description: String::from_str(&env, "Partial withdrawals must be rejected"),
+        roles,
+        amount: escrow_amount,
+        platform_fee,
+        milestones,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+
+    usdc_token.1.mint(&approver, &escrow_amount);
+    client.fund_escrow(&approver, &escrow_properties, &escrow_amount);
+
+    client.dispute_escrow(&service_provider, &String::from_str(&env, "dispute"));
+
+    let mut resolve_distributions = Map::new(&env);
+    resolve_distributions.set(service_provider.clone(), escrow_amount);
+    client.resolve_dispute(
+        &dispute_resolver,
+        &trustless_work_address,
+        &resolve_distributions,
+    );
+
+    // Leftover balance available to withdraw.
+    let remaining: i128 = 100_000;
+    usdc_token.1.mint(&client.address, &remaining);
+
+    // A partial withdrawal (total < current_balance) must now be rejected so
+    // fees can't be floored away across many small calls.
+    let mut partial = Map::new(&env);
+    partial.set(recipient.clone(), remaining / 2);
+    let result =
+        client.try_withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &partial);
+    assert!(result.is_err());
+    assert_eq!(usdc_token.0.balance(&client.address), remaining);
+
+    // A full-balance withdrawal still succeeds.
+    let mut full = Map::new(&env);
+    full.set(recipient.clone(), remaining);
+    client.withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &full);
+    assert_eq!(usdc_token.0.balance(&client.address), 0);
+}

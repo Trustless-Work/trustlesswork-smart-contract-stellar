@@ -37,6 +37,10 @@ pub fn validate_withdraw_remaining_funds_conditions(
         return Err(EscrowError::InsufficientFundsForResolution);
     }
 
+    if total != current_balance {
+        return Err(EscrowError::DistributionsMustEqualEscrowBalance);
+    }
+
     Ok(())
 }
 
