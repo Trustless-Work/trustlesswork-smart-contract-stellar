@@ -39,13 +39,10 @@ pub struct Escrow {
     pub receiver_memo: u32,
 }
 
-/// A milestone's cross-chain payout target in a CCTP-only contract: the
-/// payout always leaves Stellar via CCTP, so this destination is required
-/// from initialization and fixed for the milestone's lifetime (milestones
-/// added later via `manage_milestones` bring their own). The forwarding
-/// `max_fee` is NOT stored here: it is supplied per milestone at release
-/// time (priced by the API from a live Circle quote) so it can never go
-/// stale, and bounded on-chain by the 10% cap.
+/// A milestone's cross-chain payout target. Required at initialization and
+/// fixed for the milestone's lifetime (milestones added via
+/// `manage_milestones` bring their own). The forwarding `max_fee` is not
+/// stored here — it is supplied per milestone at release time.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {

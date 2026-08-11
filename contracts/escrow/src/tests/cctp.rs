@@ -5,9 +5,7 @@ use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_forwarding_with_messenger,
     release_receiver_amount_via_cctp_with_messenger,
 };
-use crate::storage::types::{
-    Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline,
-};
+use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, Bytes, BytesN, Env,
     String,
