@@ -130,8 +130,9 @@ impl EscrowManager {
             // CCTP-only contract: the payout always burns cross-chain. The
             // sub-stroop remainder CCTP cannot burn goes to the receiver's
             // auth address if they have one, otherwise to the platform.
-            let destination = escrow.receiver.cctp.clone();
+            let destination = escrow.roles.receiver.cctp.clone();
             let remainder_recipient = escrow
+                .roles
                 .receiver
                 .stellar_address
                 .clone()
@@ -168,7 +169,7 @@ impl EscrowManager {
         receiver.require_auth();
         validate_destination(destination_domain, mint_recipient, max_fee, escrow.amount)?;
 
-        escrow.receiver.cctp = CrossChainDestination {
+        escrow.roles.receiver.cctp = CrossChainDestination {
             destination_domain,
             mint_recipient: mint_recipient.clone(),
             max_fee,
@@ -182,14 +183,14 @@ impl EscrowManager {
 
     pub fn get_cross_chain_destination(e: &Env) -> Result<CrossChainDestination, CctpError> {
         let escrow = Self::get_escrow(e).map_err(|_| CctpError::DestinationNotSet)?;
-        Ok(escrow.receiver.cctp)
+        Ok(escrow.roles.receiver.cctp)
     }
 
     /// The receiver may self-manage the destination only when they registered
     /// a Stellar auth address; otherwise the admin owns updates.
     fn assert_receiver(e: &Env, receiver: &Address) -> Result<Escrow, CctpError> {
         let escrow = Self::get_escrow(e).map_err(|_| CctpError::DestinationNotSet)?;
-        match &escrow.receiver.stellar_address {
+        match &escrow.roles.receiver.stellar_address {
             Some(auth) if auth == receiver => Ok(escrow),
             _ => Err(CctpError::OnlyReceiverCanSetDestination),
         }

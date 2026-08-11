@@ -20,7 +20,6 @@ pub struct Escrow {
     pub engagement_id: String,
     pub title: String,
     pub roles: Roles,
-    pub receiver: Receiver,
     pub description: String,
     pub amount: i128,
     pub platform_fee: u32,
@@ -36,8 +35,9 @@ pub struct Escrow {
 ///
 /// `stellar_address` is auth-only — it lets the receiver self-manage the
 /// destination (`set_cross_chain_destination`) and collects the sub-stroop
-/// burn remainder, but never receives the payout. Without it, only the
-/// admin can update the destination (via `update_escrow`).
+/// burn remainder, but never receives the payout. The admin can also update
+/// it via `update_escrow`, under the same rule as every other role: only
+/// while the escrow holds no funds.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Receiver {
@@ -98,6 +98,7 @@ pub struct Roles {
     pub platform: Address,
     pub release_signers: Vec<Address>,
     pub dispute_resolvers: Vec<Address>,
+    pub receiver: Receiver,
     pub admin: Address,
     pub observers: Vec<Address>,
 }

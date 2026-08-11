@@ -97,6 +97,7 @@ fn base_escrow(env: &Env, usdc: &Address, amount: i128, platform_fee: u32) -> Es
         platform: platform.clone(),
         release_signers: vec![env, release_signer.clone()],
         dispute_resolvers: vec![env, Address::generate(env)],
+        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         admin: admin.clone(),
         observers: vec![env],
     };
@@ -106,7 +107,6 @@ fn base_escrow(env: &Env, usdc: &Address, amount: i128, platform_fee: u32) -> Es
         title: String::from_str(env, "CCTP Test"),
         description: String::from_str(env, "Cross-chain release"),
         roles,
-        receiver: crate::tests::helpers::test_receiver(&env, &receiver),
         amount,
         platform_fee,
         milestones: vec![
