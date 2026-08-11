@@ -31,23 +31,12 @@ pub struct Escrow {
 }
 
 /// The escrow's receiver in a CCTP-only contract: the payout always leaves
-/// Stellar via CCTP, so the destination is required from initialization.
-///
-/// `stellar_address` is auth-only — it lets the receiver self-manage the
-/// destination (`set_cross_chain_destination`) and collects the sub-stroop
-/// burn remainder, but never receives the payout. The admin can also update
-/// it via `update_escrow`, under the same rule as every other role: only
-/// while the escrow holds no funds.
-#[contracttype]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Receiver {
-    pub stellar_address: Option<Address>,
-    pub cctp: CrossChainDestination,
-}
-
-/// Cross-chain payout target. The forwarding `max_fee` is NOT stored here:
-/// it is supplied at release time (priced by the API from a live Circle
-/// quote) so it can never go stale, and bounded on-chain by the 10% cap.
+/// Stellar via CCTP, so this destination is required from initialization —
+/// set with the rest of the roles and updatable by the admin through
+/// `update_escrow` only while the escrow holds no funds, like every role.
+/// The forwarding `max_fee` is NOT stored here: it is supplied at release
+/// time (priced by the API from a live Circle quote) so it can never go
+/// stale, and bounded on-chain by the 10% cap.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {
@@ -95,7 +84,7 @@ pub struct Roles {
     pub platform: Address,
     pub release_signers: Vec<Address>,
     pub dispute_resolvers: Vec<Address>,
-    pub receiver: Receiver,
+    pub receiver: CrossChainDestination,
     pub admin: Address,
     pub observers: Vec<Address>,
 }

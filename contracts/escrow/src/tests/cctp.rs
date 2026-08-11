@@ -1,6 +1,5 @@
 extern crate std;
 
-use crate::error::CctpError;
 use crate::modules::cctp::constants::{cctp_forward_hook_data, CCTP_TOKEN_MESSENGER_STRKEY};
 use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_forwarding_with_messenger,
@@ -145,42 +144,6 @@ fn base_escrow(env: &Env, usdc: &Address, amount: i128, platform_fee: u32) -> Es
 }
 
 #[test]
-fn release_routes_to_cctp_when_receiver_registered_destination() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
-    env.register_at(&messenger, MockTokenMessenger, ());
-
-    let amount: i128 = 100_000_000;
-    let platform_fee: u32 = 500;
-    let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-    let tw_address = Address::generate(&env);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-    usdc.1.mint(&client.address, &amount);
-
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
-
-    client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &0i128);
-
-    let tw_fee = amount * 30 / 10_000;
-    let platform_commission = amount * platform_fee as i128 / 10_000;
-    let receiver_amount = amount - tw_fee - platform_commission;
-
-    assert_eq!(usdc.0.balance(&tw_address), tw_fee);
-    assert_eq!(usdc.0.balance(&f.platform), platform_commission);
-    assert_eq!(usdc.0.balance(&messenger), receiver_amount);
-    assert_eq!(usdc.0.balance(&f.receiver), 0);
-    assert_eq!(usdc.0.balance(&client.address), 0);
-}
-
-#[test]
 fn release_burns_via_destination_registered_at_initialize() {
     let env = Env::default();
     env.mock_all_auths();
@@ -212,7 +175,7 @@ fn release_burns_via_destination_registered_at_initialize() {
 }
 
 #[test]
-fn only_receiver_can_set_destination() {
+fn initialize_rejects_invalid_destination_domain() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -220,18 +183,16 @@ fn only_receiver_can_set_destination() {
     let usdc = create_usdc_token(&env, &admin);
 
     let amount: i128 = 100_000_000;
-    let f = base_escrow(&env, &usdc.0.address, amount, 500);
+    let mut f = base_escrow(&env, &usdc.0.address, amount, 500);
+    f.escrow.roles.receiver.destination_domain = 999;
 
     let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    let res =
-        client.try_set_cross_chain_destination(&f.release_signer, &6, &evm_recipient(&env, 0xAB));
-    assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
+    let res = client.try_initialize_escrow(&f.escrow);
+    assert!(res.is_err(), "invalid destination domain must fail at init");
 }
 
 #[test]
-fn set_destination_rejects_invalid_domain() {
+fn initialize_rejects_zero_mint_recipient() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -239,17 +200,16 @@ fn set_destination_rejects_invalid_domain() {
     let usdc = create_usdc_token(&env, &admin);
 
     let amount: i128 = 100_000_000;
-    let f = base_escrow(&env, &usdc.0.address, amount, 500);
+    let mut f = base_escrow(&env, &usdc.0.address, amount, 500);
+    f.escrow.roles.receiver.mint_recipient = BytesN::from_array(&env, &[0u8; 32]);
 
     let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    let res = client.try_set_cross_chain_destination(&f.receiver, &999, &evm_recipient(&env, 0xAB));
-    assert_eq!(res, Err(Ok(CctpError::InvalidDestinationDomain)));
+    let res = client.try_initialize_escrow(&f.escrow);
+    assert!(res.is_err(), "zero mint recipient must fail at init");
 }
 
 #[test]
-fn set_destination_rejects_zero_recipient() {
+fn admin_updates_destination_via_update_escrow_without_funds() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -262,12 +222,23 @@ fn set_destination_rejects_zero_recipient() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let res = client.try_set_cross_chain_destination(
-        &f.receiver,
-        &6,
-        &BytesN::from_array(&env, &[0u8; 32]),
-    );
-    assert_eq!(res, Err(Ok(CctpError::InvalidRecipient)));
+    // Without funds the admin can retarget the destination, like any role.
+    let mut updated = f.escrow.clone();
+    updated.roles.receiver = crate::storage::types::CrossChainDestination {
+        destination_domain: 6,
+        mint_recipient: evm_recipient(&env, 0xAB),
+    };
+    client.update_escrow(&f.admin, &updated);
+    assert_eq!(client.get_escrow().roles.receiver, updated.roles.receiver);
+
+    // With funds the roles — destination included — are frozen.
+    let funder = Address::generate(&env);
+    usdc.1.mint(&funder, &amount);
+    client.fund_escrow(&funder, &updated, &amount);
+    let mut refrozen = updated.clone();
+    refrozen.roles.receiver.mint_recipient = evm_recipient(&env, 0xCD);
+    let res = client.try_update_escrow(&f.admin, &refrozen);
+    assert!(res.is_err(), "destination must be frozen once funded");
 }
 
 #[test]
@@ -302,28 +273,6 @@ fn release_rejects_max_fee_exceeding_cap() {
     client.release_funds(&f.release_signer, &tw_address, &(amount / 10));
     let net = amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
     assert_eq!(usdc.0.balance(&messenger), net);
-}
-
-#[test]
-fn receiver_update_overrides_initialize_destination() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let amount: i128 = 100_000_000;
-    let platform_fee: u32 = 500;
-    let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB));
-
-    let stored = client.get_cross_chain_destination();
-    assert_eq!(stored.destination_domain, 6);
-    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
 }
 
 #[test]

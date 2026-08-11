@@ -1,14 +1,14 @@
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
-use crate::error::{CctpError, EscrowError, MilestoneError};
+use crate::error::{EscrowError, MilestoneError};
 use crate::events::handler::{
     DisputeResolved, EscrowDisputed, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
     MilestoneStatusChanged, MilestonesApproved, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
 use crate::storage::types::{
-    AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow, Milestone,
-    MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
+    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
+    MilestoneStatusUpdate, MilestoneUpdate,
 };
 
 #[contract]
@@ -75,13 +75,8 @@ impl EscrowContract {
             amount: initialized_escrow.amount,
             platform_fee: initialized_escrow.platform_fee,
             trustline: initialized_escrow.trustline.address.clone(),
-            destination_domain: initialized_escrow.roles.receiver.cctp.destination_domain,
-            mint_recipient: initialized_escrow
-                .roles
-                .receiver
-                .cctp
-                .mint_recipient
-                .clone(),
+            destination_domain: initialized_escrow.roles.receiver.destination_domain,
+            mint_recipient: initialized_escrow.roles.receiver.mint_recipient.clone(),
         }
         .publish(e);
         Ok(initialized_escrow)
@@ -116,8 +111,8 @@ impl EscrowContract {
         ReleaseEsc {
             engagement_id: escrow.engagement_id,
             release_signer,
-            destination_domain: escrow.roles.receiver.cctp.destination_domain,
-            mint_recipient: escrow.roles.receiver.cctp.mint_recipient.clone(),
+            destination_domain: escrow.roles.receiver.destination_domain,
+            mint_recipient: escrow.roles.receiver.mint_recipient.clone(),
             amount: escrow.amount,
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,
@@ -164,28 +159,6 @@ impl EscrowContract {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow(e)
-    }
-
-    ////////////////////////
-    // Cross-chain payout (receiver-controlled) /////
-    ////////////////////////
-
-    pub fn set_cross_chain_destination(
-        e: &Env,
-        receiver: Address,
-        destination_domain: u32,
-        mint_recipient: BytesN<32>,
-    ) -> Result<(), CctpError> {
-        EscrowManager::set_cross_chain_destination(
-            e,
-            &receiver,
-            destination_domain,
-            &mint_recipient,
-        )
-    }
-
-    pub fn get_cross_chain_destination(e: &Env) -> Result<CrossChainDestination, CctpError> {
-        EscrowManager::get_cross_chain_destination(e)
     }
 
     pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {
@@ -303,8 +276,8 @@ impl EscrowContract {
         ReleaseEsc {
             engagement_id: release_escrow.engagement_id,
             release_signer: signer,
-            destination_domain: release_escrow.roles.receiver.cctp.destination_domain,
-            mint_recipient: release_escrow.roles.receiver.cctp.mint_recipient.clone(),
+            destination_domain: release_escrow.roles.receiver.destination_domain,
+            mint_recipient: release_escrow.roles.receiver.mint_recipient.clone(),
             amount: release_escrow.amount,
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,

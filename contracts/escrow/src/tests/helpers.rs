@@ -2,7 +2,7 @@ extern crate std;
 
 use crate::contract::EscrowContract;
 use crate::contract::EscrowContractClient;
-use crate::storage::types::{CrossChainDestination, Receiver};
+use crate::storage::types::CrossChainDestination;
 use soroban_sdk::{token, Address, BytesN, Env};
 use token::Client as TokenClient;
 use token::StellarAssetClient as TokenAdminClient;
@@ -15,17 +15,14 @@ pub fn create_usdc_token<'a>(e: &Env, admin: &Address) -> (TokenClient<'a>, Toke
     )
 }
 
-/// A receiver with a Stellar auth address and a valid CCTP destination
-/// (Ethereum, non-zero recipient, zero max_fee) for tests.
-pub fn test_receiver(env: &Env, auth: &Address) -> Receiver {
+/// A valid CCTP destination (Ethereum, non-zero recipient) for tests. The
+/// `_auth` parameter is kept so call sites stay uniform.
+pub fn test_receiver(env: &Env, _auth: &Address) -> CrossChainDestination {
     let mut recipient = [0u8; 32];
     recipient[31] = 7;
-    Receiver {
-        stellar_address: Some(auth.clone()),
-        cctp: CrossChainDestination {
-            destination_domain: 0,
-            mint_recipient: BytesN::from_array(env, &recipient),
-        },
+    CrossChainDestination {
+        destination_domain: 0,
+        mint_recipient: BytesN::from_array(env, &recipient),
     }
 }
 

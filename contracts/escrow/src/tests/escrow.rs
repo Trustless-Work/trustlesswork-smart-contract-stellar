@@ -529,12 +529,6 @@ fn test_admin_role_overlap() {
     let res = client.try_initialize_escrow(&make_escrow(release_signer_address.clone()));
     assert!(res.is_err(), "Init must fail when admin == release_signer");
 
-    // admin == receiver must fail
-    let test_data = create_escrow_contract(&env, &receiver_address);
-    let client = test_data.client;
-    let res = client.try_initialize_escrow(&make_escrow(receiver_address.clone()));
-    assert!(res.is_err(), "Init must fail when admin == receiver");
-
     // admin == dispute_resolver must fail
     let test_data = create_escrow_contract(&env, &dispute_resolver_address);
     let client = test_data.client;
@@ -562,7 +556,7 @@ fn test_role_limit_exceeded() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let receiver = Address::generate(&env);
+    let _receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -649,7 +643,7 @@ fn test_duplicate_address_in_role() {
     let approver = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let receiver = Address::generate(&env);
+    let _receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 

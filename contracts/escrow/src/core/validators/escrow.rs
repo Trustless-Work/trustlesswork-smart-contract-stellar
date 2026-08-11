@@ -77,7 +77,6 @@ fn validate_admin_role_overlap(escrow: &Escrow) -> Result<(), EscrowError> {
         || roles.service_providers.contains(&roles.admin)
         || roles.release_signers.contains(&roles.admin)
         || roles.dispute_resolvers.contains(&roles.admin)
-        || escrow.roles.receiver.stellar_address.as_ref() == Some(&roles.admin)
     {
         return Err(EscrowError::AdminAddressOverlapsWithOtherRole);
     }
@@ -125,7 +124,6 @@ fn validate_dispute_resolver_role_overlap(escrow: &Escrow) -> Result<(), EscrowE
         if roles.approvers.contains(&resolver)
             || roles.service_providers.contains(&resolver)
             || roles.release_signers.contains(&resolver)
-            || escrow.roles.receiver.stellar_address.as_ref() == Some(&resolver)
         {
             return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
         }
@@ -169,8 +167,8 @@ pub fn validate_escrow_conditions(
     // CCTP-only contract: the receiver's destination must be valid from
     // initialization and stay valid through every admin update.
     validate_destination(
-        new_escrow.roles.receiver.cctp.destination_domain,
-        &new_escrow.roles.receiver.cctp.mint_recipient,
+        new_escrow.roles.receiver.destination_domain,
+        &new_escrow.roles.receiver.mint_recipient,
     )
     .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
 

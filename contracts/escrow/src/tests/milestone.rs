@@ -759,7 +759,7 @@ fn test_target_requires_multiple_approvers() {
     // until the required number of unique approvers have voted.
     let env = Env::default();
     env.mock_all_auths();
-    let messenger = crate::tests::helpers::register_mock_token_messenger(&env);
+    crate::tests::helpers::register_mock_token_messenger(&env);
 
     let approver_a = Address::generate(&env);
     let approver_b = Address::generate(&env);

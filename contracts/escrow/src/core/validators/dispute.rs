@@ -95,8 +95,7 @@ pub fn validate_dispute_flag_change_conditions(
     let is_authorized = escrow.roles.approvers.contains(signer)
         || escrow.roles.service_providers.contains(signer)
         || signer == &escrow.roles.platform
-        || escrow.roles.release_signers.contains(signer)
-        || escrow.roles.receiver.stellar_address.as_ref() == Some(signer);
+        || escrow.roles.release_signers.contains(signer);
 
     if !is_authorized {
         return Err(EscrowError::UnauthorizedToChangeDisputeFlag);
