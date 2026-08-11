@@ -899,6 +899,7 @@ fn test_target_requires_multiple_approvers() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
     assert!(
         result.is_err(),
@@ -933,6 +934,7 @@ fn test_target_requires_multiple_approvers() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
     assert!(
         result.is_ok(),

@@ -301,6 +301,7 @@ fn test_release_funds_successful_flow() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32, 1u32],
+        &vec![&env, 0i128, 0i128],
     );
 
     let total_amount = amount as i128;
@@ -441,6 +442,7 @@ fn test_release_funds_milestones_incomplete() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32, 1u32],
+        &vec![&env, 0i128, 0i128],
     );
     assert!(result.is_err());
 }
@@ -531,6 +533,7 @@ fn test_release_funds_same_receiver_as_provider() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
 
     let total_amount = amount as i128;
@@ -651,6 +654,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
 
     let total_amount = amount as i128;
@@ -791,6 +795,7 @@ fn test_batch_release_partial_then_full() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
 
     let m0_amount: i128 = 40_000_000;
@@ -813,6 +818,7 @@ fn test_batch_release_partial_then_full() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
     assert!(
         result.is_err(),
@@ -824,6 +830,7 @@ fn test_batch_release_partial_then_full() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 1u32],
+        &vec![&env, 0i128],
     );
 
     let m1_amount: i128 = 60_000_000;
@@ -918,6 +925,7 @@ fn test_release_unapproved_milestone_fails() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
     assert!(result.is_err(), "Releasing unapproved milestone must fail");
 }
@@ -1127,7 +1135,12 @@ fn test_approve_and_release_milestones_success() {
     client.initialize_escrow(&escrow_properties);
     client.fund_escrow(&dual_signer, &escrow_properties, &milestone_amount);
 
-    client.approve_and_release_milestones(&dual_signer, &trustless_work, &vec![&env, 0u32]);
+    client.approve_and_release_milestones(
+        &dual_signer,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128],
+    );
 
     assert!(client.get_escrow().milestones.get(0).unwrap().released);
     assert_eq!(token_client.balance(&client.address), 0);
@@ -1202,8 +1215,12 @@ fn test_approve_and_release_milestones_only_approver_fails() {
     client.fund_escrow(&approver, &escrow_properties, &milestone_amount);
 
     // approver no es release_signer → debe fallar
-    let result =
-        client.try_approve_and_release_milestones(&approver, &trustless_work, &vec![&env, 0u32]);
+    let result = client.try_approve_and_release_milestones(
+        &approver,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128],
+    );
     assert!(result.is_err());
 }
 
@@ -1298,7 +1315,12 @@ fn test_full_flow_init_without_milestones() {
     assert!(milestone.approvals.approval_count >= milestone.approvals.target);
 
     // 6. Release funds del milestone
-    client.release_funds(&release_signer, &trustless_work, &vec![&env, 0u32]);
+    client.release_funds(
+        &release_signer,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128],
+    );
 
     assert_eq!(token_client.balance(&client.address), 0);
     // TW cobra 30 bps (0.3%), platform_fee=0 → receiver recibe el resto

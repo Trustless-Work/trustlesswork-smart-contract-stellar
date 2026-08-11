@@ -183,8 +183,6 @@ pub fn validate_escrow_conditions(
         validate_destination(
             milestone.receiver.cctp.destination_domain,
             &milestone.receiver.cctp.mint_recipient,
-            milestone.receiver.cctp.max_fee,
-            milestone.amount,
         )
         .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
     }
@@ -313,8 +311,6 @@ pub fn validate_manage_milestones_conditions(
             validate_destination(
                 milestone.receiver.cctp.destination_domain,
                 &milestone.receiver.cctp.mint_recipient,
-                milestone.receiver.cctp.max_fee,
-                milestone.amount,
             )
             .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
             if milestone.approvals.target > existing_escrow.roles.approvers.len() {

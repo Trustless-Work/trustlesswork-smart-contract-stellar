@@ -25,7 +25,6 @@ pub fn test_receiver(env: &Env, auth: &Address) -> Receiver {
         cctp: CrossChainDestination {
             destination_domain: 0,
             mint_recipient: BytesN::from_array(env, &recipient),
-            max_fee: 0,
         },
     }
 }

@@ -54,17 +54,15 @@ pub struct Receiver {
     pub cctp: CrossChainDestination,
 }
 
-/// Cross-chain payout target.
-///
-/// `max_fee` is the CCTP Forwarding Service ceiling (Stellar 7-decimal
-/// stroops) approved for the burn — sized by the API from a live Circle
-/// fee quote at the time this is set, not a value the API's caller supplies.
+/// Cross-chain payout target. The forwarding `max_fee` is NOT stored here:
+/// it is supplied per milestone at release time (priced by the API from a
+/// live Circle quote) so it can never go stale, and bounded on-chain by the
+/// 10% cap.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {
     pub destination_domain: u32,
     pub mint_recipient: BytesN<32>,
-    pub max_fee: i128,
 }
 
 #[contracttype]

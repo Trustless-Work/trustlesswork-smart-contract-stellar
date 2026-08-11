@@ -8,7 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{CctpError, EscrowError, ReleaseError};
 use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding, validate_destination,
+    release_receiver_amount_via_cctp_forwarding, validate_destination, validate_max_fee,
 };
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::modules::math::{BasicArithmetic, BasicMath};
@@ -75,11 +75,18 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
+        max_fees: Vec<i128>,
     ) -> Result<Vec<MilestonePayout>, ReleaseError> {
         let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
         release_signer.require_auth();
-        Self::release_funds_execute(e, trustless_work_address, milestone_indices, escrow)
+        Self::release_funds_execute(
+            e,
+            trustless_work_address,
+            milestone_indices,
+            max_fees,
+            escrow,
+        )
     }
 
     pub(crate) fn release_funds_inner(
@@ -87,18 +94,38 @@ impl EscrowManager {
         release_signer: &Address,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
+        max_fees: Vec<i128>,
     ) -> Result<Vec<MilestonePayout>, ReleaseError> {
         let escrow = Self::get_escrow(e).map_err(|_| ReleaseError::EscrowNotFound)?;
         validate_release_milestones_conditions(&escrow, release_signer, &milestone_indices)?;
-        Self::release_funds_execute(e, trustless_work_address, milestone_indices, escrow)
+        Self::release_funds_execute(
+            e,
+            trustless_work_address,
+            milestone_indices,
+            max_fees,
+            escrow,
+        )
     }
 
     fn release_funds_execute(
         e: &Env,
         trustless_work_address: &Address,
         milestone_indices: Vec<u32>,
+        max_fees: Vec<i128>,
         mut escrow: Escrow,
     ) -> Result<Vec<MilestonePayout>, ReleaseError> {
+        // One API-priced forwarding fee per released milestone, in the same
+        // order as `milestone_indices`; each is capped on-chain against its
+        // own milestone's amount.
+        if max_fees.len() != milestone_indices.len() {
+            return Err(ReleaseError::MaxFeesLengthMismatch);
+        }
+        for (i, index) in milestone_indices.iter().enumerate() {
+            let milestone = escrow.milestones.get(index).unwrap();
+            validate_max_fee(max_fees.get(i as u32).unwrap(), milestone.amount)
+                .map_err(|_| ReleaseError::MaxFeeExceedsCap)?;
+        }
+
         let mut total_amount: i128 = 0;
         for index in milestone_indices.iter() {
             let milestone = escrow.milestones.get(index).unwrap();
@@ -127,8 +154,9 @@ impl EscrowManager {
             .extend_ttl(&DataKey::Escrow, 17280, 31536000);
 
         let mut payouts: Vec<MilestonePayout> = Vec::new(e);
-        for index in milestone_indices.iter() {
+        for (i, index) in milestone_indices.iter().enumerate() {
             let milestone = escrow.milestones.get(index).unwrap();
+            let max_fee = max_fees.get(i as u32).unwrap();
             let fee_result =
                 FeeCalculator::calculate_standard_fees(milestone.amount, escrow.platform_fee)
                     .map_err(|e| match e {
@@ -172,7 +200,7 @@ impl EscrowManager {
                     fee_result.receiver_amount,
                     destination.destination_domain,
                     &destination.mint_recipient,
-                    destination.max_fee,
+                    max_fee,
                     &remainder_recipient,
                 );
             }
@@ -193,16 +221,13 @@ impl EscrowManager {
 
     /// Updates a milestone's cross-chain payout target. Only that milestone's
     /// receiver auth address (when registered) may call this; the admin
-    /// updates it through `update_escrow` instead. `max_fee` is the
-    /// Forwarding Service ceiling the receiver approves — the API sizes it
-    /// from a live Circle quote when building this call.
+    /// updates it through `update_escrow` instead.
     pub fn set_cross_chain_destination(
         e: &Env,
         receiver: &Address,
         milestone_index: u32,
         destination_domain: u32,
         mint_recipient: &BytesN<32>,
-        max_fee: i128,
     ) -> Result<(), CctpError> {
         let mut escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
         let mut milestone = escrow
@@ -214,17 +239,11 @@ impl EscrowManager {
             _ => return Err(CctpError::OnlyReceiverCanSetDestination),
         }
         receiver.require_auth();
-        validate_destination(
-            destination_domain,
-            mint_recipient,
-            max_fee,
-            milestone.amount,
-        )?;
+        validate_destination(destination_domain, mint_recipient)?;
 
         milestone.receiver.cctp = CrossChainDestination {
             destination_domain,
             mint_recipient: mint_recipient.clone(),
-            max_fee,
         };
         escrow.milestones.set(milestone_index, milestone);
         e.storage().persistent().set(&DataKey::Escrow, &escrow);
@@ -308,18 +327,6 @@ impl EscrowManager {
             }
             if let Some(amount) = update.new_amount {
                 milestone.amount = amount;
-                // The stored `max_fee` was validated against the previous
-                // amount (<= 10% of it). The destination can't be cleared in
-                // a CCTP-only contract, so re-validate it against the new
-                // amount instead: a reduction that would break the cap must
-                // come with an updated destination via `update_escrow`.
-                validate_destination(
-                    milestone.receiver.cctp.destination_domain,
-                    &milestone.receiver.cctp.mint_recipient,
-                    milestone.receiver.cctp.max_fee,
-                    amount,
-                )
-                .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
             }
             existing_escrow.milestones.set(update.index, milestone);
         }

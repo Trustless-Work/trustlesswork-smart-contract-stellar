@@ -108,6 +108,7 @@ impl EscrowContract {
         release_signer: Address,
         trustless_work_address: Address,
         milestone_indices: Vec<u32>,
+        max_fees: Vec<i128>,
     ) -> Result<(), ReleaseError> {
         let engagement_id = EscrowManager::get_escrow(e)
             .map_err(|_| ReleaseError::EscrowNotFound)?
@@ -117,6 +118,7 @@ impl EscrowContract {
             &release_signer,
             &trustless_work_address,
             milestone_indices,
+            max_fees,
         )?;
         ReleaseEsc {
             engagement_id,
@@ -176,7 +178,6 @@ impl EscrowContract {
         milestone_index: u32,
         destination_domain: u32,
         mint_recipient: BytesN<32>,
-        max_fee: i128,
     ) -> Result<(), CctpError> {
         EscrowManager::set_cross_chain_destination(
             e,
@@ -184,7 +185,6 @@ impl EscrowContract {
             milestone_index,
             destination_domain,
             &mint_recipient,
-            max_fee,
         )
     }
 
@@ -285,6 +285,7 @@ impl EscrowContract {
         signer: Address,
         trustless_work_address: Address,
         milestone_indices: Vec<u32>,
+        max_fees: Vec<i128>,
     ) -> Result<(), EscrowError> {
         let escrow = EscrowManager::get_escrow(&e)?;
         if !escrow.roles.approvers.contains(&signer)
@@ -309,6 +310,7 @@ impl EscrowContract {
             &signer,
             &trustless_work_address,
             milestone_indices,
+            max_fees,
         )?;
         ReleaseEsc {
             engagement_id: updated_escrow.engagement_id,

@@ -99,6 +99,7 @@ fn test_dispute_management() {
         &release_signer_address,
         &trustless_work_address,
         &vec![&env, 0u32],
+        &vec![&env, 0i128],
     );
     assert!(result.is_err());
 

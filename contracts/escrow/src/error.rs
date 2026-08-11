@@ -88,6 +88,8 @@ pub enum ReleaseError {
     Underflow = 11,
     DivisionError = 12,
     EscrowNotFound = 13,
+    MaxFeesLengthMismatch = 14,
+    MaxFeeExceedsCap = 15,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

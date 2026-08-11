@@ -182,17 +182,16 @@ fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
     usdc.1.mint(&client.address, &(each * 2));
 
     // Only milestone 0's receiver registers a cross-chain destination.
-    client.set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &200_000i128,
-    );
+    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB));
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.approve_milestones(&vec![&env, 1u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32, 1u32]);
+    client.release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32, 1u32],
+        &vec![&env, 0i128, 0i128],
+    );
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
 
@@ -228,7 +227,12 @@ fn release_burns_via_destination_registered_at_initialize() {
     // No set_cross_chain_destination call: the destination provided at
     // initialize_escrow is enough for the release to burn via CCTP.
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+    client.release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128],
+    );
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
     assert_eq!(usdc.0.balance(&messenger), net);
@@ -248,13 +252,8 @@ fn only_milestone_receiver_can_set_destination() {
     client.initialize_escrow(&f.escrow);
 
     // receiver1 tries to set the destination for milestone 0 (not theirs).
-    let res = client.try_set_cross_chain_destination(
-        &f.receiver1,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &200_000i128,
-    );
+    let res =
+        client.try_set_cross_chain_destination(&f.receiver1, &0u32, &6, &evm_recipient(&env, 0xAB));
     assert_eq!(res, Err(Ok(CctpError::OnlyReceiverCanSetDestination)));
 }
 
@@ -275,7 +274,6 @@ fn set_destination_rejects_invalid_milestone_index() {
         &99u32,
         &6,
         &evm_recipient(&env, 0xAB),
-        &200_000i128,
     );
     assert_eq!(res, Err(Ok(CctpError::MilestoneNotFound)));
 }
@@ -292,13 +290,8 @@ fn set_destination_rejects_invalid_domain_and_zero_recipient() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    let bad_domain = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &999,
-        &evm_recipient(&env, 1),
-        &200_000i128,
-    );
+    let bad_domain =
+        client.try_set_cross_chain_destination(&f.receiver0, &0u32, &999, &evm_recipient(&env, 1));
     assert_eq!(bad_domain, Err(Ok(CctpError::InvalidDestinationDomain)));
 
     let zero_recipient = client.try_set_cross_chain_destination(
@@ -306,50 +299,65 @@ fn set_destination_rejects_invalid_domain_and_zero_recipient() {
         &0u32,
         &6,
         &BytesN::from_array(&env, &[0u8; 32]),
-        &200_000i128,
     );
     assert_eq!(zero_recipient, Err(Ok(CctpError::InvalidRecipient)));
 }
 
 #[test]
-fn set_destination_rejects_max_fee_exceeding_cap() {
+fn release_rejects_max_fee_exceeding_cap() {
     let env = Env::default();
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
+    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
+
     // milestone amount = 50_000_000 -> cap is amount / 10 = 5_000_000.
-    let f = base_escrow(&env, &usdc.0.address, 50_000_000, 500);
+    let each: i128 = 50_000_000;
+    let platform_fee: u32 = 500;
+    let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
+    let tw_address = Address::generate(&env);
+
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
+    usdc.1.mint(&client.address, &(each * 2));
+    client.approve_milestones(&vec![&env, 0u32], &f.approver);
 
-    let too_high = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &5_000_001i128,
+    // Above the cap, negative, and a fee vec whose length mismatches the
+    // indices are all rejected.
+    let too_high = client.try_release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32],
+        &vec![&env, each / 10 + 1],
     );
-    assert_eq!(too_high, Err(Ok(CctpError::MaxFeeExceedsCap)));
+    assert!(too_high.is_err(), "max_fee above the cap must fail");
+    let negative = client.try_release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32],
+        &vec![&env, -1i128],
+    );
+    assert!(negative.is_err(), "negative max_fee must fail");
+    let mismatched = client.try_release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128, 0i128],
+    );
+    assert!(mismatched.is_err(), "max_fees length mismatch must fail");
 
-    let negative = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &-1i128,
+    // Exactly at the cap is fine.
+    client.release_funds(
+        &f.release_signer,
+        &tw_address,
+        &vec![&env, 0u32],
+        &vec![&env, each / 10],
     );
-    assert_eq!(negative, Err(Ok(CctpError::MaxFeeExceedsCap)));
-
-    let at_cap = client.try_set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &5_000_000i128,
-    );
-    assert!(at_cap.is_ok());
+    let (_tw, _plat, net) = net_of(each, platform_fee);
+    assert_eq!(usdc.0.balance(&messenger), net);
 }
 
 #[test]
@@ -367,90 +375,11 @@ fn receiver_update_overrides_initialize_destination() {
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
 
-    client.set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &200_000i128,
-    );
+    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB));
 
     let stored = client.get_cross_chain_destination(&0u32);
     assert_eq!(stored.destination_domain, 6);
     assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
-    assert_eq!(stored.max_fee, 200_000i128);
-}
-
-/// Security regression: reducing a milestone's amount via `manage_milestones`
-/// must not leave a stale `max_fee` (validated against the old, larger
-/// amount) exceeding the 10% cap of the new amount. In a CCTP-only contract
-/// the destination can't be cleared, so the reduction is rejected until the
-/// destination is updated to fit the new amount.
-#[test]
-fn reducing_milestone_amount_rejects_stale_max_fee() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let each: i128 = 50_000_000;
-    let platform_fee: u32 = 500;
-    let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    // Receiver approves a max_fee at the 10% cap of the original amount.
-    let original_max_fee = each / 10;
-    client.set_cross_chain_destination(
-        &f.receiver0,
-        &0u32,
-        &6,
-        &evm_recipient(&env, 0xAB),
-        &original_max_fee,
-    );
-
-    // Admin reduces milestone 0's amount while the contract is unfunded. The
-    // stale max_fee would now be 100% of the new amount, violating the cap —
-    // the update must be rejected.
-    let reduced: i128 = each / 10;
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0u32,
-            new_description: None,
-            new_amount: Some(reduced),
-        },
-    ];
-    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
-    assert!(
-        res.is_err(),
-        "amount reduction must reject the stale max_fee"
-    );
-
-    // The destination and the amount stay untouched.
-    assert_eq!(
-        client.get_cross_chain_destination(&0u32).max_fee,
-        original_max_fee
-    );
-
-    // After the receiver re-approves a max_fee that fits the new amount,
-    // the same reduction goes through.
-    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB), &0i128);
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0u32,
-            new_description: None,
-            new_amount: Some(reduced),
-        },
-    ];
-    client.manage_milestones(&f.admin, &vec![&env], &updates);
-    assert_eq!(
-        client.get_escrow().milestones.get(0).unwrap().amount,
-        reduced
-    );
 }
 
 #[test]

@@ -943,7 +943,12 @@ fn test_release_funds_returns_overflow_for_milestone_total() {
     );
     client.approve_milestones(&vec![&env, 0, 1], &approver);
 
-    let result = client.try_release_funds(&release_signer, &trustless_work, &vec![&env, 0, 1]);
+    let result = client.try_release_funds(
+        &release_signer,
+        &trustless_work,
+        &vec![&env, 0, 1],
+        &vec![&env, 0i128, 0i128],
+    );
 
     assert!(matches!(result, Err(Ok(ReleaseError::Overflow))));
 }

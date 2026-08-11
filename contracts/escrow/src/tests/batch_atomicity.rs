@@ -195,6 +195,7 @@ fn scenario_b_release_with_unapproved_milestone_is_atomic() {
         &s.release_signer,
         &s.trustless_work,
         &vec![&env, 0u32, 1u32, 2u32],
+        &vec![&env, 0i128, 0i128, 0i128],
     );
 
     // Entire batch fails because M1 is not approved.
@@ -233,8 +234,12 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
     // Approve all, then release M0 on its own.
     s.client
         .approve_milestones(&vec![&env, 0u32, 1u32, 2u32], &s.approver);
-    s.client
-        .release_funds(&s.release_signer, &s.trustless_work, &vec![&env, 0u32]);
+    s.client.release_funds(
+        &s.release_signer,
+        &s.trustless_work,
+        &vec![&env, 0u32],
+        &vec![&env, 0i128],
+    );
 
     let r0 = receiver(&s, 0);
     let r1 = receiver(&s, 1);
@@ -254,6 +259,7 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
         &s.release_signer,
         &s.trustless_work,
         &vec![&env, 0u32, 1u32, 2u32],
+        &vec![&env, 0i128, 0i128, 0i128],
     );
 
     // The error on M0 aborts the whole batch.
@@ -308,6 +314,7 @@ fn scenario_d_release_all_milestones_distributes_correctly() {
         &s.release_signer,
         &s.trustless_work,
         &vec![&env, 0u32, 1u32, 2u32, 3u32, 4u32],
+        &vec![&env, 0i128, 0i128, 0i128, 0i128, 0i128],
     );
 
     // Fees are computed per milestone; amounts are multiples of 10_000 so the
@@ -379,9 +386,9 @@ fn scenario_e_empty_batches_return_descriptive_errors() {
         Err(Ok(MilestoneError::BatchMilestoneApproveEmpty))
     );
 
-    let release_res = s
-        .client
-        .try_release_funds(&s.release_signer, &s.trustless_work, &empty);
+    let release_res =
+        s.client
+            .try_release_funds(&s.release_signer, &s.trustless_work, &empty, &vec![&env]);
     assert_eq!(release_res, Err(Ok(ReleaseError::ReleaseMilestonesEmpty)));
 
     let dispute_res =
