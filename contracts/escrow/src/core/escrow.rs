@@ -8,13 +8,12 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{EscrowError, ReleaseError};
 use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding, validate_destination, validate_max_fee,
+    release_receiver_amount_via_cctp_forwarding, validate_max_fee,
 };
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
-    AddressBalance, CrossChainDestination, DataKey, Escrow, Milestone, MilestonePayout,
-    MilestoneUpdate,
+    AddressBalance, DataKey, Escrow, Milestone, MilestonePayout, MilestoneUpdate,
 };
 
 pub struct EscrowManager;
@@ -276,19 +275,6 @@ impl EscrowManager {
             }
             if let Some(amount) = update.new_amount {
                 milestone.amount = amount;
-            }
-            match (update.new_destination_domain, update.new_mint_recipient) {
-                (Some(domain), Some(recipient)) => {
-                    validate_destination(domain, &recipient)
-                        .map_err(|_| EscrowError::InvalidCrossChainDestination)?;
-                    milestone.receiver = CrossChainDestination {
-                        destination_domain: domain,
-                        mint_recipient: recipient,
-                    };
-                }
-                (None, None) => {}
-                // Half a destination is never valid.
-                _ => return Err(EscrowError::InvalidCrossChainDestination),
             }
             existing_escrow.milestones.set(update.index, milestone);
         }

@@ -6,7 +6,7 @@ use crate::modules::cctp::release::{
     release_receiver_amount_via_cctp_with_messenger,
 };
 use crate::storage::types::{
-    Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneUpdate, Roles, Trustline,
+    Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline,
 };
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, Bytes, BytesN, Env,
@@ -218,69 +218,6 @@ fn initialize_rejects_invalid_destination_domain_and_zero_recipient() {
     let client = create_escrow_contract(&env, &f.admin).client;
     let res = client.try_initialize_escrow(&f.escrow);
     assert!(res.is_err(), "zero mint recipient must fail at init");
-}
-
-#[test]
-fn admin_updates_destination_via_manage_milestones_without_funds() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let each: i128 = 50_000_000;
-    let f = base_escrow(&env, &usdc.0.address, each, 500);
-
-    let client = create_escrow_contract(&env, &f.admin).client;
-    client.initialize_escrow(&f.escrow);
-
-    // Without funds the admin can retarget a milestone's destination.
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0u32,
-            new_description: None,
-            new_amount: None,
-            new_destination_domain: Some(6),
-            new_mint_recipient: Some(evm_recipient(&env, 0xAB)),
-        },
-    ];
-    client.manage_milestones(&f.admin, &vec![&env], &updates);
-    let stored = client.get_escrow().milestones.get(0).unwrap().receiver;
-    assert_eq!(stored.destination_domain, 6);
-    assert_eq!(stored.mint_recipient, evm_recipient(&env, 0xAB));
-
-    // Half a destination is rejected.
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0u32,
-            new_description: None,
-            new_amount: None,
-            new_destination_domain: Some(1),
-            new_mint_recipient: None,
-        },
-    ];
-    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
-    assert!(res.is_err(), "half a destination must be rejected");
-
-    // With funds milestone updates are rejected entirely, destination included.
-    let funder = Address::generate(&env);
-    let funded_escrow = client.get_escrow();
-    usdc.1.mint(&funder, &(each * 2));
-    client.fund_escrow(&funder, &funded_escrow, &(each * 2));
-    let updates = vec![
-        &env,
-        MilestoneUpdate {
-            index: 0u32,
-            new_description: None,
-            new_amount: None,
-            new_destination_domain: Some(7),
-            new_mint_recipient: Some(evm_recipient(&env, 0xCD)),
-        },
-    ];
-    let res = client.try_manage_milestones(&f.admin, &vec![&env], &updates);
-    assert!(res.is_err(), "destination must be frozen once funded");
 }
 
 #[test]

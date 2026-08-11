@@ -1282,8 +1282,6 @@ fn test_manage_milestones() {
             index: 0,
             new_description: Some(String::from_str(&env, "Updated Milestone 1")),
             new_amount: Some(60_000_000i128),
-            new_destination_domain: None,
-            new_mint_recipient: None,
         },
     ];
     client.manage_milestones(&escrow_admin, &empty_milestones, &updates);
@@ -1306,8 +1304,6 @@ fn test_manage_milestones() {
             index: 99,
             new_description: Some(String::from_str(&env, "Bad")),
             new_amount: None,
-            new_destination_domain: None,
-            new_mint_recipient: None,
         },
     ];
     let result = client.try_manage_milestones(&escrow_admin, &empty_milestones, &bad_index);
