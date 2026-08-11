@@ -1,10 +1,7 @@
 extern crate std;
 
 use crate::modules::cctp::constants::{cctp_forward_hook_data, CCTP_TOKEN_MESSENGER_STRKEY};
-use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding_with_messenger,
-    release_receiver_amount_via_cctp_with_messenger,
-};
+use crate::modules::cctp::release::release_receiver_amount_via_cctp_forwarding_with_messenger;
 use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, token, vec, Address, Bytes, BytesN, Env,
@@ -21,23 +18,6 @@ pub struct MockTokenMessenger;
 
 #[contractimpl]
 impl MockTokenMessenger {
-    #[allow(clippy::too_many_arguments)]
-    pub fn deposit_for_burn(
-        e: Env,
-        caller: Address,
-        amount: i128,
-        _destination_domain: u32,
-        _mint_recipient: BytesN<32>,
-        burn_token: Address,
-        _destination_caller: BytesN<32>,
-        _max_fee: i128,
-        _min_finality_threshold: u32,
-    ) {
-        caller.require_auth();
-        let self_addr = e.current_contract_address();
-        TokenClient::new(&e, &burn_token).transfer_from(&self_addr, &caller, &self_addr, &amount);
-    }
-
     /// Same as `deposit_for_burn`, but also asserts the hook data matches
     /// the reserved `cctp-forward` magic bytes, so a regression that mangles
     /// the encoding fails the test instead of silently burning funds with
@@ -273,41 +253,6 @@ fn release_rejects_max_fee_exceeding_cap() {
     client.release_funds(&f.release_signer, &tw_address, &(amount / 10));
     let net = amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
     assert_eq!(usdc.0.balance(&messenger), net);
-}
-
-#[test]
-fn helper_sends_seventh_decimal_remainder_to_stellar() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-    let usdc = create_usdc_token(&env, &admin);
-
-    let escrow_contract = env.register(
-        crate::contract::EscrowContract,
-        (&admin, &BytesN::from_array(&env, &[0u8; 32])),
-    );
-    let amount: i128 = 1_0000003;
-    usdc.1.mint(&escrow_contract, &amount);
-
-    let mock_messenger = env.register(MockTokenMessenger, ());
-    let stellar_receiver = Address::generate(&env);
-
-    release_receiver_amount_via_cctp_with_messenger(
-        &env,
-        &usdc.0,
-        &escrow_contract,
-        &mock_messenger,
-        &usdc.0.address,
-        amount,
-        6,
-        &evm_recipient(&env, 0xAB),
-        &stellar_receiver,
-    );
-
-    assert_eq!(usdc.0.balance(&mock_messenger), 1_0000000);
-    assert_eq!(usdc.0.balance(&stellar_receiver), 3);
-    assert_eq!(usdc.0.balance(&escrow_contract), 0);
 }
 
 #[test]
