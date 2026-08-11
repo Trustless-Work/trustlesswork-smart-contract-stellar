@@ -30,13 +30,10 @@ pub struct Escrow {
     pub receiver_memo: u32,
 }
 
-/// The escrow's receiver in a CCTP-only contract: the payout always leaves
-/// Stellar via CCTP, so this destination is required from initialization —
-/// set with the rest of the roles and updatable by the admin through
-/// `update_escrow` only while the escrow holds no funds, like every role.
-/// The forwarding `max_fee` is NOT stored here: it is supplied at release
-/// time (priced by the API from a live Circle quote) so it can never go
-/// stale, and bounded on-chain by the 10% cap.
+/// The escrow's cross-chain payout target. Required at initialization and,
+/// like every role, updatable by the admin via `update_escrow` only while
+/// the escrow holds no funds. The forwarding `max_fee` is not stored here —
+/// it is supplied at release time.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CrossChainDestination {

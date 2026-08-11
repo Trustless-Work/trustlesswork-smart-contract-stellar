@@ -6,14 +6,10 @@ pub const CCTP_DEFAULT_MAX_FEE: i128 = 0;
 pub const STELLAR_TO_CCTP_DECIMAL_FACTOR: i128 = 10;
 
 /// Reserved hook data that opts a burn into Circle's Forwarding Service:
-/// 24 bytes of the ASCII magic `cctp-forward` (zero-padded to 24), a `u32`
-/// version (`0`), and a `u32` length of any trailing custom payload (`0`,
-/// none here). 32 bytes total. Verified against Circle's forwarding-service
-/// docs and a third-party Stellar-source CCTP forwarding experiment
-/// (`ElliotFriend/stunning-octo-carnival`, branch
-/// `experiment/forwarder-stellar-source`) — get a single byte wrong here and
-/// the burned funds are unrecoverable, so any change to this must be
-/// re-verified against a real testnet burn before use.
+/// 24 bytes of the ASCII magic `cctp-forward` (zero-padded), a `u32` version
+/// (`0`), and a `u32` trailing-payload length (`0`). 32 bytes total. A wrong
+/// byte here makes the burned funds unrecoverable — re-verify any change
+/// against a real testnet burn.
 #[inline]
 pub fn cctp_forward_hook_data(e: &Env) -> Bytes {
     let mut bytes = [0u8; 32];

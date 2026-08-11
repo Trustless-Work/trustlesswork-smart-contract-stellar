@@ -11,11 +11,9 @@ use crate::modules::cctp::decimal::{cctp_remainder, truncate_to_6_decimals};
 
 const APPROVE_LEDGER_TTL: u32 = 100_000;
 
-/// Max share of the route's amount `max_fee` is allowed to claim — 10%.
-/// Defense-in-depth only: the API computes the real value from a live
-/// Circle quote (typically a small fraction of a percent), this just bounds
-/// how much a bogus/compromised value could claim if the entrypoint is
-/// called directly, bypassing the API.
+/// Max share of the route's amount `max_fee` may claim — 10%. Defense in
+/// depth: the API prices the real value from a live Circle quote; this only
+/// caps a caller bypassing the API.
 const MAX_FEE_CAP_DIVISOR: i128 = 10;
 
 /// Validates a destination before it is stored, so a burn at release never
@@ -33,11 +31,7 @@ pub fn validate_destination(
     Ok(())
 }
 
-/// Bounds a release-supplied `max_fee` against the route's amount (the
-/// escrow amount in single-release, the milestone amount in multi-release).
-/// The API prices the real value from a live Circle quote when building the
-/// release; this on-chain cap only limits what a caller bypassing the API
-/// could claim.
+/// Bounds a release-supplied `max_fee` against the escrow amount.
 pub fn validate_max_fee(max_fee: i128, route_amount: i128) -> Result<(), CctpError> {
     if max_fee < 0 || max_fee > route_amount / MAX_FEE_CAP_DIVISOR {
         return Err(CctpError::MaxFeeExceedsCap);
@@ -116,21 +110,11 @@ pub fn release_receiver_amount_via_cctp_with_messenger(
     }
 }
 
-/// Same as `release_receiver_amount_via_cctp`, but opts the burn into
-/// Circle's Forwarding Service: the destination-chain mint completes
-/// automatically (no second, EVM-side signature from the receiver). Circle
-/// deducts `max_fee` (protocol fee, queried live via `get_min_fee_amount`,
-/// plus `approved_max_fee` — the forwarding-service ceiling the receiver
-/// signed off on in `set_cross_chain_destination`, sized by the API from a
-/// live Circle quote at that time) from the minted amount — the forwarder
-/// consumes ~the full `max_fee`, it isn't a cap with a refund of the unused
-/// portion.
-///
-/// `deposit_for_burn_with_hook`'s parameter list and `get_min_fee_amount` were
-/// confirmed against the real deployed `TokenMessengerMinter` on testnet via
-/// `stellar contract info interface`. Verified end-to-end on testnet
-/// (2026-07-10, Stellar→Base): `forwardTxHash` came back in the Iris
-/// attestation with no receiver-side EVM signature.
+/// Burns via Circle's Forwarding Service: the destination-chain mint
+/// completes automatically (no EVM-side signature from the receiver). Circle
+/// deducts `max_fee` (live protocol fee + `approved_max_fee`) from the minted
+/// amount, consuming ~the full `max_fee` rather than refunding the unused
+/// part. Verified end-to-end on testnet (2026-07-10, Stellar→Base).
 #[allow(clippy::too_many_arguments)]
 pub fn release_receiver_amount_via_cctp_forwarding(
     e: &Env,
@@ -179,13 +163,10 @@ pub fn release_receiver_amount_via_cctp_forwarding_with_messenger(
         let expiration_ledger = e.ledger().sequence() + APPROVE_LEDGER_TTL;
         let messenger_client = TokenMessengerMinterClient::new(e, token_messenger);
 
-        // Protocol fee is queried live, not guessed. `approved_max_fee` is
-        // the receiver-approved forwarding-service ceiling, sized by the API
-        // from a live Circle quote when the destination was registered —
-        // NOT recomputed here, so it can't drift stale between set and
-        // release. `max_fee` is deducted from `burn_amount` at mint time on
-        // the destination chain, not pulled as an extra amount from the
-        // source — so the approved allowance stays `burn_amount`.
+        // Protocol fee queried live; `approved_max_fee` is the API-priced
+        // ceiling passed in at release. `max_fee` is deducted at mint time on
+        // the destination chain, not pulled from the source — so the approved
+        // allowance stays `burn_amount`.
         let protocol_fee = messenger_client.get_min_fee_amount(burn_token, &burn_amount);
         let max_fee = protocol_fee + approved_max_fee;
 
