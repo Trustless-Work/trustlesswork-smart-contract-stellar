@@ -80,9 +80,7 @@ struct EscrowFixture {
     admin: Address,
     approver: Address,
     release_signer: Address,
-    platform: Address,
     receiver0: Address,
-    receiver1: Address,
 }
 
 /// Two milestones with DIFFERENT receivers, to prove per-milestone routing.
@@ -126,9 +124,7 @@ fn base_escrow(env: &Env, usdc: &Address, amount_each: i128, platform_fee: u32) 
         admin,
         approver,
         release_signer,
-        platform,
         receiver0,
-        receiver1,
     }
 }
 
