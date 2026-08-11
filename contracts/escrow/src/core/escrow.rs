@@ -8,6 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::EscrowError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult};
+use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
 
 pub struct EscrowManager;
@@ -57,7 +58,7 @@ impl EscrowManager {
             .persistent()
             .get(&DataKey::FundedAmount)
             .unwrap_or(0);
-        let new_funded = current_funded + amount;
+        let new_funded = BasicMath::safe_add(current_funded, amount)?;
         e.storage()
             .persistent()
             .set(&DataKey::FundedAmount, &new_funded);
