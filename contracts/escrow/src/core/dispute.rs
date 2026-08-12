@@ -85,6 +85,11 @@ impl DisputeManager {
         trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
+        if e.storage().persistent().has(&DataKey::Reentrancy) {
+            return Err(EscrowError::Reentrancy);
+        }
+        e.storage().persistent().set(&DataKey::Reentrancy, &true);
+
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
@@ -129,6 +134,8 @@ impl DisputeManager {
             &distributions,
             total,
         )?;
+
+        e.storage().persistent().remove(&DataKey::Reentrancy);
 
         Ok((escrow, fee_result, net_dists))
     }
