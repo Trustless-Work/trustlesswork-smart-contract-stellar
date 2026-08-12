@@ -99,7 +99,7 @@ pub fn validate_dispute_resolution_conditions(
         milestone_amount_total = BasicMath::safe_add(milestone_amount_total, milestone.amount)?;
     }
 
-    if total > milestone_amount_total {
+    if total != milestone_amount_total {
         return Err(EscrowError::DistributionsMustEqualEscrowBalance);
     }
 

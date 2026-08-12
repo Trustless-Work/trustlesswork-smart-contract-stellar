@@ -506,7 +506,7 @@ fn test_resolve_dispute_rounding_edge_case() {
                 approval_count: 0,
                 approved_by: vec![&env],
             },
-            amount: 100_000_000,
+            amount: 100_003,
             dispute: Dispute {
                 is_disputed: false,
                 reason: String::from_str(&env, ""),
@@ -1185,4 +1185,91 @@ fn test_resolve_dispute_reentrancy_guard() {
         result.err(),
         Some(Ok(crate::error::EscrowError::FlagsMustBeFalse))
     );
+}
+
+#[test]
+fn test_resolve_dispute_rejects_partial_settlement() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let trustless_work = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "partial_settlement"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+    usdc_token.1.mint(&client.address, &amount);
+
+    client.dispute_milestones(&approver, &vec![&env, 0u32], &String::from_str(&env, "dispute"));
+
+    // Partial settlement (total < milestone_amount_total) must be rejected so
+    // funds can't get locked with the milestone marked resolved.
+    let mut partial = Map::new(&env);
+    partial.set(receiver.clone(), amount / 2);
+    let result = client.try_resolve_dispute(
+        &dispute_resolver,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &partial,
+    );
+    assert!(result.is_err());
+    assert!(!client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
+
+    // Full settlement (total == milestone_amount_total) succeeds.
+    let mut full = Map::new(&env);
+    full.set(receiver.clone(), amount);
+    client.resolve_dispute(&dispute_resolver, &trustless_work, &vec![&env, 0u32], &full);
+    assert!(client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
 }
