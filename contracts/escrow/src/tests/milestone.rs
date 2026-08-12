@@ -1612,3 +1612,95 @@ fn test_approve_milestones_unauthorized_fails_fast_before_duplicate_check() {
         Some(Ok(crate::error::MilestoneError::UnauthorizedApprover))
     );
 }
+
+#[test]
+fn test_manage_milestones_rejects_non_positive_amount_update() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let (token_client, _token_admin) = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_base = Escrow {
+        engagement_id: String::from_str(&env, "amount_update_guard"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: initial_milestones,
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_base);
+
+    let no_new: soroban_sdk::Vec<Milestone> = vec![&env];
+
+    // Zero amount must be rejected.
+    let zero_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: None,
+            new_amount: Some(0),
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &no_new, &zero_update);
+    assert!(result.is_err());
+
+    // Negative amount must be rejected.
+    let neg_update = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: None,
+            new_amount: Some(-1),
+        },
+    ];
+    let result = client.try_manage_milestones(&escrow_admin, &no_new, &neg_update);
+    assert!(result.is_err());
+
+    // Original amount unchanged.
+    assert_eq!(client.get_escrow().milestones.get(0).unwrap().amount, 50_000_000);
+}

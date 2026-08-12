@@ -321,6 +321,11 @@ pub fn validate_manage_milestones_conditions(
                     return Err(EscrowError::StringTooLong);
                 }
             }
+            if let Some(amount) = update.new_amount {
+                if amount <= 0 {
+                    return Err(EscrowError::AmountCannotBeZero);
+                }
+            }
         }
     }
     Ok(())
