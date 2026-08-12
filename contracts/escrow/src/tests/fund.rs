@@ -1570,3 +1570,84 @@ fn test_release_funds_rejects_oversized_indices_vector() {
         Some(Ok(crate::error::ReleaseError::BatchTooLarge))
     );
 }
+
+#[test]
+fn test_fund_escrow_accumulation_overflow_is_controlled() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+    usdc_token.1.mint(&approver, &amount);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "fund_overflow"),
+        title: String::from_str(&env, "Fund Overflow"),
+        description: String::from_str(&env, "Checked-add regression"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 0,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+
+    // Force the stored cumulative funded amount to the i128 ceiling so the next
+    // deposit's addition would overflow.
+    env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .set(&crate::storage::types::DataKey::FundedAmount, &i128::MAX);
+    });
+
+    // A valid 1-unit deposit must surface a controlled Overflow error instead
+    // of trapping the host.
+    let result = client.try_fund_escrow(&approver, &escrow_properties, &1i128);
+    assert_eq!(
+        result.err(),
+        Some(Ok(crate::error::EscrowError::Overflow))
+    );
+}

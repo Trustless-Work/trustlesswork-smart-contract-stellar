@@ -60,7 +60,7 @@ impl EscrowManager {
             .persistent()
             .get(&DataKey::FundedAmount)
             .unwrap_or(0);
-        let new_funded = current_funded + amount;
+        let new_funded = BasicMath::safe_add(current_funded, amount)?;
         e.storage()
             .persistent()
             .set(&DataKey::FundedAmount, &new_funded);
