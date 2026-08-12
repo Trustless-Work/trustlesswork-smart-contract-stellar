@@ -1,6 +1,6 @@
 # Trustless Work — Single-Release Escrow Contract Documentation
 
-> **Branch:** `feat/single-release-v2`  
+> **Branch:** `single-release-develop-v2`  
 > **SDK:** Soroban SDK `26.0.0` / Stellar Soroban (Rust, `#![no_std]`)  
 > **Build target:** `wasm32v1-none --release`  
 > **Contract name:** `EscrowContract`
@@ -360,6 +360,7 @@ Adds new milestones or updates descriptions of existing milestones.
 - Only callable by `admin`
 - `MilestoneUpdate` can only change `new_description` (no amount changes — amount is on `Escrow`)
 - New milestones: must have `amount > 0` (but amount refers to the escrow, not the milestone), `approvals.target > 0`, `target <= approvers.len()`
+- String limits enforced on inputs: new-milestone `description`/`evidence` ≤ 500 chars, `status` ≤ 50 chars, and `new_description` ≤ 500 chars (`StringTooLong`)
 - Total milestone count cannot exceed 50
 - Cannot be called if `dispute.is_disputed`, `released`, or `dispute.resolved`
 - Emits `MilestonesManaged` event
@@ -420,6 +421,7 @@ Opens a dispute on the **entire escrow** (not individual milestones).
 
 - Authorized callers: `approvers`, `service_providers`, `platform`, `release_signers`, or `roles.receiver`
 - `dispute_resolvers` are explicitly blocked from opening disputes
+- Cannot dispute once the escrow is released (`EscrowAlreadyReleased`)
 - Cannot dispute if already disputed (`EscrowAlreadyInDispute`) or resolved
 - Reason: max 500 chars
 - Sets `escrow.dispute.is_disputed = true`
@@ -437,6 +439,7 @@ pub fn resolve_dispute(
 Resolves the dispute by distributing the **entire contract balance** among specified recipients.
 
 - Only callable by a `dispute_resolver`
+- Protected by a reentrancy guard (`DataKey::Reentrancy`; re-entry fails with `Reentrancy`)
 - `distributions` sum must **equal exactly** the current contract token balance (`DistributionsMustEqualEscrowBalance`)
 - Sets `dispute.resolved = true`, `dispute.is_disputed = false`
 - Distributes after fee deduction proportionally
@@ -457,8 +460,8 @@ Handles leftover funds after the escrow has been either released or dispute-reso
 
 - Protected by reentrancy guard (`DataKey::Reentrancy`)
 - `all_processed = escrow.released || escrow.dispute.resolved`
-- Requires escrow to have been through dispute (`is_disputed || resolved` must be true)
-- `distributions` sum ≤ contract balance
+- Requires the escrow to be disputed, dispute-resolved, **or released** — a released escrow lets the resolver sweep surplus funds without any dispute (`EscrowNotInDispute` otherwise)
+- `distributions` sum must **exactly equal** the contract balance (`DistributionsMustEqualEscrowBalance`)
 - Emits `FundsWithdrawn` event
 
 ### 5.14 `get_escrow`
