@@ -55,6 +55,13 @@ pub fn validate_release_milestones_conditions(
         return Err(ReleaseError::ReleaseMilestonesEmpty);
     }
 
+    // Bound the caller-supplied vector before the O(n^2) duplicate scan: more
+    // indices than existing milestones is always invalid, and milestones are
+    // capped at 50, so this keeps the scan cheap.
+    if milestone_indices.len() > escrow.milestones.len() {
+        return Err(ReleaseError::BatchTooLarge);
+    }
+
     for i in 0..milestone_indices.len() {
         for j in (i + 1)..milestone_indices.len() {
             if milestone_indices.get(i).unwrap() == milestone_indices.get(j).unwrap() {

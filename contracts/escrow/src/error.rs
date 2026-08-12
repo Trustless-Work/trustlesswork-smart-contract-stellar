@@ -71,6 +71,7 @@ pub enum ReleaseError {
     Underflow = 11,
     DivisionError = 12,
     EscrowNotFound = 13,
+    BatchTooLarge = 14,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -125,6 +126,7 @@ impl From<ReleaseError> for EscrowError {
             ReleaseError::Overflow => EscrowError::Overflow,
             ReleaseError::Underflow => EscrowError::Underflow,
             ReleaseError::DivisionError => EscrowError::DivisionError,
+            ReleaseError::BatchTooLarge => EscrowError::TooManyMilestones,
             _ => EscrowError::EscrowNotCompleted,
         }
     }
