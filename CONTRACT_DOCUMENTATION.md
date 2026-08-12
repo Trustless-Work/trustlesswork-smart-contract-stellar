@@ -1,6 +1,6 @@
 # Trustless Work — Multi-Release Escrow Contract Documentation
 
-> **Branch:** `feat/multi-release-v2`  
+> **Branch:** `multi-release-develop-v2`  
 > **SDK:** Soroban SDK `26.0.0` / Stellar Soroban (Rust, `#![no_std]`)  
 > **Build target:** `wasm32v1-none --release`  
 > **Contract name:** `EscrowContract`
@@ -371,7 +371,9 @@ Adds new milestones or updates descriptions/amounts of existing milestones.
 - Only callable by `admin`
 - Cannot call with both lists empty
 - Cannot change milestone `amount` if contract has funds (`FundedAmount > 0`)
+- `new_amount` must be > 0 (`AmountCannotBeZero`)
 - New milestones: must have `amount > 0`, `approvals.target > 0`, all flags clear, `target <= approvers.len()`
+- String limits enforced on inputs: new-milestone `description`/`evidence` ≤ 500 chars, `status` ≤ 50 chars, and `new_description` ≤ 500 chars (`StringTooLong`)
 - Total milestone count cannot exceed 50
 - Cannot be called if any milestone is disputed, already released, or dispute-resolved
 - Emits `MilestonesManaged` event with `added_count` and `updated_count`
@@ -435,7 +437,8 @@ pub fn dispute_milestones(
 ```
 Opens a dispute on specific milestones.
 
-- Authorized callers: `approvers`, `service_providers`, `platform`, `release_signers`, or any `milestone.receiver`
+- Authorized callers: `approvers`, `service_providers`, `platform`, `release_signers` (global roles, any milestone), or a milestone `receiver`
+- A receiver without a global role may only dispute milestones **they are the receiver of** — every index in the batch must belong to them, so mixed batches including another receiver's milestone are rejected (`UnauthorizedToChangeDisputeFlag`)
 - `dispute_resolvers` are **explicitly blocked** from opening disputes
 - Each targeted milestone must not already be disputed, resolved, or released
 - Reason string: max 500 chars
@@ -455,8 +458,9 @@ pub fn resolve_dispute(
 Resolves a dispute for specific milestones by distributing funds proportionally.
 
 - Only callable by a `dispute_resolver`
-- Each milestone in `milestone_indices` must have `is_disputed == true` and `resolved == false`
-- `distributions` sum must not exceed the total amount of the specified milestones
+- Protected by a reentrancy guard (`DataKey::Reentrancy`; re-entry fails with `FlagsMustBeFalse`)
+- Each milestone in `milestone_indices` must have `is_disputed == true` and `resolved == false`; duplicate indices are rejected (`InvalidMilestoneIndex`)
+- `distributions` sum must **exactly equal** the total amount of the specified milestones — partial settlement is rejected (`DistributionsMustEqualEscrowBalance`)
 - Each amount in distributions must be > 0; max 50 entries
 - Sets `dispute.resolved = true`, `dispute.is_disputed = false` for each resolved milestone
 - Fees are calculated on the total and distributed proportionally among recipients (see [Section 7](#7-fee-system))
@@ -476,8 +480,8 @@ Used when **all milestones** have been processed (released or dispute-resolved) 
 
 - Protected by reentrancy guard (`DataKey::Reentrancy`)
 - Requires all milestones to be either `released` or `dispute.resolved`
-- Requires at least one milestone to have been disputed (escrow must have gone through dispute)
-- `distributions` sum ≤ contract token balance
+- Requires at least one milestone to have been disputed/resolved, **or** every milestone to be released — a fully-released escrow lets the resolver sweep surplus funds without any dispute
+- `distributions` sum must **exactly equal** the contract token balance (`DistributionsMustEqualEscrowBalance`)
 - Emits `FundsWithdrawn` event
 
 ### 5.14 `get_escrow`
@@ -667,7 +671,7 @@ All events are emitted via the `#[contractevent]` macro with Soroban's structure
 | 13 | `InsufficientFundsForEscrowFunding` | Funder balance < amount |
 | 14 | `TooManyEscrowsRequested` | Batch > 20 |
 | 15 | `InsufficientFundsForResolution` | Balance < distribution total |
-| 16 | `DistributionsMustEqualEscrowBalance` | Distribution total > milestone amount |
+| 16 | `DistributionsMustEqualEscrowBalance` | Distribution total must exactly match the required total (disputed milestones' amounts in `resolve_dispute`, contract balance in `withdraw_remaining_funds`) |
 | 17 | `AmountsToBeTransferredShouldBePositive` | Distribution entry ≤ 0 |
 | 18 | `TotalAmountCannotBeZero` | Zero total in distribution |
 | 19 | `TooManyDistributions` | > 50 distribution entries |
@@ -700,8 +704,8 @@ All events are emitted via the `#[contractevent]` macro with Soroban's structure
 | 49 | `StringTooLong` | |
 | 50 | `SignerMustBeApproverAndReleaseSigner` | For `approve_and_release_milestones` |
 
-### `ReleaseError` (codes 1–13)
-Parallel error type used by `release_funds` / `release_funds_inner` specifically. Mapped to `EscrowError` via `From<ReleaseError>`.
+### `ReleaseError` (codes 1–14)
+Parallel error type used by `release_funds` / `release_funds_inner` specifically. Mapped to `EscrowError` via `From<ReleaseError>`. Code 14 is `BatchTooLarge`: the `milestone_indices` batch exceeds the milestone count (maps to `TooManyMilestones`).
 
 ### `MilestoneError` (codes 1–15)
 Used by milestone operations. Mapped to `EscrowError` via `From<MilestoneError>`.
@@ -716,7 +720,7 @@ Used by milestone operations. Mapped to `EscrowError` via `From<MilestoneError>`
 | `DataKey::ApprovedWasmHash` | `BytesN<32>` | 1 year, set at deploy | Removed after `initialize_escrow` |
 | `DataKey::Escrow` | `Escrow` | 1 year, extended on every write | Main escrow state |
 | `DataKey::FundedAmount` | `i128` | 1 year, extended on each fund | Running total of deposited tokens |
-| `DataKey::Reentrancy` | `bool` | Temporary | Set before external calls in `withdraw_remaining_funds`, removed after |
+| `DataKey::Reentrancy` | `bool` | Temporary | Set before external calls in `withdraw_remaining_funds` and `resolve_dispute`, removed after |
 
 All storage uses **persistent** storage (survives ledger closings, subject to TTL expiry).
 
