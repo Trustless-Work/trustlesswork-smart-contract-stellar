@@ -826,3 +826,56 @@ fn test_initialize_escrow_without_milestones() {
     let escrow = test_data.client.get_escrow();
     assert!(escrow.milestones.is_empty());
 }
+
+#[test]
+fn test_dispute_resolver_cannot_equal_platform() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let shared_address = Address::generate(&env); // will be both platform and dispute_resolver
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let receiver = Address::generate(&env); // distinct from platform
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let escrow = Escrow {
+        engagement_id: String::from_str(&env, "platform_resolver_overlap"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: shared_address.clone(), // same as dispute_resolver
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, shared_address.clone()], // same as platform
+            receiver: receiver.clone(), // distinct
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        amount: 100_000_000,
+        platform_fee: 0,
+        milestones: vec![&env],
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    // dispute_resolver == platform must fail
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let res = test_data.client.try_initialize_escrow(&escrow);
+    assert!(
+        res.is_err(),
+        "dispute_resolver == platform must be rejected"
+    );
+}
