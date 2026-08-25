@@ -190,6 +190,21 @@ impl EscrowContract {
             .persistent()
             .extend_ttl(&DataKey::Escrow, min_ledgers, ledgers_to_extend);
 
+        // FundedAmount gates the post-funding property locks but is only
+        // TTL-extended by fund_escrow, so it can archive before Escrow and
+        // block the admin paths that read it until it is restored.
+        if e.storage().persistent().has(&DataKey::FundedAmount) {
+            e.storage().persistent().extend_ttl(
+                &DataKey::FundedAmount,
+                min_ledgers,
+                ledgers_to_extend,
+            );
+        }
+
+        e.storage()
+            .instance()
+            .extend_ttl(min_ledgers, ledgers_to_extend);
+
         TtlExtended {
             engagement_id: escrow.engagement_id,
             admin,

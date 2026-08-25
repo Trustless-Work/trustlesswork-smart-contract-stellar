@@ -1351,3 +1351,195 @@ fn test_dispute_resolver_can_sweep_surplus_after_release() {
     assert_eq!(usdc.0.balance(&client.address), 0);
     assert!(usdc.0.balance(&recipient) > 0);
 }
+
+#[test]
+fn test_resolve_dispute_with_18_decimal_scale_amounts() {
+    // Regression: the per-recipient pro-rata net used a naive i128 product
+    // (amount * distributable), which overflows on 18-decimal trustlines and
+    // made resolve_dispute revert permanently. It must now succeed.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let trustless_work = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    // ~20 tokens on an 18-decimal token: amount * distributable overflows i128.
+    let amount: i128 = 20_000_000_000_000_000_000;
+    assert!(
+        amount.checked_mul(amount).is_none(),
+        "precondition: naive product must overflow i128"
+    );
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "wide_amounts"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            receiver: receiver.clone(),
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        amount,
+        platform_fee: 300,
+        milestones,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+    usdc_token.1.mint(&client.address, &amount);
+
+    client.dispute_escrow(&approver, &String::from_str(&env, "dispute"));
+
+    // resolve_dispute requires total == current_balance in single-release.
+    let mut distributions = Map::new(&env);
+    distributions.set(receiver.clone(), amount);
+
+    client.resolve_dispute(&dispute_resolver, &trustless_work, &distributions);
+
+    assert!(client.get_escrow().dispute.resolved);
+    assert_eq!(usdc_token.0.balance(&client.address), 0);
+    assert!(usdc_token.0.balance(&receiver) > 0);
+    assert!(usdc_token.0.balance(&trustless_work) > 0);
+    assert!(usdc_token.0.balance(&platform) > 0);
+}
+
+#[test]
+fn test_extend_contract_ttl_covers_funded_amount_and_instance() {
+    use soroban_sdk::testutils::storage::{Instance, Persistent};
+    use soroban_sdk::testutils::Ledger;
+
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+    let amount: i128 = 100_000_000;
+    usdc_token.1.mint(&approver, &amount);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "ttl_coverage"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            receiver: receiver.clone(),
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        amount,
+        platform_fee: 300,
+        milestones,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+    client.fund_escrow(&approver, &escrow_properties, &amount);
+
+    // fund_escrow leaves TTLs at the ledger max; advance until the remaining
+    // TTL drops below the 17280-ledger extend threshold, otherwise extend_ttl
+    // is a no-op and the test would prove nothing.
+    env.ledger().with_mut(|li| li.sequence_number += 6_300_000);
+
+    let (funded_before, instance_before) = env.as_contract(&client.address, || {
+        (
+            env.storage()
+                .persistent()
+                .get_ttl(&crate::storage::types::DataKey::FundedAmount),
+            env.storage().instance().get_ttl(),
+        )
+    });
+
+    client.extend_contract_ttl(&escrow_admin, &1_000_000u32);
+
+    let (funded_after, instance_after) = env.as_contract(&client.address, || {
+        (
+            env.storage()
+                .persistent()
+                .get_ttl(&crate::storage::types::DataKey::FundedAmount),
+            env.storage().instance().get_ttl(),
+        )
+    });
+
+    assert!(
+        funded_after > funded_before,
+        "FundedAmount TTL must be extended (before {funded_before}, after {funded_after})"
+    );
+    assert!(
+        instance_after > instance_before,
+        "instance TTL must be extended (before {instance_before}, after {instance_after})"
+    );
+}

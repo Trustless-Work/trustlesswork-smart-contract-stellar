@@ -3,7 +3,7 @@ use soroban_sdk::{Address, Env, Map, Vec};
 
 use super::StandardFeeResult;
 use crate::error::EscrowError;
-use crate::modules::math::{BasicArithmetic, BasicMath};
+use crate::modules::math::{mul_div_wide, BasicArithmetic, BasicMath};
 
 pub fn calculate_and_distribute_fees(
     e: &Env,
@@ -30,8 +30,7 @@ pub fn calculate_and_distribute_fees(
     let mut net_distributions: Vec<(Address, i128)> = Vec::new(e);
     for (addr, amount) in distributions.iter() {
         if amount > 0 {
-            let net_amount =
-                BasicMath::safe_div(BasicMath::safe_mul(distributable, amount)?, total)?;
+            let net_amount = mul_div_wide(e, amount, distributable, total)?;
             if net_amount > 0 {
                 net_distributions.push_back((addr.clone(), net_amount));
             }
