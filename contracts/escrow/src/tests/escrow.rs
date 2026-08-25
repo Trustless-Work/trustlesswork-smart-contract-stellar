@@ -996,7 +996,7 @@ fn test_dispute_resolver_cannot_equal_platform() {
             observers: vec![&env],
         },
         platform_fee: 0,
-        milestones: vec![&env, milestone],
+        milestones: vec![&env, milestone.clone()],
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
@@ -1027,7 +1027,7 @@ fn test_dispute_resolver_cannot_equal_platform() {
             observers: vec![&env],
         },
         platform_fee: 0,
-        milestones: vec![&env, milestone.clone()],
+        milestones: vec![&env, milestone],
         trustline: Trustline {
             address: usdc_token.0.address.clone(),
         },
