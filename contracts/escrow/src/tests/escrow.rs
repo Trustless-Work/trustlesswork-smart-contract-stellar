@@ -826,3 +826,79 @@ fn test_initialize_escrow_without_milestones() {
     let escrow = test_data.client.get_escrow();
     assert!(escrow.milestones.is_empty());
 }
+
+#[test]
+fn test_dispute_resolver_cannot_equal_platform() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    let shared = Address::generate(&env); // used as both platform and dispute_resolver
+
+    let (token_client, _admin_client) = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+        },
+    ];
+
+    let make_escrow = |dispute_resolver: Address, platform: Address| -> Escrow {
+        Escrow {
+            engagement_id: String::from_str(&env, "dr_platform_overlap"),
+            title: String::from_str(&env, "Escrow"),
+            description: String::from_str(&env, "Desc"),
+            roles: Roles {
+                approvers: vec![&env, approver.clone()],
+                service_providers: vec![&env, service_provider.clone()],
+                platform,
+                release_signers: vec![&env, release_signer.clone()],
+                dispute_resolvers: vec![&env, dispute_resolver],
+                receiver: receiver.clone(),
+                admin: escrow_admin.clone(),
+                observers: vec![&env],
+            },
+            amount: 1_000_000,
+            platform_fee: 300,
+            milestones: milestones.clone(),
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            trustline: Trustline {
+                address: token_client.address.clone(),
+            },
+            receiver_memo: 0,
+        }
+    };
+
+    // dispute_resolver == platform must be rejected with the overlap error.
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    let res = client.try_initialize_escrow(&make_escrow(shared.clone(), shared.clone()));
+    assert_eq!(
+        res.err(),
+        Some(Ok(crate::error::EscrowError::DisputeResolverOverlapsWithOtherRole))
+    );
+
+    // Distinct dispute_resolver and platform must succeed.
+    let distinct_resolver = Address::generate(&env);
+    let distinct_platform = Address::generate(&env);
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    let res = client.try_initialize_escrow(&make_escrow(distinct_resolver, distinct_platform));
+    assert!(res.is_ok(), "distinct dispute_resolver and platform must succeed");
+}
