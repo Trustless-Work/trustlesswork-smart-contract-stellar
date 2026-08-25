@@ -149,6 +149,7 @@ fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowErr
         if roles.approvers.contains(&resolver)
             || roles.service_providers.contains(&resolver)
             || roles.release_signers.contains(&resolver)
+            || &resolver == &roles.platform
         {
             return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
         }
