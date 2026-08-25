@@ -11,6 +11,9 @@ Makefile
 # Ignore Test snapshots, they do not provide value in tracked Version Control
 contracts/escrow/test_snapshots/
 
+# Audit reports live locally only, not in version control
+reports/
+
 # Ignore macOS system files
 **/.DS_Store
 /.stellar
