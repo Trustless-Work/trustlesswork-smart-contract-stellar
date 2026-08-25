@@ -1,10 +1,14 @@
-use soroban_sdk::{contracttype, Address, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
 pub struct MilestoneStatusEntry {
     pub index: u32,
     pub status: String,
+    /// sha256 of the new evidence string, when this update carries one.
+    /// Hashed rather than echoed to keep the event small while still
+    /// letting an off-chain indexer prove which evidence was submitted.
+    pub evidence_hash: Option<BytesN<32>>,
 }
 
 #[contracttype]
