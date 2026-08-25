@@ -1273,3 +1273,109 @@ fn test_resolve_dispute_rejects_partial_settlement() {
     client.resolve_dispute(&dispute_resolver, &trustless_work, &vec![&env, 0u32], &full);
     assert!(client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
 }
+
+#[test]
+fn test_resolve_dispute_with_18_decimal_scale_amounts() {
+    // Regression: the per-recipient pro-rata net used a naive i128 product
+    // (amount * distributable), which overflows on 18-decimal trustlines and
+    // made resolve_dispute revert permanently. It must now succeed.
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let trustless_work = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    // ~20 tokens on an 18-decimal token: amount * distributable overflows i128.
+    let amount: i128 = 20_000_000_000_000_000_000;
+    assert!(
+        amount.checked_mul(amount).is_none(),
+        "precondition: naive product must overflow i128"
+    );
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "wide_amounts"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow_properties);
+    usdc_token.1.mint(&client.address, &amount);
+
+    client.dispute_milestones(
+        &approver,
+        &vec![&env, 0u32],
+        &String::from_str(&env, "dispute"),
+    );
+
+    let mut distributions = Map::new(&env);
+    distributions.set(receiver.clone(), amount);
+
+    client.resolve_dispute(
+        &dispute_resolver,
+        &trustless_work,
+        &vec![&env, 0u32],
+        &distributions,
+    );
+
+    // Milestone resolved and the full balance was distributed (fees + receiver).
+    assert!(
+        client
+            .get_escrow()
+            .milestones
+            .get(0)
+            .unwrap()
+            .dispute
+            .resolved
+    );
+    assert_eq!(usdc_token.0.balance(&client.address), 0);
+    assert!(usdc_token.0.balance(&receiver) > 0);
+    assert!(usdc_token.0.balance(&trustless_work) > 0);
+    assert!(usdc_token.0.balance(&platform) > 0);
+}

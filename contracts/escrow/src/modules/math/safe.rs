@@ -1,4 +1,5 @@
 use crate::error::EscrowError;
+use soroban_sdk::{Env, U256};
 
 pub struct SafeMath;
 
@@ -32,6 +33,30 @@ impl SafeArithmetic for SafeMath {
     }
 }
 
+
+/// Computes `a * b / divisor` for non-negative values using a 256-bit
+/// intermediate product, so the multiplication can never overflow even when
+/// `a * b` would exceed `i128`. Unlike `safe_mul_div`, both factors here may be
+/// full-range `i128` values (the bps split trick only works when the multiplier
+/// is small relative to the divisor).
+pub fn mul_div_wide(e: &Env, a: i128, b: i128, divisor: i128) -> Result<i128, EscrowError> {
+    if divisor <= 0 {
+        return Err(EscrowError::DivisionError);
+    }
+    if a < 0 || b < 0 {
+        return Err(EscrowError::Underflow);
+    }
+
+    let product = U256::from_u128(e, a as u128).mul(&U256::from_u128(e, b as u128));
+    let quotient = product.div(&U256::from_u128(e, divisor as u128));
+
+    let value = quotient.to_u128().ok_or(EscrowError::Overflow)?;
+    if value > i128::MAX as u128 {
+        return Err(EscrowError::Overflow);
+    }
+    Ok(value as i128)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,5 +85,35 @@ mod tests {
             SafeMath::safe_mul_div(100, 30, 0),
             Err(EscrowError::DivisionError)
         );
+    }
+
+    #[test]
+    fn mul_div_wide_matches_naive_for_normal_values() {
+        let e = Env::default();
+        // Values small enough that the naive i128 product is fine: results must match.
+        assert_eq!(mul_div_wide(&e, 50_000, 97_000, 100_000).unwrap(), 48_500);
+        assert_eq!(mul_div_wide(&e, 1, 100, 3).unwrap(), 33); // floor preserved
+        assert_eq!(mul_div_wide(&e, 0, 12_345, 100).unwrap(), 0);
+    }
+
+    #[test]
+    fn mul_div_wide_no_overflow_on_18_decimal_scale() {
+        let e = Env::default();
+        // ~20 tokens at 18 decimals: a * b overflows i128 with the naive product,
+        // but the true result fits because b <= divisor.
+        let a: i128 = 20_000_000_000_000_000_000;
+        let total: i128 = 20_000_000_000_000_000_000;
+        let distributable: i128 = total - 42; // total minus fees
+        assert!(a.checked_mul(distributable).is_none(), "precondition: naive product must overflow");
+
+        let net = mul_div_wide(&e, a, distributable, total).unwrap();
+        assert_eq!(net, distributable);
+    }
+
+    #[test]
+    fn mul_div_wide_rejects_bad_inputs() {
+        let e = Env::default();
+        assert_eq!(mul_div_wide(&e, 10, 10, 0), Err(EscrowError::DivisionError));
+        assert_eq!(mul_div_wide(&e, -1, 10, 5), Err(EscrowError::Underflow));
     }
 }
