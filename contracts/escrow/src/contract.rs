@@ -129,6 +129,7 @@ impl EscrowContract {
         EscrowUpdated {
             engagement_id: updated_escrow.engagement_id.clone(),
             admin: admin_address,
+            updated_fields: Vec::new(&e),
         }
         .publish(e);
         Ok(updated_escrow)

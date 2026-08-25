@@ -42,6 +42,7 @@ pub struct EscrowUpdated {
     #[topic]
     pub engagement_id: String,
     pub admin: Address,
+    pub updated_fields: Vec<String>,
 }
 
 #[contractevent(topics = ["tw_ms_change"])]
