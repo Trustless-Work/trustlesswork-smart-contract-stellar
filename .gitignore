@@ -9,7 +9,7 @@ Makefile
 .idea/
 
 # Ignore Test snapshots, they do not provide value in tracked Version Control
-contracts/escrow/test_snapshots/tests
+contracts/escrow/test_snapshots/
 
 # Ignore macOS system files
 **/.DS_Store
