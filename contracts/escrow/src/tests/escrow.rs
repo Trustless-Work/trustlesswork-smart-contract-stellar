@@ -1007,8 +1007,8 @@ fn test_dispute_resolver_cannot_equal_platform() {
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&escrow);
     assert!(
-        res.is_err(),
-        "dispute_resolver == platform must be rejected"
+        matches!(res, Err(Ok(EscrowError::DisputeResolverOverlapsWithOtherRole))),
+        "dispute_resolver == platform must be rejected with DisputeResolverOverlapsWithOtherRole"
     );
 
     // distinct dispute_resolver and platform must succeed
