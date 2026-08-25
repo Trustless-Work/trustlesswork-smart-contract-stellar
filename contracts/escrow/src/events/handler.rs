@@ -1,5 +1,5 @@
 use crate::storage::types::{DistributionEntry, MilestonePayout, MilestoneStatusEntry};
-use soroban_sdk::{contractevent, Address, String, Vec};
+use soroban_sdk::{contractevent, Address, BytesN, String, Vec};
 
 #[contractevent(topics = ["tw_init"])]
 #[derive(Clone)]
@@ -35,6 +35,9 @@ pub struct EscrowUpdated {
     #[topic]
     pub engagement_id: String,
     pub admin: Address,
+    /// Names of the top-level Escrow fields whose value changed. Empty when
+    /// the update stored an escrow identical to the one it replaced.
+    pub changed_fields: Vec<String>,
 }
 
 #[contractevent(topics = ["tw_ms_change"])]
@@ -96,6 +99,11 @@ pub struct MilestonesManaged {
     pub admin: Address,
     pub added_count: u32,
     pub updated_count: u32,
+    /// Indices of the existing milestones that were updated, in call order.
+    pub updated_indices: Vec<u32>,
+    /// sha256 of each newly added milestone's description, in append order —
+    /// hashed rather than echoed to keep the event small.
+    pub added_description_hashes: Vec<BytesN<32>>,
 }
 
 #[contractevent(topics = ["tw_ttl_extend"])]

@@ -1,8 +1,9 @@
 extern crate std;
 
 use crate::error::{EscrowError, ReleaseError};
+use crate::events::handler::EscrowUpdated;
 use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, testutils::Events as _, vec, Address, Env, Event as _, String};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
 
@@ -1037,4 +1038,104 @@ fn test_dispute_resolver_cannot_equal_platform() {
     let test_data = create_escrow_contract(&env, &escrow_admin);
     let res = test_data.client.try_initialize_escrow(&escrow_valid);
     assert!(res.is_ok(), "Non-overlapping platform and dispute_resolver must succeed");
+}
+
+#[test]
+fn test_update_escrow_event_reports_changed_fields() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    let platform = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 100_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let roles = Roles {
+        approvers: vec![&env, approver.clone()],
+        service_providers: vec![&env, service_provider.clone()],
+        platform: platform.clone(),
+        release_signers: vec![&env, release_signer.clone()],
+        dispute_resolvers: vec![&env, dispute_resolver.clone()],
+        admin: escrow_admin.clone(),
+        observers: vec![&env],
+    };
+
+    let trustline = Trustline {
+        address: usdc_token.0.address.clone(),
+    };
+
+    let engagement_id = String::from_str(&env, "update_escrow_event_test");
+    let initial_escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "Original Title"),
+        description: String::from_str(&env, "Original Description"),
+        roles: roles.clone(),
+        platform_fee: 300,
+        milestones: milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&initial_escrow);
+
+    // Only title and description change; everything else is passed back
+    // unchanged (milestones/roles/trustline/platform_fee/receiver_memo).
+    let updated_escrow = Escrow {
+        engagement_id: engagement_id.clone(),
+        title: String::from_str(&env, "New Title"),
+        description: String::from_str(&env, "New Description"),
+        roles: roles.clone(),
+        platform_fee: 300,
+        milestones: milestones.clone(),
+        trustline: trustline.clone(),
+        receiver_memo: 0,
+    };
+
+    client.update_escrow(&escrow_admin, &updated_escrow);
+
+    let expected_event = EscrowUpdated {
+        engagement_id: engagement_id.clone(),
+        admin: escrow_admin.clone(),
+        changed_fields: vec![
+            &env,
+            String::from_str(&env, "title"),
+            String::from_str(&env, "description"),
+        ],
+    };
+
+    assert_eq!(
+        env.events().all(),
+        std::vec![expected_event.to_xdr(&env, &client.address)],
+        "EscrowUpdated should report exactly the fields that changed, in field-declaration order"
+    );
 }

@@ -1,3 +1,4 @@
+use soroban_sdk::xdr::ToXdr;
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Symbol, Val, Vec};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
@@ -132,11 +133,14 @@ impl EscrowContract {
         admin_address: Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, EscrowError> {
+        let existing_escrow = EscrowManager::get_escrow(e).ok();
         let updated_escrow =
             EscrowManager::change_escrow_properties(e, &admin_address, escrow_properties)?;
+        let changed_fields = diff_escrow_fields(e, existing_escrow.as_ref(), &updated_escrow);
         EscrowUpdated {
             engagement_id: updated_escrow.engagement_id.clone(),
             admin: admin_address,
+            changed_fields,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -150,6 +154,14 @@ impl EscrowContract {
     ) -> Result<Escrow, EscrowError> {
         let added_count = new_milestones.len();
         let updated_count = milestone_updates.len();
+        let mut updated_indices: Vec<u32> = Vec::new(e);
+        for update in milestone_updates.iter() {
+            updated_indices.push_back(update.index);
+        }
+        let mut added_description_hashes: Vec<BytesN<32>> = Vec::new(e);
+        for milestone in new_milestones.iter() {
+            added_description_hashes.push_back(hash_string(e, &milestone.description));
+        }
         let updated_escrow =
             EscrowManager::manage_milestones(e, &admin_address, new_milestones, milestone_updates)?;
         MilestonesManaged {
@@ -157,6 +169,8 @@ impl EscrowContract {
             admin: admin_address,
             added_count,
             updated_count,
+            updated_indices,
+            added_description_hashes,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -234,9 +248,11 @@ impl EscrowContract {
     ) -> Result<(), MilestoneError> {
         let mut status_entries: Vec<MilestoneStatusEntry> = Vec::new(&e);
         for update in updates.iter() {
+            let evidence_hash = update.new_evidence.as_ref().map(|ev| hash_string(&e, ev));
             status_entries.push_back(MilestoneStatusEntry {
                 index: update.milestone_index,
                 status: update.new_status.clone(),
+                evidence_hash,
             });
         }
         let escrow =
@@ -387,4 +403,56 @@ impl EscrowContract {
         .publish(&e);
         Ok(())
     }
+}
+
+/// sha256 of a contract `String`'s XDR encoding — used to prove which value
+/// was submitted (evidence, a description) in an event without echoing the
+/// full text, which could be arbitrarily long.
+fn hash_string(e: &Env, value: &String) -> BytesN<32> {
+    e.crypto().sha256(&value.to_xdr(e)).to_bytes()
+}
+
+/// Names of the top-level `Escrow` fields that differ between `before` and
+/// `after`. `before` is `None` when the prior escrow couldn't be read (should
+/// not happen in practice, since `update_escrow` only replaces an existing
+/// escrow) — in that case every field is reported changed rather than
+/// silently reporting none, since "no evidence of a diff" is not the same
+/// claim as "nothing changed."
+fn diff_escrow_fields(e: &Env, before: Option<&Escrow>, after: &Escrow) -> Vec<String> {
+    let mut changed: Vec<String> = Vec::new(e);
+    let before = match before {
+        Some(b) => b,
+        None => {
+            changed.push_back(String::from_str(e, "title"));
+            changed.push_back(String::from_str(e, "description"));
+            changed.push_back(String::from_str(e, "platform_fee"));
+            changed.push_back(String::from_str(e, "milestones"));
+            changed.push_back(String::from_str(e, "trustline"));
+            changed.push_back(String::from_str(e, "receiver_memo"));
+            changed.push_back(String::from_str(e, "roles"));
+            return changed;
+        }
+    };
+    if before.title != after.title {
+        changed.push_back(String::from_str(e, "title"));
+    }
+    if before.description != after.description {
+        changed.push_back(String::from_str(e, "description"));
+    }
+    if before.platform_fee != after.platform_fee {
+        changed.push_back(String::from_str(e, "platform_fee"));
+    }
+    if before.milestones != after.milestones {
+        changed.push_back(String::from_str(e, "milestones"));
+    }
+    if before.trustline != after.trustline {
+        changed.push_back(String::from_str(e, "trustline"));
+    }
+    if before.receiver_memo != after.receiver_memo {
+        changed.push_back(String::from_str(e, "receiver_memo"));
+    }
+    if before.roles != after.roles {
+        changed.push_back(String::from_str(e, "roles"));
+    }
+    changed
 }

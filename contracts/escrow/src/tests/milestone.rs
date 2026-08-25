@@ -1,10 +1,15 @@
 extern crate std;
 
 use crate::storage::types::{
-    Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, MilestoneUpdate, Roles,
-    Trustline,
+    Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusEntry, MilestoneStatusUpdate,
+    MilestoneUpdate, Roles, Trustline,
 };
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
+use soroban_sdk::{
+    testutils::Address as _, testutils::Events as _, vec, xdr::ToXdr, Address, BytesN, Env,
+    Event as _, String,
+};
+
+use crate::events::handler::{MilestoneStatusChanged, MilestonesManaged};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
 
@@ -1703,4 +1708,244 @@ fn test_manage_milestones_rejects_non_positive_amount_update() {
 
     // Original amount unchanged.
     assert_eq!(client.get_escrow().milestones.get(0).unwrap().amount, 50_000_000);
+}
+
+#[test]
+fn test_manage_milestones_event_carries_indices_and_hashes() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let (token_client, _token_admin) = create_usdc_token(&env, &admin);
+
+    let m1_description = String::from_str(&env, "Milestone 1");
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: m1_description.clone(),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_base = Escrow {
+        engagement_id: String::from_str(&env, "manage_milestones_event_test"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: initial_milestones.clone(),
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_base);
+
+    let new_description = String::from_str(&env, "Milestone 2");
+    let to_add = vec![
+        &env,
+        Milestone {
+            description: new_description.clone(),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 25_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+    let updates = vec![
+        &env,
+        MilestoneUpdate {
+            index: 0,
+            new_description: None,
+            new_amount: Some(60_000_000),
+        },
+    ];
+
+    client.manage_milestones(&escrow_admin, &to_add, &updates);
+
+    let expected_hash: BytesN<32> = env.crypto().sha256(&new_description.to_xdr(&env)).to_bytes();
+    let expected_event = MilestonesManaged {
+        engagement_id: escrow_base.engagement_id.clone(),
+        admin: escrow_admin.clone(),
+        added_count: 1,
+        updated_count: 1,
+        updated_indices: vec![&env, 0u32],
+        added_description_hashes: vec![&env, expected_hash],
+    };
+
+    assert_eq!(
+        env.events().all(),
+        std::vec![expected_event.to_xdr(&env, &client.address)],
+        "emitted MilestonesManaged event did not carry the expected indices/hashes"
+    );
+}
+
+#[test]
+fn test_change_milestone_status_event_carries_evidence_hash() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let (token_client, _token_admin) = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "Milestone 1"),
+            status: String::from_str(&env, "in-progress"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 100_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+        Milestone {
+            description: String::from_str(&env, "Milestone 2"),
+            status: String::from_str(&env, "in-progress"),
+            evidence: String::from_str(&env, "Initial evidence"),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 100_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow_properties = Escrow {
+        engagement_id: String::from_str(&env, "evidence_hash_test"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Desc"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: initial_milestones,
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&escrow_properties);
+
+    // One update carries new evidence, the other doesn't — the event must
+    // distinguish the two rather than hashing an absent value.
+    let new_evidence = String::from_str(&env, "Proof of delivery");
+    let updates = vec![
+        &env,
+        MilestoneStatusUpdate {
+            milestone_index: 0,
+            new_status: String::from_str(&env, "completed"),
+            new_evidence: Some(new_evidence.clone()),
+        },
+        MilestoneStatusUpdate {
+            milestone_index: 1,
+            new_status: String::from_str(&env, "completed"),
+            new_evidence: None,
+        },
+    ];
+
+    client.change_milestone_status(&updates, &service_provider);
+
+    let expected_hash: BytesN<32> = env.crypto().sha256(&new_evidence.to_xdr(&env)).to_bytes();
+    let expected_event = MilestoneStatusChanged {
+        engagement_id: escrow_properties.engagement_id.clone(),
+        service_provider: service_provider.clone(),
+        updates: vec![
+            &env,
+            MilestoneStatusEntry {
+                index: 0,
+                status: String::from_str(&env, "completed"),
+                evidence_hash: Some(expected_hash),
+            },
+            MilestoneStatusEntry {
+                index: 1,
+                status: String::from_str(&env, "completed"),
+                evidence_hash: None,
+            },
+        ],
+    };
+
+    assert_eq!(
+        env.events().all(),
+        std::vec![expected_event.to_xdr(&env, &client.address)],
+        "MilestoneStatusChanged should hash evidence when present and report None when absent"
+    );
 }
