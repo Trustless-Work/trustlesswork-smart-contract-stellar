@@ -878,4 +878,39 @@ fn test_dispute_resolver_cannot_equal_platform() {
         res.is_err(),
         "dispute_resolver == platform must be rejected"
     );
+
+    // distinct dispute_resolver and platform must succeed
+    let distinct_dispute_resolver = Address::generate(&env);
+    let escrow_valid = Escrow {
+        engagement_id: String::from_str(&env, "platform_resolver_distinct"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: shared_address.clone(), // different from dispute_resolver
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, distinct_dispute_resolver], // different from platform
+            receiver: receiver.clone(),
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        amount: 100_000_000,
+        platform_fee: 0,
+        milestones: vec![&env],
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let res = test_data.client.try_initialize_escrow(&escrow_valid);
+    assert!(res.is_ok(), "Non-overlapping platform and dispute_resolver must succeed");
 }
