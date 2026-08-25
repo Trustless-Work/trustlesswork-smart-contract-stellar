@@ -1,5 +1,6 @@
 extern crate std;
 
+use crate::error::EscrowError;
 use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, String};
 
