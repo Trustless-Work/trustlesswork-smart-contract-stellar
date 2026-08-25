@@ -1702,5 +1702,8 @@ fn test_manage_milestones_rejects_non_positive_amount_update() {
     assert!(result.is_err());
 
     // Original amount unchanged.
-    assert_eq!(client.get_escrow().milestones.get(0).unwrap().amount, 50_000_000);
+    assert_eq!(
+        client.get_escrow().milestones.get(0).unwrap().amount,
+        50_000_000
+    );
 }

@@ -39,8 +39,14 @@ mod tests {
     #[test]
     fn matches_naive_for_normal_values() {
         // 30 bps and 300 bps of 100_000_000
-        assert_eq!(SafeMath::safe_mul_div(100_000_000, 30, 10000).unwrap(), 300_000);
-        assert_eq!(SafeMath::safe_mul_div(100_000_000, 300, 10000).unwrap(), 3_000_000);
+        assert_eq!(
+            SafeMath::safe_mul_div(100_000_000, 30, 10000).unwrap(),
+            300_000
+        );
+        assert_eq!(
+            SafeMath::safe_mul_div(100_000_000, 300, 10000).unwrap(),
+            3_000_000
+        );
         // floor behavior preserved
         assert_eq!(SafeMath::safe_mul_div(100_003, 300, 10000).unwrap(), 3000);
     }

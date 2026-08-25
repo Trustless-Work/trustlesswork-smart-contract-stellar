@@ -1646,8 +1646,5 @@ fn test_fund_escrow_accumulation_overflow_is_controlled() {
     // A valid 1-unit deposit must surface a controlled Overflow error instead
     // of trapping the host.
     let result = client.try_fund_escrow(&approver, &escrow_properties, &1i128);
-    assert_eq!(
-        result.err(),
-        Some(Ok(crate::error::EscrowError::Overflow))
-    );
+    assert_eq!(result.err(), Some(Ok(crate::error::EscrowError::Overflow)));
 }

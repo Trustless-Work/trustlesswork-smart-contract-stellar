@@ -146,14 +146,12 @@ pub fn validate_batch_milestone_dispute_conditions(
         || escrow.roles.release_signers.contains(signer);
 
     if !is_global_role {
-        let is_receiver_for_all = milestone_indices
-            .iter()
-            .all(|index| {
-                escrow
-                    .milestones
-                    .get(index)
-                    .is_some_and(|m| &m.receiver == signer)
-            });
+        let is_receiver_for_all = milestone_indices.iter().all(|index| {
+            escrow
+                .milestones
+                .get(index)
+                .is_some_and(|m| &m.receiver == signer)
+        });
 
         if !is_receiver_for_all {
             return Err(EscrowError::UnauthorizedToChangeDisputeFlag);

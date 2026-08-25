@@ -1024,7 +1024,10 @@ fn test_receiver_cannot_dispute_other_receiver_milestone() {
     let escrow_properties = Escrow {
         engagement_id: String::from_str(&env, "cross_receiver_dispute"),
         title: String::from_str(&env, "Cross-Receiver Dispute Test"),
-        description: String::from_str(&env, "Test receiver cannot dispute another receiver's milestone"),
+        description: String::from_str(
+            &env,
+            "Test receiver cannot dispute another receiver's milestone",
+        ),
         roles,
         platform_fee: 0,
         milestones,
@@ -1252,7 +1255,11 @@ fn test_resolve_dispute_rejects_partial_settlement() {
     client.initialize_escrow(&escrow_properties);
     usdc_token.1.mint(&client.address, &amount);
 
-    client.dispute_milestones(&approver, &vec![&env, 0u32], &String::from_str(&env, "dispute"));
+    client.dispute_milestones(
+        &approver,
+        &vec![&env, 0u32],
+        &String::from_str(&env, "dispute"),
+    );
 
     // Partial settlement (total < milestone_amount_total) must be rejected so
     // funds can't get locked with the milestone marked resolved.
@@ -1265,11 +1272,27 @@ fn test_resolve_dispute_rejects_partial_settlement() {
         &partial,
     );
     assert!(result.is_err());
-    assert!(!client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
+    assert!(
+        !client
+            .get_escrow()
+            .milestones
+            .get(0)
+            .unwrap()
+            .dispute
+            .resolved
+    );
 
     // Full settlement (total == milestone_amount_total) succeeds.
     let mut full = Map::new(&env);
     full.set(receiver.clone(), amount);
     client.resolve_dispute(&dispute_resolver, &trustless_work, &vec![&env, 0u32], &full);
-    assert!(client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
+    assert!(
+        client
+            .get_escrow()
+            .milestones
+            .get(0)
+            .unwrap()
+            .dispute
+            .resolved
+    );
 }
