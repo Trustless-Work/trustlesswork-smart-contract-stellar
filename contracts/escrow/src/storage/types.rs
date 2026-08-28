@@ -1,10 +1,61 @@
-use soroban_sdk::{contracttype, Address, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
 pub struct MilestoneStatusEntry {
     pub index: u32,
     pub status: String,
+    /// SHA-256 of the evidence supplied with this status change, or `None`
+    /// when the update left the evidence untouched. Hashing (instead of
+    /// echoing the raw free-text) keeps the event small while still proving
+    /// exactly which evidence content was recorded on-chain.
+    pub evidence_hash: Option<BytesN<32>>,
+}
+
+/// Which mutable escrow properties an `update_escrow` call changed.
+///
+/// The booleans let an events-only indexer see *what* changed without
+/// diffing a full storage snapshot. `platform_fee` is additionally carried
+/// as explicit before/after values because a fee change is the headline
+/// case a consumer needs to reconcile (e.g. for accounting) and the field
+/// is a small scalar, so echoing it costs almost nothing. `admin` and
+/// `platform` are intentionally absent: the contract forbids changing them.
+#[contracttype]
+#[derive(Clone)]
+pub struct EscrowPropertyChanges {
+    pub engagement_id: bool,
+    pub title: bool,
+    pub description: bool,
+    pub platform_fee: bool,
+    pub roles: bool,
+    pub trustline: bool,
+    pub receiver_memo: bool,
+    pub old_platform_fee: u32,
+    pub new_platform_fee: u32,
+}
+
+/// A milestone appended by `manage_milestones`, identified by its final
+/// index plus the key fields a consumer would want. The description is
+/// hashed to keep the event small even when many milestones are added at
+/// once.
+#[contracttype]
+#[derive(Clone)]
+pub struct MilestoneAddedEntry {
+    pub index: u32,
+    pub amount: i128,
+    pub description_hash: BytesN<32>,
+}
+
+/// An in-place milestone edit performed by `manage_milestones`. Each field
+/// is `Some` only when that property was actually changed, mirroring the
+/// optional inputs of `MilestoneUpdate`. The new description is hashed to
+/// keep the event small.
+#[contracttype]
+#[derive(Clone)]
+pub struct MilestoneUpdatedEntry {
+    pub index: u32,
+    pub new_amount: Option<i128>,
+    pub new_description_hash: Option<BytesN<32>>,
 }
 
 #[contracttype]
