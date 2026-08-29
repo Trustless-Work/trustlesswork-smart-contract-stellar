@@ -3,13 +3,15 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, String, Sym
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::{EscrowError, MilestoneError, ReleaseError};
 use crate::events::handler::{
-    DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc, MilestoneStatusChanged,
-    MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc, TtlExtended,
+    hash_string, DisputeResolved, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
+    MilestoneStatusChanged, MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc,
+    TtlExtended,
 };
 use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
-    AddressBalance, DataKey, DistributionEntry, Escrow, Milestone, MilestoneStatusEntry,
-    MilestoneStatusUpdate, MilestoneUpdate,
+    AddressBalance, DataKey, DistributionEntry, Escrow, EscrowPropertyChanges, Milestone,
+    MilestoneAddedEntry, MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
+    MilestoneUpdatedEntry,
 };
 
 #[contract]
@@ -132,11 +134,27 @@ impl EscrowContract {
         admin_address: Address,
         escrow_properties: Escrow,
     ) -> Result<Escrow, EscrowError> {
+        // Snapshot the pre-update state so the event can report exactly which
+        // mutable properties changed, rather than forcing consumers to diff a
+        // full storage snapshot themselves.
+        let previous = EscrowManager::get_escrow(e)?;
         let updated_escrow =
             EscrowManager::change_escrow_properties(e, &admin_address, escrow_properties)?;
+        let changes = EscrowPropertyChanges {
+            engagement_id: previous.engagement_id != updated_escrow.engagement_id,
+            title: previous.title != updated_escrow.title,
+            description: previous.description != updated_escrow.description,
+            platform_fee: previous.platform_fee != updated_escrow.platform_fee,
+            roles: previous.roles != updated_escrow.roles,
+            trustline: previous.trustline != updated_escrow.trustline,
+            receiver_memo: previous.receiver_memo != updated_escrow.receiver_memo,
+            old_platform_fee: previous.platform_fee,
+            new_platform_fee: updated_escrow.platform_fee,
+        };
         EscrowUpdated {
             engagement_id: updated_escrow.engagement_id.clone(),
             admin: admin_address,
+            changes,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -150,13 +168,46 @@ impl EscrowContract {
     ) -> Result<Escrow, EscrowError> {
         let added_count = new_milestones.len();
         let updated_count = milestone_updates.len();
+
+        // Keep the inputs to describe in the event, then validate + apply. We
+        // only hash the free-text after the manager call succeeds, so oversized
+        // strings still return `StringTooLong` instead of trapping.
+        let added_input = new_milestones.clone();
+        let updated_input = milestone_updates.clone();
+
         let updated_escrow =
             EscrowManager::manage_milestones(e, &admin_address, new_milestones, milestone_updates)?;
+
+        // Capture the per-edit detail so the event identifies exactly what was
+        // updated, not just how many.
+        let mut updated_entries: Vec<MilestoneUpdatedEntry> = Vec::new(e);
+        for update in updated_input.iter() {
+            updated_entries.push_back(MilestoneUpdatedEntry {
+                index: update.index,
+                new_amount: update.new_amount,
+                new_description_hash: update.new_description.map(|d| hash_string(e, &d)),
+            });
+        }
+
+        // Appended milestones take the final `added_count` slots; their indices
+        // start right after the milestones that already existed.
+        let base_index = updated_escrow.milestones.len() - added_count;
+        let mut added_entries: Vec<MilestoneAddedEntry> = Vec::new(e);
+        for (offset, milestone) in added_input.iter().enumerate() {
+            added_entries.push_back(MilestoneAddedEntry {
+                index: base_index + offset as u32,
+                amount: milestone.amount,
+                description_hash: hash_string(e, &milestone.description),
+            });
+        }
+
         MilestonesManaged {
             engagement_id: updated_escrow.engagement_id.clone(),
             admin: admin_address,
             added_count,
             updated_count,
+            added: added_entries,
+            updated: updated_entries,
         }
         .publish(e);
         Ok(updated_escrow)
@@ -232,15 +283,23 @@ impl EscrowContract {
         updates: Vec<MilestoneStatusUpdate>,
         service_provider: Address,
     ) -> Result<(), MilestoneError> {
+        // Keep the inputs to describe in the event, then validate + apply. We
+        // only hash after the manager call succeeds, so an oversized evidence
+        // still returns `StringTooLong` rather than trapping in `hash_string`.
+        let described = updates.clone();
+        let escrow =
+            MilestoneManager::change_milestone_status(&e, updates, service_provider.clone())?;
+
         let mut status_entries: Vec<MilestoneStatusEntry> = Vec::new(&e);
-        for update in updates.iter() {
+        for update in described.iter() {
             status_entries.push_back(MilestoneStatusEntry {
                 index: update.milestone_index,
                 status: update.new_status.clone(),
+                // Prove which evidence was recorded (hashed to keep the event
+                // small); `None` when this update did not touch the evidence.
+                evidence_hash: update.new_evidence.map(|ev| hash_string(&e, &ev)),
             });
         }
-        let escrow =
-            MilestoneManager::change_milestone_status(&e, updates, service_provider.clone())?;
         MilestoneStatusChanged {
             engagement_id: escrow.engagement_id,
             service_provider,
