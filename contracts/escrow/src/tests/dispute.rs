@@ -614,8 +614,7 @@ fn test_resolve_dispute_reentrancy_guard() {
 
     let mut distributions = Map::new(&env);
     distributions.set(service_provider.clone(), 100_000_000i128);
-    let result =
-        client.try_resolve_dispute(&dispute_resolver, &trustless_work, &distributions);
+    let result = client.try_resolve_dispute(&dispute_resolver, &trustless_work, &distributions);
     assert_eq!(
         result.err(),
         Some(Ok(crate::error::EscrowError::Reentrancy))

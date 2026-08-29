@@ -892,7 +892,9 @@ fn test_dispute_resolver_cannot_equal_platform() {
     let res = client.try_initialize_escrow(&make_escrow(shared.clone(), shared.clone()));
     assert_eq!(
         res.err(),
-        Some(Ok(crate::error::EscrowError::DisputeResolverOverlapsWithOtherRole))
+        Some(Ok(
+            crate::error::EscrowError::DisputeResolverOverlapsWithOtherRole
+        ))
     );
 
     // Distinct dispute_resolver and platform must succeed.
@@ -900,5 +902,8 @@ fn test_dispute_resolver_cannot_equal_platform() {
     let distinct_platform = Address::generate(&env);
     let client = create_escrow_contract(&env, &escrow_admin).client;
     let res = client.try_initialize_escrow(&make_escrow(distinct_resolver, distinct_platform));
-    assert!(res.is_ok(), "distinct dispute_resolver and platform must succeed");
+    assert!(
+        res.is_ok(),
+        "distinct dispute_resolver and platform must succeed"
+    );
 }
