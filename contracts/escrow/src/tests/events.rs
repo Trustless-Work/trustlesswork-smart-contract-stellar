@@ -16,17 +16,15 @@ use soroban_sdk::{vec, xdr, Address, Bytes, BytesN, Env, Event, String, TryFromV
 
 use super::helpers::{create_escrow_contract, create_usdc_token, TestData};
 
-/// SHA-256 of the given bytes, computed independently of the contract's own
-/// hashing so the tests genuinely verify the emitted hash rather than echo it.
+/// SHA-256 computed independently of the contract, so tests verify the
+/// emitted hash rather than echo it.
 fn sha256(env: &Env, data: &[u8]) -> BytesN<32> {
     env.crypto()
         .sha256(&Bytes::from_slice(env, data))
         .to_bytes()
 }
 
-/// XDR payload of the most recently emitted event, which for the flows tested
-/// here is always the escrow event under assertion (no token transfer runs
-/// after it).
+/// XDR payload of the last emitted event (always the escrow event here).
 fn last_event_data(env: &Env) -> xdr::ScVal {
     let all = env.events().all();
     let raw = all.events();
@@ -45,8 +43,7 @@ fn last_event_topics(env: &Env) -> std::vec::Vec<xdr::ScVal> {
     }
 }
 
-/// Asserts that the last emitted event serializes exactly to `expected`,
-/// covering both its topics and its full data payload.
+/// Asserts the last event matches `expected` in both topics and data.
 fn assert_last_event<E: Event>(env: &Env, expected: &E) {
     let expected_data =
         xdr::ScVal::try_from_val(env, &expected.data(env)).expect("event data -> ScVal");
@@ -77,8 +74,7 @@ struct Fixture<'a> {
     engagement_id: String,
 }
 
-/// Builds and initializes an escrow with a single "in-progress" milestone,
-/// returning everything a test needs to exercise the event-emitting paths.
+/// Initializes an escrow with one in-progress milestone for event tests.
 fn setup(engagement: &str) -> Fixture<'static> {
     let env = Env::default();
     env.mock_all_auths();

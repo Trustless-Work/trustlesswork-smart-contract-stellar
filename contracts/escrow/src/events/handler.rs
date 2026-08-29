@@ -4,18 +4,14 @@ use crate::storage::types::{
 };
 use soroban_sdk::{contractevent, Address, Bytes, BytesN, Env, String, Vec};
 
-/// Longest free-text field the contract accepts (evidence and description are
-/// both capped at 500 bytes by the validators). Sizing the copy buffer to this
-/// bound lets us hash any accepted string on-stack, without an allocator.
+/// Validator cap for evidence/description; sizes the on-stack hash buffer.
 const MAX_HASHABLE_LEN: usize = 500;
 
-/// SHA-256 of a Soroban `String`, used to prove *which* free-text content a
-/// value carried without bloating the event with the raw bytes.
+/// SHA-256 of a `String`, to prove event content without echoing raw bytes.
 ///
-/// Callers must only pass strings that have already cleared the validators'
-/// length checks (evidence and description are both bounded at
-/// `MAX_HASHABLE_LEN`); the events that use this are built after validation
-/// succeeds, so the on-stack buffer is always large enough.
+/// SAFETY: callers must pass only length-validated strings (<= MAX_HASHABLE_LEN);
+/// a longer one would panic on the fixed buffer. All call sites hash after
+/// validation succeeds.
 pub fn hash_string(e: &Env, value: &String) -> BytesN<32> {
     let len = value.len() as usize;
     let mut buf = [0u8; MAX_HASHABLE_LEN];
