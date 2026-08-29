@@ -88,7 +88,7 @@ contracts/escrow/
         │   └── distribution.rs      # calculate_and_distribute_fees
         └── math/
             ├── basic.rs             # BasicMath — safe_add, safe_sub, safe_mul, safe_div
-            └── safe.rs              # SafeMath — safe_mul_div (overflow-checked)
+            └── safe.rs              # SafeMath::safe_mul_div (bps) + mul_div_wide (U256)
 ```
 
 ---
@@ -256,7 +256,7 @@ pub enum DataKey {
 
 **Role constraints enforced at initialization:**
 - `admin` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `dispute_resolvers`
-- `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, or `release_signers`
+- `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `platform` (`DisputeResolverOverlapsWithOtherRole`)
 - No duplicate addresses within any role list
 - Each role list is capped at **5 members** maximum
 - `admin` and `platform` addresses **cannot be changed** after initialization (immutable)
@@ -516,10 +516,13 @@ pub fn extend_contract_ttl(
     ledgers_to_extend: u32,
 ) -> Result<(), EscrowError>
 ```
-Extends the TTL of `DataKey::Escrow` to prevent the storage entry from expiring on-chain.
+Extends the TTL of the contract's storage to prevent entries from expiring on-chain.
 
 - Only callable by `escrow.roles.admin`
 - Uses minimum threshold of 17,280 ledgers (~1 day)
+- Extends `DataKey::Escrow` (persistent)
+- Extends `DataKey::FundedAmount` (persistent) **when the key exists** — it is otherwise only extended by `fund_escrow`, so it could archive before `Escrow` and block the admin paths that read it (`update_escrow`, `manage_milestones`) until restored
+- Extends instance storage
 - Emits `TtlExtended` event
 
 ---
@@ -583,7 +586,14 @@ net_for_recipient_i = (recipient_amount_i * distributable) / total
 remainder → last recipient
 ```
 
-All arithmetic uses checked operations (`BasicMath`, `SafeMath`) and returns `EscrowError::Overflow`, `Underflow`, or `DivisionError` on failure.
+All arithmetic uses checked operations and returns `EscrowError::Overflow`, `Underflow`, or `DivisionError` on failure. Two helpers avoid intermediate overflow, each suited to a different shape of multiplication:
+
+| Helper | Used by | Technique |
+|---|---|---|
+| `SafeMath::safe_mul_div(amount, multiplier: u32, divisor)` | Fee calculation (bps) | Splits as `(amount/divisor)*multiplier + ((amount%divisor)*multiplier)/divisor`. Valid because the multiplier is a bps value (≤ 10,000), so each partial product stays in range. |
+| `mul_div_wide(e, a, b, divisor)` | Pro-rata dispute distribution | Widens both factors to `U256`, multiplies, divides, then narrows back to `i128`. Required here because `distributable` can be as large as `total`, so the bps split trick would still overflow. |
+
+Both are mathematically identical to `a * b / divisor` with floor rounding; they only differ in how the intermediate product is kept in range. `mul_div_wide` rejects a non-positive divisor (`DivisionError`) and negative operands (`Underflow`).
 
 ---
 
@@ -759,12 +769,17 @@ Used by milestone operations. Mapped to `EscrowError` via `From<MilestoneError>`
 | `DataKey::Admin` | `Address` | 1 year, set at deploy | Removed after `initialize_escrow` |
 | `DataKey::ApprovedWasmHash` | `BytesN<32>` | 1 year, set at deploy | Removed after `initialize_escrow` |
 | `DataKey::Escrow` | `Escrow` | 1 year, extended on every write | Main escrow state |
-| `DataKey::FundedAmount` | `i128` | 1 year, extended on each fund | Running total of deposited tokens |
-| `DataKey::Reentrancy` | `bool` | Temporary | Set before external calls in `withdraw_remaining_funds` and `resolve_dispute`, removed after |
+| `DataKey::FundedAmount` | `i128` | 1 year, extended on each fund and by `extend_contract_ttl` | Running total of deposited tokens. Never decremented — stays `> 0` after release. |
+| `DataKey::Reentrancy` | `bool` | n/a (transient) | Persistent storage used transiently: set on entry to `withdraw_remaining_funds` / `resolve_dispute` and removed before returning, so TTL never applies. Re-entry fails with `FlagsMustBeFalse`. |
 
-All storage uses **persistent** storage (survives ledger closings, subject to TTL expiry).
+All data keys above use **persistent** storage (survives ledger closings, subject to TTL expiry). No contract data is kept in instance storage, but `extend_contract_ttl` also extends the **instance** TTL to keep the contract instance and its code alive.
 
-TTL is always extended with `threshold = 17,280` (approximately 1 day) and `extend_to = 31,536,000` (approximately 1 year at ~2s per ledger).
+TTL extensions always use `threshold = 17,280` (approximately 1 day). The `extend_to` value depends on the caller:
+
+- Internal writes (`initialize_escrow`, `fund_escrow`, releases, disputes, milestone changes) use `extend_to = 31,536,000` (approximately 1 year at ~2s per ledger).
+- `extend_contract_ttl` uses the admin-supplied `ledgers_to_extend` argument.
+
+Because the threshold is 17,280, an extension is a no-op while the entry's remaining TTL is still above that value.
 
 ---
 
@@ -816,7 +831,7 @@ APPROVALS (approve_milestones)
 
 3. **Expected-escrow check in `fund_escrow`** — The caller must supply the exact current escrow state as `expected_escrow`. If another transaction modified the escrow between the caller's read and this call, `EscrowPropertiesMismatch` is returned. This is a TOCTOU protection.
 
-4. **Role isolation** — `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, or `release_signers`. Prevents a resolver from both disputing and resolving.
+4. **Role isolation** — `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `platform`. Prevents a resolver from both disputing and resolving, and (via the `platform` check) from deciding a disputed split while also collecting the platform fee.
 
 5. **Admin cannot be operational** — `admin` is blocked from `approvers`, `service_providers`, `release_signers`, and `dispute_resolvers`. Admin is purely a configuration role.
 
@@ -826,7 +841,7 @@ APPROVALS (approve_milestones)
 
 8. **Fee cap** — Total fees (`platform_fee + 0.30%`) cannot exceed 100%. Receiver always gets > 0 when amount > 0.
 
-9. **Overflow-safe math** — All arithmetic goes through `BasicMath`/`SafeMath` with checked operations. Returns explicit error codes instead of panicking.
+9. **Overflow-safe math** — All arithmetic goes through checked operations, returning explicit error codes instead of panicking. Multiplication-then-division uses `safe_mul_div` (bps split) or `mul_div_wide` (256-bit intermediate) so the intermediate product cannot overflow `i128` — relevant for high-decimal trustlines.
 
 10. **WASM hash verification** — Factory deployment validates the WASM hash against the approved hash stored at construction time, preventing deployment of unapproved contract code.
 
