@@ -1,10 +1,49 @@
-use soroban_sdk::{contracttype, Address, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 
 #[contracttype]
 #[derive(Clone)]
 pub struct MilestoneStatusEntry {
     pub index: u32,
     pub status: String,
+    /// SHA-256 of the evidence, or `None` if the update left it untouched.
+    pub evidence_hash: Option<BytesN<32>>,
+}
+
+/// Which mutable escrow properties an `update_escrow` call changed.
+/// `amount` and `platform_fee` also carry before/after values for accounting.
+/// `admin`/`platform` are absent: the contract forbids changing them.
+#[contracttype]
+#[derive(Clone)]
+pub struct EscrowPropertyChanges {
+    pub engagement_id: bool,
+    pub title: bool,
+    pub description: bool,
+    pub amount: bool,
+    pub platform_fee: bool,
+    pub roles: bool,
+    pub trustline: bool,
+    pub receiver_memo: bool,
+    pub old_amount: i128,
+    pub new_amount: i128,
+    pub old_platform_fee: u32,
+    pub new_platform_fee: u32,
+}
+
+/// A milestone appended by `manage_milestones`, at its final index.
+#[contracttype]
+#[derive(Clone)]
+pub struct MilestoneAddedEntry {
+    pub index: u32,
+    pub description_hash: BytesN<32>,
+}
+
+/// An in-place milestone edit by `manage_milestones`. Each field is `Some`
+/// only when that property changed.
+#[contracttype]
+#[derive(Clone)]
+pub struct MilestoneUpdatedEntry {
+    pub index: u32,
+    pub new_description_hash: Option<BytesN<32>>,
 }
 
 #[contracttype]

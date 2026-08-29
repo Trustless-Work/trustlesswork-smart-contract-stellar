@@ -1,6 +1,25 @@
-use soroban_sdk::{contractevent, Address, String, Vec};
+use soroban_sdk::{contractevent, Address, Bytes, BytesN, Env, String, Vec};
 
-use crate::storage::types::{DistributionEntry, MilestoneStatusEntry};
+use crate::storage::types::{
+    DistributionEntry, EscrowPropertyChanges, MilestoneAddedEntry, MilestoneStatusEntry,
+    MilestoneUpdatedEntry,
+};
+
+/// Validator cap for evidence/description; sizes the on-stack hash buffer.
+const MAX_HASHABLE_LEN: usize = 500;
+
+/// SHA-256 of a `String`, to prove event content without echoing raw bytes.
+///
+/// SAFETY: callers must pass only length-validated strings (<= MAX_HASHABLE_LEN);
+/// a longer one would panic on the fixed buffer. All call sites hash after
+/// validation succeeds.
+pub fn hash_string(e: &Env, value: &String) -> BytesN<32> {
+    let len = value.len() as usize;
+    let mut buf = [0u8; MAX_HASHABLE_LEN];
+    value.copy_into_slice(&mut buf[..len]);
+    let bytes = Bytes::from_slice(e, &buf[..len]);
+    e.crypto().sha256(&bytes).to_bytes()
+}
 
 #[contractevent(topics = ["tw_init"])]
 #[derive(Clone)]
@@ -42,6 +61,7 @@ pub struct EscrowUpdated {
     #[topic]
     pub engagement_id: String,
     pub admin: Address,
+    pub changes: EscrowPropertyChanges,
 }
 
 #[contractevent(topics = ["tw_ms_change"])]
@@ -101,6 +121,10 @@ pub struct MilestonesManaged {
     pub admin: Address,
     pub added_count: u32,
     pub updated_count: u32,
+    /// Milestones appended by this call (final index + description hash).
+    pub added: Vec<MilestoneAddedEntry>,
+    /// In-place edits applied by this call (index + changed fields only).
+    pub updated: Vec<MilestoneUpdatedEntry>,
 }
 
 #[contractevent(topics = ["tw_ttl_extend"])]
