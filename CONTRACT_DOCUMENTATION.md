@@ -616,18 +616,59 @@ All arithmetic uses checked operations (`BasicMath`/`SafeMath`).
 | `InitEsc` | `tw_init`, `engagement_id` | `amount`, `platform_fee`, `trustline`, `receiver` |
 | `FundEsc` | `tw_fund`, `engagement_id` | `funder`, `amount`, `funded_total` |
 | `ReleaseEsc` | `tw_release`, `engagement_id` | `release_signer`, `receiver`, `amount`, `platform_fee`, `trustless_work_fee`, `net_amount` |
-| `EscrowUpdated` | `tw_update`, `engagement_id` | `admin` |
+| `EscrowUpdated` | `tw_update`, `engagement_id` | `admin`, `changes: EscrowPropertyChanges` |
 | `MilestoneStatusChanged` | `tw_ms_change`, `engagement_id` | `service_provider`, `updates: Vec<MilestoneStatusEntry>` |
 | `MilestonesApproved` | `tw_ms_approve`, `engagement_id` | `approver`, `milestone_indices` |
 | `EscrowDisputed` | `tw_dispute`, `engagement_id` | `signer`, `reason` |
 | `DisputeResolved` | `tw_disp_resolve`, `engagement_id` | `dispute_resolver`, `platform_fee`, `trustless_work_fee`, `distributions` |
 | `FundsWithdrawn` | `tw_withdraw`, `engagement_id` | `dispute_resolver`, `platform_fee`, `trustless_work_fee`, `distributions` |
-| `MilestonesManaged` | `tw_ms_manage`, `engagement_id` | `admin`, `added_count`, `updated_count` |
+| `MilestonesManaged` | `tw_ms_manage`, `engagement_id` | `admin`, `added_count`, `updated_count`, `added: Vec<MilestoneAddedEntry>`, `updated: Vec<MilestoneUpdatedEntry>` |
 | `TtlExtended` | `tw_ttl_extend`, `engagement_id` | `admin`, `ledgers_to_extend` |
 
 > `ReleaseEsc` emits flat fee fields directly (not a `Vec<MilestonePayout>` like multi-release).  
 > `EscrowDisputed` has no `milestone_indices` (whole-escrow dispute).  
 > `DisputeResolved` has no `milestone_indices` field.
+
+### 9.1 Audit-trail payloads
+
+Events carry **what changed**, not just that something changed, so an
+events-only indexer can reconstruct history without diffing storage snapshots
+(historical state is archived and may be unavailable).
+
+**`MilestoneStatusEntry`** — one per updated milestone in `MilestoneStatusChanged`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `index` | `u32` | Milestone index |
+| `status` | `String` | New status |
+| `evidence_hash` | `Option<BytesN<32>>` | SHA-256 of the evidence, or `None` if this update left the evidence untouched |
+
+**`EscrowPropertyChanges`** — carried by `EscrowUpdated`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `engagement_id`, `title`, `description`, `amount`, `platform_fee`, `roles`, `trustline`, `receiver_memo` | `bool` | `true` when that property changed |
+| `old_amount` / `new_amount` | `i128` | Before/after values (escrow amount) |
+| `old_platform_fee` / `new_platform_fee` | `u32` | Before/after values (bps) |
+
+`admin` and `platform` are absent: the contract forbids changing them
+(`AdminAddressCannotBeChanged`, `PlatformAddressCannotBeChanged`).
+
+**`MilestoneAddedEntry` / `MilestoneUpdatedEntry`** — carried by `MilestonesManaged`:
+
+| Struct | Fields | Meaning |
+|---|---|---|
+| `MilestoneAddedEntry` | `index: u32`, `description_hash: BytesN<32>` | An appended milestone, at its final index |
+| `MilestoneUpdatedEntry` | `index: u32`, `new_description_hash: Option<BytesN<32>>` | An in-place edit; the field is `Some` only when it changed |
+
+**Why hashes instead of raw text.** Free-text fields (evidence, description) are
+capped at 500 bytes; hashing keeps event payloads at a fixed 32 bytes while still
+proving *which* content was recorded. To verify a claim, hash the presented text
+and compare it to the value in the event — a mismatch proves the content was
+altered. Note this is the hash of the field **content**, not the transaction hash.
+
+**Ordering guarantee.** Hashing runs only *after* validation succeeds, so an
+over-long string returns `StringTooLong` instead of trapping in the hasher.
 
 ---
 
@@ -794,3 +835,6 @@ APPROVALS (approve_milestones)
 | Dispute resolver overlap includes receiver | Yes | No |
 | `all_processed` check in `withdraw` | `released \|\| dispute.resolved` | All milestones `released \|\| dispute.resolved` |
 | Release requires milestones | All must be approved | Only specified indices must be approved |
+| `EscrowPropertyChanges` fields | Includes `amount` flag + `old_amount`/`new_amount` (escrow-level amount) | No amount fields (amounts are per-milestone) |
+| `MilestoneAddedEntry` fields | `index`, `description_hash` | Also carries `amount` |
+| `MilestoneUpdatedEntry` fields | `index`, `new_description_hash` | Also carries `new_amount` |
