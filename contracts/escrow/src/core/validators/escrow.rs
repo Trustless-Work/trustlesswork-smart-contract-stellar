@@ -144,7 +144,10 @@ fn validate_role_limits(roles: &Roles) -> Result<(), EscrowError> {
 }
 
 #[inline]
-fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowError> {
+fn validate_dispute_resolver_role_overlap(
+    roles: &Roles,
+    milestones: &Vec<Milestone>,
+) -> Result<(), EscrowError> {
     for resolver in roles.dispute_resolvers.iter() {
         if roles.approvers.contains(&resolver)
             || roles.service_providers.contains(&resolver)
@@ -152,6 +155,11 @@ fn validate_dispute_resolver_role_overlap(roles: &Roles) -> Result<(), EscrowErr
             || resolver == roles.platform
         {
             return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
+        }
+        for milestone in milestones.iter() {
+            if resolver == milestone.receiver {
+                return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
+            }
         }
     }
     Ok(())
@@ -187,7 +195,10 @@ pub fn validate_escrow_conditions(
         return Err(EscrowError::DisputeResolversListEmpty);
     }
     validate_role_limits(&new_escrow.roles)?;
-    validate_dispute_resolver_role_overlap(&new_escrow.roles)?;
+    validate_dispute_resolver_role_overlap(&new_escrow.roles, &new_escrow.milestones)?;
+    if let Some(existing) = existing_escrow {
+        validate_dispute_resolver_role_overlap(&new_escrow.roles, &existing.milestones)?;
+    }
 
     if is_init {
         if new_escrow.milestones.len() > 50 {
@@ -298,6 +309,13 @@ pub fn validate_manage_milestones_conditions(
             return Err(EscrowError::TooManyMilestones);
         }
         for milestone in new_milestones.iter() {
+            if existing_escrow
+                .roles
+                .dispute_resolvers
+                .contains(&milestone.receiver)
+            {
+                return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
+            }
             validate_milestone_string_lengths(&milestone)?;
             if milestone.amount <= 0 {
                 return Err(EscrowError::AmountCannotBeZero);
@@ -323,6 +341,14 @@ pub fn validate_manage_milestones_conditions(
         for update in milestone_updates.iter() {
             if update.index >= existing_escrow.milestones.len() {
                 return Err(EscrowError::InvalidMilestoneIndex);
+            }
+            let existing_m = existing_escrow.milestones.get(update.index).unwrap();
+            if existing_escrow
+                .roles
+                .dispute_resolvers
+                .contains(&existing_m.receiver)
+            {
+                return Err(EscrowError::DisputeResolverOverlapsWithOtherRole);
             }
             if let Some(ref desc) = update.new_description {
                 if desc.len() > MAX_LONG_STRING {

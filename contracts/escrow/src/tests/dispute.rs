@@ -1,5 +1,6 @@
 extern crate std;
 
+use crate::error::EscrowError;
 use crate::storage::types::{Dispute, Escrow, Milestone, MilestoneApprovals, Roles, Trustline};
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
 
@@ -949,7 +950,10 @@ fn test_dispute_milestones_unauthorized_reverts() {
         &String::from_str(&env, "Dispute reason"),
     );
     assert!(
-        result.is_err(),
+        matches!(
+            result,
+            Err(Ok(EscrowError::DisputeResolverCannotDisputeTheEscrow))
+        ),
         "Dispute resolver must not be able to dispute milestones"
     );
 }
@@ -1379,3 +1383,80 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
     assert!(usdc_token.0.balance(&trustless_work) > 0);
     assert!(usdc_token.0.balance(&platform) > 0);
 }
+
+#[test]
+fn test_dispute_resolver_is_resolution_only_and_cannot_open_dispute() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 100_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: receiver.clone(),
+        },
+    ];
+
+    let escrow = Escrow {
+        engagement_id: String::from_str(&env, "dispute_resolver_resolution_only"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones,
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow);
+
+    // Verify runtime guard in validate_batch_milestone_dispute_conditions:
+    // Dispute resolver is strictly a resolution-only authority and is rejected before any receiver/role check
+    let res = client.try_dispute_milestones(
+        &dispute_resolver,
+        &vec![&env, 0u32],
+        &String::from_str(&env, "resolver attempted dispute"),
+    );
+    assert_eq!(
+        res,
+        Err(Ok(EscrowError::DisputeResolverCannotDisputeTheEscrow)),
+        "dispute_resolvers must be rejected by the runtime guard with DisputeResolverCannotDisputeTheEscrow"
+    );
+}
+

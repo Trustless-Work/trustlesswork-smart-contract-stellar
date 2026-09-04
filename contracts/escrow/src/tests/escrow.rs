@@ -1038,3 +1038,251 @@ fn test_dispute_resolver_cannot_equal_platform() {
     let res = test_data.client.try_initialize_escrow(&escrow_valid);
     assert!(res.is_ok(), "Non-overlapping platform and dispute_resolver must succeed");
 }
+
+#[test]
+fn test_dispute_resolver_cannot_equal_milestone_receiver_at_init() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let shared_address = Address::generate(&env); // will be both milestone receiver and dispute_resolver
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestone = Milestone {
+        description: String::from_str(&env, "M1"),
+        status: String::from_str(&env, "Pending"),
+        evidence: String::from_str(&env, ""),
+        approvals: MilestoneApprovals {
+            target: 1,
+            approval_count: 0,
+            approved_by: vec![&env],
+        },
+        amount: 100_000_000,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        receiver: shared_address.clone(),
+    };
+
+    let escrow_overlap = Escrow {
+        engagement_id: String::from_str(&env, "resolver_receiver_overlap"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, shared_address.clone()], // same as milestone.receiver
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 0,
+        milestones: vec![&env, milestone.clone()],
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    // dispute_resolver == milestone.receiver must fail
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let res = test_data.client.try_initialize_escrow(&escrow_overlap);
+    assert!(
+        matches!(res, Err(Ok(EscrowError::DisputeResolverOverlapsWithOtherRole))),
+        "dispute_resolver == milestone.receiver must be rejected with DisputeResolverOverlapsWithOtherRole"
+    );
+
+    // distinct dispute_resolver and milestone.receiver must succeed
+    let distinct_dispute_resolver = Address::generate(&env);
+    let escrow_valid = Escrow {
+        engagement_id: String::from_str(&env, "resolver_receiver_distinct"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, distinct_dispute_resolver],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 0,
+        milestones: vec![&env, milestone],
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let res = test_data.client.try_initialize_escrow(&escrow_valid);
+    assert!(res.is_ok(), "Non-overlapping receiver and dispute_resolver must succeed");
+}
+
+#[test]
+fn test_dispute_resolver_cannot_equal_milestone_receiver_on_update_escrow() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let initial_dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestone = Milestone {
+        description: String::from_str(&env, "M1"),
+        status: String::from_str(&env, "Pending"),
+        evidence: String::from_str(&env, ""),
+        approvals: MilestoneApprovals {
+            target: 1,
+            approval_count: 0,
+            approved_by: vec![&env],
+        },
+        amount: 100_000_000,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        receiver: receiver.clone(),
+    };
+
+    let initial_escrow = Escrow {
+        engagement_id: String::from_str(&env, "update_overlap_test"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, initial_dispute_resolver],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 0,
+        milestones: vec![&env, milestone.clone()],
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &escrow_admin);
+    let client = test_data.client;
+    client.initialize_escrow(&initial_escrow);
+
+    // Update dispute_resolvers to include the existing milestone's receiver (while unfunded)
+    let updated_escrow_props = Escrow {
+        engagement_id: String::from_str(&env, "update_overlap_test"),
+        title: String::from_str(&env, "Updated Title"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, receiver.clone()], // Overlaps with milestone.receiver!
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 0,
+        milestones: vec![&env, milestone],
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let res = client.try_update_escrow(&escrow_admin, &updated_escrow_props);
+    assert!(
+        matches!(res, Err(Ok(EscrowError::DisputeResolverOverlapsWithOtherRole))),
+        "Updating dispute_resolver to milestone receiver must fail with DisputeResolverOverlapsWithOtherRole"
+    );
+}
+
+#[test]
+fn test_admin_can_equal_platform() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let shared_admin_platform = Address::generate(&env); // admin == platform
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let receiver = Address::generate(&env);
+
+    let usdc_token = create_usdc_token(&env, &admin);
+
+    let milestone = Milestone {
+        description: String::from_str(&env, "M1"),
+        status: String::from_str(&env, "Pending"),
+        evidence: String::from_str(&env, ""),
+        approvals: MilestoneApprovals {
+            target: 1,
+            approval_count: 0,
+            approved_by: vec![&env],
+        },
+        amount: 100_000_000,
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        receiver: receiver.clone(),
+    };
+
+    let escrow = Escrow {
+        engagement_id: String::from_str(&env, "admin_eq_platform"),
+        title: String::from_str(&env, "Test Admin Eq Platform"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: shared_admin_platform.clone(), // admin == platform
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: shared_admin_platform.clone(),    // admin == platform
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: vec![&env, milestone.clone()],
+        trustline: Trustline {
+            address: usdc_token.0.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let test_data = create_escrow_contract(&env, &shared_admin_platform);
+    let client = test_data.client;
+    let res = client.try_initialize_escrow(&escrow);
+    assert!(res.is_ok(), "admin == platform must be permitted at initialization");
+
+    // Also verify updating escrow when admin == platform
+    let mut updated_escrow = escrow.clone();
+    updated_escrow.title = String::from_str(&env, "Updated Title Admin Eq Platform");
+    let update_res = client.try_update_escrow(&shared_admin_platform, &updated_escrow);
+    assert!(update_res.is_ok(), "admin == platform must remain permitted on update");
+}
+
