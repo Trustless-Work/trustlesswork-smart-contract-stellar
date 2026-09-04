@@ -1,5 +1,6 @@
 extern crate std;
 
+use crate::error::EscrowError;
 use crate::storage::types::{
     Dispute, Escrow, Milestone, MilestoneApprovals, MilestoneStatusUpdate, MilestoneUpdate, Roles,
     Trustline,
@@ -1704,3 +1705,124 @@ fn test_manage_milestones_rejects_non_positive_amount_update() {
     // Original amount unchanged.
     assert_eq!(client.get_escrow().milestones.get(0).unwrap().amount, 50_000_000);
 }
+
+#[test]
+fn test_dispute_resolver_cannot_equal_milestone_receiver_on_milestone_addition() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let escrow_admin = Address::generate(&env);
+    let approver = Address::generate(&env);
+    let service_provider = Address::generate(&env);
+    let platform = Address::generate(&env);
+    let release_signer = Address::generate(&env);
+    let dispute_resolver = Address::generate(&env);
+    let initial_receiver = Address::generate(&env);
+
+    let (token_client, _token_admin) = create_usdc_token(&env, &admin);
+
+    let initial_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M1"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: initial_receiver,
+        },
+    ];
+
+    let escrow = Escrow {
+        engagement_id: String::from_str(&env, "add_milestone_resolver_overlap"),
+        title: String::from_str(&env, "Test"),
+        description: String::from_str(&env, "Test"),
+        roles: Roles {
+            approvers: vec![&env, approver.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: platform.clone(),
+            release_signers: vec![&env, release_signer.clone()],
+            dispute_resolvers: vec![&env, dispute_resolver.clone()],
+            admin: escrow_admin.clone(),
+            observers: vec![&env],
+        },
+        platform_fee: 300,
+        milestones: initial_milestones,
+        trustline: Trustline {
+            address: token_client.address.clone(),
+        },
+        receiver_memo: 0,
+    };
+
+    let client = create_escrow_contract(&env, &escrow_admin).client;
+    client.initialize_escrow(&escrow);
+
+    // Attempt to add a milestone whose receiver is the dispute resolver
+    let invalid_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M2-invalid"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: dispute_resolver.clone(), // Overlaps with dispute_resolver!
+        },
+    ];
+
+    let res = client.try_manage_milestones(&escrow_admin, &invalid_milestones, &vec![&env]);
+    assert!(
+        matches!(res, Err(Ok(EscrowError::DisputeResolverOverlapsWithOtherRole))),
+        "Adding milestone where receiver equals dispute_resolver must fail with DisputeResolverOverlapsWithOtherRole"
+    );
+
+    // Adding milestone with a distinct, non-overlapping receiver must succeed
+    let distinct_receiver = Address::generate(&env);
+    let valid_milestones = vec![
+        &env,
+        Milestone {
+            description: String::from_str(&env, "M2-valid"),
+            status: String::from_str(&env, "Pending"),
+            evidence: String::from_str(&env, ""),
+            approvals: MilestoneApprovals {
+                target: 1,
+                approval_count: 0,
+                approved_by: vec![&env],
+            },
+            amount: 50_000_000,
+            dispute: Dispute {
+                is_disputed: false,
+                reason: String::from_str(&env, ""),
+                resolved: false,
+            },
+            released: false,
+            receiver: distinct_receiver,
+        },
+    ];
+
+    let res = client.try_manage_milestones(&escrow_admin, &valid_milestones, &vec![&env]);
+    assert!(res.is_ok(), "Adding milestone with valid distinct receiver must succeed");
+    assert_eq!(client.get_escrow().milestones.len(), 2);
+}
+

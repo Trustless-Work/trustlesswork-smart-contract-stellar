@@ -256,7 +256,7 @@ pub enum DataKey {
 
 **Role constraints enforced at initialization:**
 - `admin` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `dispute_resolvers`
-- `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `platform` (`DisputeResolverOverlapsWithOtherRole`)
+- `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, `platform`, or any milestone `receiver` (`DisputeResolverOverlapsWithOtherRole`)
 - No duplicate addresses within any role list
 - Each role list is capped at **5 members** maximum
 - `admin` and `platform` addresses **cannot be changed** after initialization (immutable)
@@ -831,7 +831,7 @@ APPROVALS (approve_milestones)
 
 3. **Expected-escrow check in `fund_escrow`** — The caller must supply the exact current escrow state as `expected_escrow`. If another transaction modified the escrow between the caller's read and this call, `EscrowPropertiesMismatch` is returned. This is a TOCTOU protection.
 
-4. **Role isolation** — `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, or `platform`. Prevents a resolver from both disputing and resolving, and (via the `platform` check) from deciding a disputed split while also collecting the platform fee.
+4. **Role isolation** — `dispute_resolvers` cannot overlap with `approvers`, `service_providers`, `release_signers`, `platform`, or milestone receivers. Prevents a resolver from acquiring dispute-opening authority (as approver, provider, signer, or receiver) while serving as resolution authority, and (via the `platform` check) from deciding a disputed split while also collecting the platform fee.
 
 5. **Admin cannot be operational** — `admin` is blocked from `approvers`, `service_providers`, `release_signers`, and `dispute_resolvers`. Admin is purely a configuration role.
 
