@@ -1,7 +1,13 @@
 extern crate std;
 
-use crate::storage::types::{Escrow, Flags, Milestone, Roles, Trustline};
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, Map, String};
+use crate::{
+    error::ContractError,
+    storage::types::{Escrow, Flags, Milestone, Roles, Trustline},
+};
+use soroban_sdk::{
+    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
+    vec, Address, Env, IntoVal, Map, String, Symbol,
+};
 
 use super::helpers::{create_escrow_contract, create_usdc_token};
 
@@ -177,6 +183,27 @@ fn test_withdraw_remaining_funds_success() {
     );
     assert!(res.is_ok(), "Dispute resolver should be able to withdraw remaining funds");
 
+    // Verify that dispute_resolver authorized withdraw_remaining_funds
+    assert_eq!(
+        env.auths(),
+        [(
+            dispute_resolver.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    client.address.clone(),
+                    Symbol::new(&env, "withdraw_remaining_funds"),
+                    (
+                        dispute_resolver.clone(),
+                        trustless_work_address.clone(),
+                        distributions.clone(),
+                    )
+                        .into_val(&env),
+                )),
+                sub_invocations: [].into(),
+            }
+        )]
+    );
+
     // Total distribution = 45,000
     // Fees: TW fee = (45_000 * 30) / 10000 = 135
     // Platform fee = (45_000 * 300) / 10000 = 1350
@@ -270,9 +297,21 @@ fn test_withdraw_remaining_funds_unauthorized() {
     let mut dist: Map<Address, i128> = Map::new(&env);
     dist.set(service_provider.clone(), 10_000);
 
-    // Attacker attempts to withdraw funds
+    // 1. Attacker attempts to withdraw funds (rejected because caller is not dispute_resolver)
     let res = client.try_withdraw_remaining_funds(&attacker, &trustless_work_address, &dist);
-    assert!(res.is_err(), "Only dispute_resolver must be authorized to call withdraw_remaining_funds");
+    assert_eq!(
+        res,
+        Err(Ok(ContractError::OnlyDisputeResolverCanExecuteThisFunction))
+    );
+
+    // 2. Configured dispute_resolver attempts without matching authorization (require_auth rejects)
+    let unauth_res = client
+        .mock_auths(&[])
+        .try_withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &dist);
+    assert!(
+        unauth_res.is_err(),
+        "Call without matching dispute_resolver authorization must fail"
+    );
 }
 
 #[test]
@@ -335,7 +374,10 @@ fn test_withdraw_remaining_funds_not_fully_processed() {
 
     // Call while escrow is pending (neither released, resolved, nor disputed)
     let res = client.try_withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &dist);
-    assert!(res.is_err(), "Must fail when escrow is not fully processed");
+    assert_eq!(
+        res,
+        Err(Ok(ContractError::EscrowNotFullyProcessed))
+    );
 }
 
 #[test]
@@ -409,7 +451,10 @@ fn test_withdraw_remaining_funds_insufficient_balance() {
     dist.set(service_provider.clone(), 20_000);
 
     let res = client.try_withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &dist);
-    assert!(res.is_err(), "Must fail when distribution total exceeds contract balance");
+    assert_eq!(
+        res,
+        Err(Ok(ContractError::InsufficientFundsForResolution))
+    );
 }
 
 #[test]
