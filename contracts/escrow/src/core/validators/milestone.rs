@@ -49,6 +49,17 @@ pub fn validate_batch_milestone_status_change(
         if update.milestone_index >= escrow.milestones.len() {
             return Err(MilestoneError::MilestoneToUpdateDoesNotExist);
         }
+
+        // Status/evidence stay editable while a milestone's dispute is open
+        // (fresh evidence can help resolve it), but freeze once the milestone
+        // is released or its dispute resolved.
+        let milestone = escrow.milestones.get(update.milestone_index).unwrap();
+        if milestone.released {
+            return Err(MilestoneError::MilestoneAlreadyReleased);
+        }
+        if milestone.dispute.resolved {
+            return Err(MilestoneError::MilestoneAlreadyResolved);
+        }
     }
 
     Ok(())

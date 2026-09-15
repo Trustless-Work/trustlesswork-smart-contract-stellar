@@ -92,6 +92,8 @@ pub enum MilestoneError {
     DuplicateMilestoneIndex = 13,
     StringTooLong = 14,
     BatchTooLarge = 15,
+    MilestoneAlreadyReleased = 16,
+    MilestoneAlreadyResolved = 17,
 }
 
 impl From<MilestoneError> for EscrowError {

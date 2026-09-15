@@ -390,6 +390,7 @@ pub fn change_milestone_status(
 Allows service providers to update the status and evidence of milestones in a batch.
 
 - Only callable by a `service_provider`
+- Rejected for milestones that are terminal: `released` → `MilestoneAlreadyReleased` (16), dispute `resolved` → `MilestoneAlreadyResolved` (17). Updates stay allowed while a milestone's dispute is **open** — fresh evidence can help resolve it
 - Batch size: 1–50 updates
 - Status string: 1–50 chars; evidence string: 0–500 chars
 - Milestone index must be valid
