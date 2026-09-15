@@ -20,6 +20,15 @@ pub fn validate_milestone_status_change_conditions(
         return Err(ContractError::OnlyServiceProviderChangeMilstoneStatus);
     }
 
+    // Status/evidence stay editable while a dispute is open (fresh evidence
+    // can help resolve it), but freeze once the escrow is released or resolved.
+    if escrow.flags.released {
+        return Err(ContractError::EscrowAlreadyReleased);
+    }
+    if escrow.flags.resolved {
+        return Err(ContractError::EscrowAlreadyResolved);
+    }
+
     if escrow.milestones.is_empty() {
         return Err(ContractError::NoMilestoneDefined);
     }

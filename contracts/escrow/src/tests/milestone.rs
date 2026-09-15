@@ -407,3 +407,75 @@ fn test_change_milestone_status_and_approved() {
     let result = escrow_approver.try_approve_milestone(&(0), &unauthorized_address);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_status_change_rejected_when_released_or_resolved_allowed_while_disputed() {
+    use crate::core::validators::milestone::validate_milestone_status_change_conditions;
+    use crate::error::ContractError;
+
+    let env = Env::default();
+    let service_provider = Address::generate(&env);
+    let other = Address::generate(&env);
+
+    let mut escrow = Escrow {
+        engagement_id: String::from_str(&env, "t3_guard"),
+        title: String::from_str(&env, "T3"),
+        roles: Roles {
+            approver: other.clone(),
+            service_provider: service_provider.clone(),
+            platform: other.clone(),
+            release_signer: other.clone(),
+            dispute_resolver: Address::generate(&env),
+            receiver: other.clone(),
+        },
+        description: String::from_str(&env, "T3 guard test"),
+        amount: 100,
+        platform_fee: 300,
+        milestones: vec![
+            &env,
+            Milestone {
+                description: String::from_str(&env, "M0"),
+                status: String::from_str(&env, "in-progress"),
+                evidence: String::from_str(&env, ""),
+                approved: false,
+            },
+        ],
+        flags: Flags {
+            disputed: false,
+            released: false,
+            resolved: false,
+        },
+        trustline: Trustline {
+            address: Address::generate(&env),
+        },
+        receiver_memo: 0,
+    };
+
+    let new_status = String::from_str(&env, "completed");
+
+    // Open dispute: still editable — fresh evidence can help resolve it.
+    escrow.flags.disputed = true;
+    assert!(validate_milestone_status_change_conditions(
+        &escrow,
+        &service_provider,
+        &0,
+        &new_status
+    )
+    .is_ok());
+
+    // Released: frozen.
+    escrow.flags.disputed = false;
+    escrow.flags.released = true;
+    assert_eq!(
+        validate_milestone_status_change_conditions(&escrow, &service_provider, &0, &new_status),
+        Err(ContractError::EscrowAlreadyReleased)
+    );
+
+    // Resolved: frozen.
+    escrow.flags.released = false;
+    escrow.flags.resolved = true;
+    assert_eq!(
+        validate_milestone_status_change_conditions(&escrow, &service_provider, &0, &new_status),
+        Err(ContractError::EscrowAlreadyResolved)
+    );
+}
