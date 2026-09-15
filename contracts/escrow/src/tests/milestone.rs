@@ -1388,3 +1388,83 @@ fn test_approve_milestones_unauthorized_fails_fast_before_duplicate_check() {
         Some(Ok(crate::error::MilestoneError::UnauthorizedApprover))
     );
 }
+
+#[test]
+fn test_status_change_rejected_when_released_or_resolved_allowed_while_disputed() {
+    use crate::core::validators::milestone::validate_batch_milestone_status_change;
+    use crate::error::MilestoneError;
+
+    let env = Env::default();
+    let service_provider = Address::generate(&env);
+    let other = Address::generate(&env);
+
+    let mut escrow = Escrow {
+        engagement_id: String::from_str(&env, "t3_guard"),
+        title: String::from_str(&env, "T3"),
+        description: String::from_str(&env, "T3 guard test"),
+        roles: Roles {
+            approvers: vec![&env, other.clone()],
+            service_providers: vec![&env, service_provider.clone()],
+            platform: other.clone(),
+            release_signers: vec![&env, other.clone()],
+            dispute_resolvers: vec![&env, Address::generate(&env)],
+            receiver: other.clone(),
+            admin: Address::generate(&env),
+            observers: vec![&env],
+        },
+        amount: 100,
+        platform_fee: 300,
+        milestones: vec![
+            &env,
+            Milestone {
+                description: String::from_str(&env, "M0"),
+                status: String::from_str(&env, "in-progress"),
+                evidence: String::from_str(&env, ""),
+                approvals: MilestoneApprovals {
+                    target: 1,
+                    approval_count: 0,
+                    approved_by: vec![&env],
+                },
+            },
+        ],
+        dispute: Dispute {
+            is_disputed: false,
+            reason: String::from_str(&env, ""),
+            resolved: false,
+        },
+        released: false,
+        trustline: Trustline {
+            address: Address::generate(&env),
+        },
+        receiver_memo: 0,
+    };
+
+    let updates = vec![
+        &env,
+        MilestoneStatusUpdate {
+            milestone_index: 0,
+            new_status: String::from_str(&env, "completed"),
+            new_evidence: None,
+        },
+    ];
+
+    // Open dispute: still editable — fresh evidence can help resolve it.
+    escrow.dispute.is_disputed = true;
+    assert!(validate_batch_milestone_status_change(&escrow, &service_provider, &updates).is_ok());
+
+    // Released: frozen.
+    escrow.dispute.is_disputed = false;
+    escrow.released = true;
+    assert_eq!(
+        validate_batch_milestone_status_change(&escrow, &service_provider, &updates),
+        Err(MilestoneError::EscrowAlreadyReleased)
+    );
+
+    // Resolved: frozen.
+    escrow.released = false;
+    escrow.dispute.resolved = true;
+    assert_eq!(
+        validate_batch_milestone_status_change(&escrow, &service_provider, &updates),
+        Err(MilestoneError::EscrowAlreadyResolved)
+    );
+}

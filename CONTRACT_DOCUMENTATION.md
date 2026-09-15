@@ -376,6 +376,7 @@ pub fn change_milestone_status(
 Allows service providers to update milestone status and evidence in a batch.
 
 - Only callable by a `service_provider`
+- Rejected once the escrow is terminal: `released` → `EscrowAlreadyReleased` (16), dispute `resolved` → `EscrowAlreadyResolved` (17). Updates stay allowed while a dispute is **open** — fresh evidence can help resolve it
 - Batch: 1–50 updates; status: 1–50 chars; evidence: 0–500 chars
 - Emits `MilestoneStatusChanged` event
 
