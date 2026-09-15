@@ -30,10 +30,20 @@ pub fn validate_milestone_status_change_conditions(
 
         let idx = validate_and_convert_milestone_index(update.index, escrow.milestones.len())?;
 
-        let _milestone = escrow
+        let milestone = escrow
             .milestones
             .get(idx)
             .ok_or(ContractError::MilestoneToUpdateDoesNotExist)?;
+
+        // Status/evidence stay editable while a milestone's dispute is open
+        // (fresh evidence can help resolve it), but freeze once the milestone
+        // is released or resolved.
+        if milestone.flags.released {
+            return Err(ContractError::MilestoneAlreadyReleased);
+        }
+        if milestone.flags.resolved {
+            return Err(ContractError::MilestoneAlreadyResolved);
+        }
     }
 
     Ok(())
