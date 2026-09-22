@@ -25,7 +25,7 @@ impl DisputeManager {
         distributions: Map<Address, i128>,
     ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         if e.storage().persistent().has(&DataKey::Reentrancy) {
-            return Err(EscrowError::FlagsMustBeFalse);
+            return Err(EscrowError::Reentrancy);
         }
         e.storage().persistent().set(&DataKey::Reentrancy, &true);
 
@@ -89,7 +89,7 @@ impl DisputeManager {
         distributions: Map<Address, i128>,
     ) -> Result<(Escrow, StandardFeeResult, Vec<(Address, i128)>), EscrowError> {
         if e.storage().persistent().has(&DataKey::Reentrancy) {
-            return Err(EscrowError::FlagsMustBeFalse);
+            return Err(EscrowError::Reentrancy);
         }
         e.storage().persistent().set(&DataKey::Reentrancy, &true);
 

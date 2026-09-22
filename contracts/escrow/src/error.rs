@@ -53,6 +53,12 @@ pub enum EscrowError {
     TargetExceedsApprovers = 48,
     StringTooLong = 49,
     SignerMustBeApproverAndReleaseSigner = 50,
+    /// A reentrant call was blocked because the reentrancy guard flag was set.
+    /// Kept distinct from `FlagsMustBeFalse` (a milestone flag-state error) so
+    /// callers and indexers can tell a blocked reentrant call apart from a flag
+    /// problem. Single-release uses `47`; that code is already taken here
+    /// (`MilestoneUpdateNotAllowedWithFunds`), so this uses the next free value.
+    Reentrancy = 51,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
