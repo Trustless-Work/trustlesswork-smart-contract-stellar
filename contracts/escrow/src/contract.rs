@@ -1,4 +1,6 @@
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, Map, Symbol, Val, Vec};
+use soroban_sdk::{
+    contract, contractimpl, Address, BytesN, ContractExecutable, Env, Map, Symbol, Val, Vec,
+};
 
 use crate::core::{DisputeManager, EscrowManager, MilestoneManager};
 use crate::error::ContractError;
@@ -34,7 +36,7 @@ impl EscrowContract {
         let deployed_address = env
             .deployer()
             .with_address(deployer, salt)
-            .deploy_v2(wasm_hash, constructor_args);
+            .deploy_contract(ContractExecutable::Wasm(wasm_hash), constructor_args);
 
         let res: Val = env.invoke_contract(&deployed_address, &init_fn, init_args);
         Ok((deployed_address, res))
