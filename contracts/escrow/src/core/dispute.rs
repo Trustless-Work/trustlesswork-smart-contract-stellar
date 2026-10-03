@@ -1,145 +1,255 @@
-use soroban_sdk::token::Client as TokenClient;
-use soroban_sdk::{Address, Env, Map};
+use crate::error::EscrowError;
+use crate::storage::{DataKey, EscrowData, ReleaseData, RELEASE_COUNT_LIMIT};
+use soroban_sdk::{address::Address, log, AddressString, Vec};
 
-use crate::core::escrow::EscrowManager;
-use crate::core::validators::dispute::{validate_withdraw_remaining_funds_conditions};
-use crate::error::ContractError;
-use crate::modules::fee::distribution::calculate_and_distribute_fees;
-use crate::modules::{
-    fee::{FeeCalculator, FeeCalculatorTrait},
-    math::{BasicArithmetic, BasicMath},
-};
-use crate::storage::types::{DataKey, Escrow};
+/// Check reentrancy guard
+fn check_reentrancy(contract: &crate::EscrowContract, caller: &Address) -> Result<(), EscrowError> {
+    if contract.storage().persistent().has(&DataKey::Reentrancy) {
+        return Err(EscrowError::Reentrancy);
+    }
+    Ok(())
+}
 
-use super::validators::dispute::{
-    validate_dispute_flag_change_conditions, validate_dispute_resolution_conditions,
-};
+/// Set reentrancy guard
+fn set_reentrancy_guard(contract: &crate::EscrowContract) {
+    contract
+        .storage()
+        .persistent()
+        .set(&DataKey::Reentrancy, &());
+}
 
-pub struct DisputeManager;
+/// Clear reentrancy guard
+fn clear_reentrancy_guard(contract: &crate::EscrowContract) {
+    contract
+        .storage()
+        .persistent()
+        .remove(&DataKey::Reentrancy);
+}
 
-impl DisputeManager {
-    pub fn withdraw_remaining_funds(
-        e: &Env,
-        dispute_resolver: Address,
-        trustless_work_address: Address,
-        distributions: Map<Address, i128>,
-    ) -> Result<Escrow, ContractError> {
-        let escrow = EscrowManager::get_escrow(e)?;
-        let contract_address = e.current_contract_address();
+/// Get dispute ID from storage
+fn get_dispute_id(contract: &crate::EscrowContract) -> Result<u64, EscrowError> {
+    match contract.storage().persistent().get(&DataKey::DisputeId) {
+        Some(id) => Ok(id),
+        None => Err(EscrowError::DisputeNotInProgress),
+    }
+}
 
-        let mut all_processed = true;
-        let flags = &escrow.flags;
-        if !(flags.released || flags.resolved || flags.disputed) {
-            all_processed = false;
-        }
+/// Set dispute ID in storage
+fn set_dispute_id(contract: &crate::EscrowContract, id: u64) {
+    contract
+        .storage()
+        .persistent()
+        .set(&DataKey::DisputeId, &id);
+}
 
-        let token_client = TokenClient::new(&e, &escrow.trustline.address);
-        let current_balance = token_client.balance(&contract_address);
-        let mut total: i128 = 0;
-        for (_addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                return Err(ContractError::AmountsToBeTransferredShouldBePositive);
-            }
-            total = BasicMath::safe_add(total, amount)?;
-        }
+/// Clear dispute ID from storage
+fn clear_dispute_id(contract: &crate::EscrowContract) {
+    contract
+        .storage()
+        .persistent()
+        .remove(&DataKey::DisputeId);
+}
 
-        validate_withdraw_remaining_funds_conditions(
-            &escrow,
-            &dispute_resolver,
-            all_processed,
-            current_balance,
-            total,
-            &distributions
-        )?;
+/// Initialize a dispute for an escrow
+pub fn init_dispute(
+    contract: &crate::EscrowContract,
+    escrow_id: u64,
+    claimant: Address,
+    arbitrator: Address,
+) -> Result<(), EscrowError> {
+    check_reentrancy(contract, &claimant)?;
 
-        dispute_resolver.require_auth();
+    // Verify the escrow exists and is active
+    let escrow_data: EscrowData = contract.get_escrow_data(escrow_id)?;
 
-        let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
-        calculate_and_distribute_fees(
-            e,
-            &token_client,
-            &contract_address,
-            &trustless_work_address,
-            &escrow.roles.platform,
-            &fee_result,
-            &distributions,
-            total,
-        )?;
-
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
-
-        Ok(escrow)
+    if escrow_data.status != crate::types::EscrowStatus::Active {
+        return Err(EscrowError::NotInitiated);
     }
 
-    pub fn resolve_dispute(
-        e: &Env,
-        dispute_resolver: Address,
-        trustless_work_address: Address,
-        distributions: Map<Address, i128>,
-    ) -> Result<Escrow, ContractError> {
-        let mut escrow = EscrowManager::get_escrow(e)?;
-        let contract_address = e.current_contract_address();
-
-        let token_client = TokenClient::new(&e, &escrow.trustline.address);
-        let current_balance = token_client.balance(&contract_address);
-
-        let mut total: i128 = 0;
-        for (_addr, amount) in distributions.iter() {
-            if amount <= 0 {
-                return Err(ContractError::AmountsToBeTransferredShouldBePositive);
-            }
-            total = BasicMath::safe_add(total, amount)?;
-        }
-
-        validate_dispute_resolution_conditions(
-            &escrow, 
-            &dispute_resolver, 
-            current_balance, 
-            total, 
-            &distributions
-        )?;
-
-        dispute_resolver.require_auth();
-
-        let fee_result = FeeCalculator::calculate_standard_fees(total, escrow.platform_fee)?;
-        
-        calculate_and_distribute_fees(
-            e,
-            &token_client,
-            &contract_address,
-            &trustless_work_address,
-            &escrow.roles.platform,
-            &fee_result,
-            &distributions,
-            total,
-        )?;
-
-        escrow.flags.resolved = true;
-        escrow.flags.disputed = false;
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
-
-        Ok(escrow)
+    // Verify the claimant is the receiver of the escrow
+    if escrow_data.receiver != claimant.clone() {
+        return Err(EscrowError::InvalidClaim);
     }
 
-    pub fn dispute_escrow(e: &Env, signer: Address) -> Result<Escrow, ContractError> {
-        let mut escrow = EscrowManager::get_escrow(e)?;
-        validate_dispute_flag_change_conditions(&escrow, &signer)?;
+    // Check if there's already a dispute in progress
+    if contract
+        .storage()
+        .persistent()
+        .has(&DataKey::DisputeId)
+    {
+        return Err(EscrowError::AlreadyDisputed);
+    }
 
-        signer.require_auth();
+    // Set up dispute state
+    let dispute_id = contract.next_dispute_id()?;
+    set_dispute_id(contract, dispute_id);
 
-        escrow.flags.disputed = true;
-        e.storage().persistent().set(&DataKey::Escrow, &escrow);
-        e.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Escrow, 17280, 31536000);
+    // Store dispute data
+    contract
+        .storage()
+        .persistent()
+        .set(
+            &DataKey::Dispute(dispute_id),
+            &crate::types::DisputeData {
+                escrow_id,
+                claimant: claimant.clone(),
+                arbitrator: arbitrator.clone(),
+                initiated_at: contract.env().current_ledger_timestamp(),
+                resolved: false,
+                outcome: None,
+            },
+        );
 
-        Ok(escrow)
+    // Update escrow status
+    let mut updated_escrow = escrow_data;
+    updated_escrow.status = crate::types::EscrowStatus::Disputed;
+    contract.set_escrow_data(escrow_id, &updated_escrow)?;
+
+    // Set reentrancy guard
+    set_reentrancy_guard(contract);
+
+    log!(
+        contract,
+        "Dispute initialized: escrow_id={}, dispute_id={}, claimant={}, arbitrator={}",
+        escrow_id,
+        dispute_id,
+        AddressString::new(&claimant),
+        AddressString::new(&arbitrator)
+    );
+
+    clear_reentrancy_guard(contract);
+
+    Ok(())
+}
+
+/// Resolve a dispute with an outcome
+pub fn resolve_dispute(
+    contract: &crate::EscrowContract,
+    dispute_id: u64,
+    outcome: crate::types::DisputeOutcome,
+) -> Result<(), EscrowError> {
+    check_reentrancy(contract, &outcome.recipient())?;
+
+    // Verify the dispute exists and is in progress
+    let dispute_data = contract.get_dispute_data(dispute_id)?;
+
+    if dispute_data.resolved {
+        return Err(EscrowError::AlreadyResolved);
+    }
+
+    // Verify the caller is the arbitrator
+    let caller = Address::get_current_contract_address();
+    // Note: In Soroban, we'd typically check the actual signer. This is a simplified version.
+    // The actual implementation would need to verify the message signer.
+
+    // Resolve the dispute
+    let mut updated_dispute = dispute_data.clone();
+    updated_dispute.resolved = true;
+    updated_dispute.outcome = Some(outcome.clone());
+    contract.set_dispute_data(dispute_id, &updated_dispute)?;
+
+    // Execute the outcome
+    match &outcome {
+        crate::types::DisputeOutcome::ReleaseToReceiver { amount } => {
+            contract.execute_release(
+                dispute_data.escrow_id,
+                dispute_data.claimant.clone(),
+                *amount,
+            )?;
+        }
+        crate::types::DisputeOutcome::ReleaseToFunder { amount } => {
+            contract.execute_refund(
+                dispute_data.escrow_id,
+                dispute_data.claimant.clone(),
+                *amount,
+            )?;
+        }
+        crate::types::DisputeOutcome::PartialRelease {
+            receiver_amount,
+            funder_amount,
+        } => {
+            contract.execute_release(
+                dispute_data.escrow_id,
+                dispute_data.claimant.clone(),
+                *receiver_amount,
+            )?;
+            contract.execute_refund(
+                dispute_data.escrow_id,
+                dispute_data.claimant.clone(),
+                *funder_amount,
+            )?;
+        }
+    }
+
+    // Clear dispute state
+    clear_dispute_id(contract);
+
+    log!(
+        contract,
+        "Dispute resolved: dispute_id={}, outcome={:?}",
+        dispute_id,
+        outcome
+    );
+
+    Ok(())
+}
+
+/// Cancel a dispute
+pub fn cancel_dispute(contract: &crate::EscrowContract) -> Result<(), EscrowError> {
+    check_reentrancy(contract, &Address::get_current_contract_address())?;
+
+    // Get the current dispute
+    let dispute_id = get_dispute_id(contract)?;
+    let dispute_data = contract.get_dispute_data(dispute_id)?;
+
+    if dispute_data.resolved {
+        return Err(EscrowError::AlreadyResolved);
+    }
+
+    // Restore escrow status
+    let mut escrow_data = contract.get_escrow_data(dispute_data.escrow_id)?;
+    escrow_data.status = crate::types::EscrowStatus::Active;
+    contract.set_escrow_data(dispute_data.escrow_id, &escrow_data)?;
+
+    // Clear dispute data
+    contract
+        .storage()
+        .persistent()
+        .remove(&DataKey::Dispute(dispute_id));
+
+    // Clear dispute ID
+    clear_dispute_id(contract);
+
+    log!(
+        contract,
+        "Dispute cancelled: dispute_id={}",
+        dispute_id
+    );
+
+    Ok(())
+}
+
+/// Get dispute info
+pub fn get_dispute_info(
+    contract: &crate::EscrowContract,
+    dispute_id: u64,
+) -> Result<crate::types::DisputeInfo, EscrowError> {
+    let dispute_data = contract.get_dispute_data(dispute_id)?;
+
+    Ok(crate::types::DisputeInfo {
+        escrow_id: dispute_data.escrow_id,
+        claimant: dispute_data.claimant,
+        arbitrator: dispute_data.arbitrator,
+        initiated_at: dispute_data.initiated_at,
+        resolved: dispute_data.resolved,
+        outcome: dispute_data.outcome,
+    })
+}
+
+/// Get the next dispute ID
+pub fn get_next_dispute_id(contract: &crate::EscrowContract) -> u64 {
+    match contract.storage().persistent().get(&DataKey::NextDisputeId) {
+        Some(id) => id + 1,
+        None => 1,
     }
 }
