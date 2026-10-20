@@ -460,7 +460,7 @@ pub fn resolve_dispute(
 Resolves a dispute for specific milestones by distributing funds proportionally.
 
 - Only callable by a `dispute_resolver`
-- Protected by a reentrancy guard (`DataKey::Reentrancy`; re-entry fails with `FlagsMustBeFalse`)
+- Protected by a reentrancy guard (`DataKey::Reentrancy`; re-entry fails with `Reentrancy`)
 - Each milestone in `milestone_indices` must have `is_disputed == true` and `resolved == false`; duplicate indices are rejected (`InvalidMilestoneIndex`)
 - `distributions` sum must **exactly equal** the total amount of the specified milestones — partial settlement is rejected (`DistributionsMustEqualEscrowBalance`)
 - Each amount in distributions must be > 0; max 50 entries
@@ -480,7 +480,7 @@ pub fn withdraw_remaining_funds(
 ```
 Used when **all milestones** have been processed (released or dispute-resolved) and there are leftover funds in the contract.
 
-- Protected by reentrancy guard (`DataKey::Reentrancy`)
+- Protected by reentrancy guard (`DataKey::Reentrancy`; re-entry fails with `Reentrancy`)
 - Requires all milestones to be either `released` or `dispute.resolved`
 - Requires at least one milestone to have been disputed/resolved, **or** every milestone to be released — a fully-released escrow lets the resolver sweep surplus funds without any dispute
 - `distributions` sum must **exactly equal** the contract token balance (`DistributionsMustEqualEscrowBalance`)
@@ -719,7 +719,7 @@ over-long string returns `StringTooLong` instead of trapping in the hasher.
 | 7 | `EscrowNotCompleted` | Milestones not fully approved |
 | 8 | `EscrowBalanceNotEnoughToSendEarnings` | Contract token balance insufficient |
 | 9 | `EscrowPropertiesMismatch` | `expected_escrow` doesn't match stored escrow |
-| 10 | `FlagsMustBeFalse` | Reentrancy guard active, or milestone has pre-set flags |
+| 10 | `FlagsMustBeFalse` | Milestone has pre-set flags |
 | 11 | `AmountCannotBeZero` | Amount ≤ 0 |
 | 12 | `PlatformFeeTooHigh` | Fee exceeds 99% cap |
 | 13 | `InsufficientFundsForEscrowFunding` | Funder balance < amount |
@@ -757,6 +757,7 @@ over-long string returns `StringTooLong` instead of trapping in the hasher.
 | 48 | `TargetExceedsApprovers` | `target > approvers.len()` |
 | 49 | `StringTooLong` | |
 | 50 | `SignerMustBeApproverAndReleaseSigner` | For `approve_and_release_milestones` |
+| 51 | `Reentrancy` | Reentrancy guard active in `resolve_dispute` / `withdraw_remaining_funds` |
 
 ### `ReleaseError` (codes 1–14)
 Parallel error type used by `release_funds` / `release_funds_inner` specifically. Mapped to `EscrowError` via `From<ReleaseError>`. Code 14 is `BatchTooLarge`: the `milestone_indices` batch exceeds the milestone count (maps to `TooManyMilestones`).
