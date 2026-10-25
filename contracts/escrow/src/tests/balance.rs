@@ -64,6 +64,7 @@ fn test_get_multiple_escrow_balances_platform_authorized() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     // Deploy two escrow contracts of the same code and initialize both

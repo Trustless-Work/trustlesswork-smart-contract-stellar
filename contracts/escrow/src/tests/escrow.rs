@@ -79,6 +79,7 @@ fn test_initialize_excrow() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -187,6 +188,7 @@ fn test_update_escrow() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -245,6 +247,7 @@ fn test_update_escrow() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     // Update escrow properties
@@ -343,6 +346,7 @@ fn test_update_escrow_platform_fee_too_high() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -366,6 +370,7 @@ fn test_update_escrow_platform_fee_too_high() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let res = client.try_update_escrow(&escrow_admin, &invalid_update);
@@ -437,6 +442,7 @@ fn test_initialize_escrow_platform_fee_too_high() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -505,6 +511,7 @@ fn test_admin_role_overlap() {
             released: false,
             trustline: trustline.clone(),
             receiver_memo: 0,
+            vault: None,
         }
     };
 
@@ -604,6 +611,7 @@ fn test_role_limit_exceeded() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     // 5 approvers must succeed
@@ -692,6 +700,7 @@ fn test_duplicate_address_in_role() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -751,6 +760,7 @@ fn test_dispute_resolver_role_overlap() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     // dispute_resolver == approver must fail
@@ -814,6 +824,7 @@ fn test_initialize_escrow_without_milestones() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -884,6 +895,7 @@ fn test_dispute_resolver_cannot_equal_platform() {
                 address: token_client.address.clone(),
             },
             receiver_memo: 0,
+            vault: None,
         }
     };
 

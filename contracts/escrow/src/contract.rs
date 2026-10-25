@@ -11,7 +11,7 @@ use crate::events::handler::{
 use crate::storage::types::{
     AddressBalance, DataKey, DistributionEntry, Escrow, EscrowPropertyChanges, Milestone,
     MilestoneAddedEntry, MilestoneStatusEntry, MilestoneStatusUpdate, MilestoneUpdate,
-    MilestoneUpdatedEntry,
+    MilestoneUpdatedEntry, VaultPosition,
 };
 
 #[contract]
@@ -113,7 +113,7 @@ impl EscrowContract {
             engagement_id: escrow.engagement_id,
             release_signer,
             receiver: escrow.roles.receiver,
-            amount: escrow.amount,
+            amount: fee_result.gross_amount(),
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,
             net_amount: fee_result.receiver_amount,
@@ -140,6 +140,7 @@ impl EscrowContract {
             roles: previous.roles != updated_escrow.roles,
             trustline: previous.trustline != updated_escrow.trustline,
             receiver_memo: previous.receiver_memo != updated_escrow.receiver_memo,
+            vault: previous.vault != updated_escrow.vault,
             old_amount: previous.amount,
             new_amount: updated_escrow.amount,
             old_platform_fee: previous.platform_fee,
@@ -204,6 +205,10 @@ impl EscrowContract {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, EscrowError> {
         EscrowManager::get_escrow(e)
+    }
+
+    pub fn get_vault_position(e: &Env) -> Result<Option<VaultPosition>, EscrowError> {
+        EscrowManager::get_vault_position(e)
     }
 
     pub fn get_escrow_by_contract_id(e: &Env, contract_id: Address) -> Result<Escrow, EscrowError> {
@@ -342,7 +347,7 @@ impl EscrowContract {
             engagement_id: release_escrow.engagement_id,
             release_signer: signer,
             receiver: release_escrow.roles.receiver,
-            amount: release_escrow.amount,
+            amount: fee_result.gross_amount(),
             platform_fee: fee_result.platform_fee,
             trustless_work_fee: fee_result.trustless_work_fee,
             net_amount: fee_result.receiver_amount,

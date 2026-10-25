@@ -6,6 +6,7 @@ use crate::core::validators::dispute::validate_withdraw_remaining_funds_conditio
 use crate::error::EscrowError;
 use crate::modules::fee::distribution::calculate_and_distribute_fees;
 use crate::modules::fee::StandardFeeResult;
+use crate::modules::vault::VaultManager;
 use crate::modules::{
     fee::{FeeCalculator, FeeCalculatorTrait},
     math::{BasicArithmetic, BasicMath},
@@ -34,6 +35,10 @@ impl DisputeManager {
         let contract_address = e.current_contract_address();
 
         let all_processed = escrow.released || escrow.dispute.resolved;
+
+        if let Some(vault) = &escrow.vault {
+            VaultManager::redeem_all(e, vault);
+        }
 
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
@@ -93,6 +98,10 @@ impl DisputeManager {
         let mut escrow = EscrowManager::get_escrow(e)?;
         let contract_address = e.current_contract_address();
 
+        if let Some(vault) = &escrow.vault {
+            VaultManager::redeem_all(e, vault);
+        }
+
         let token_client = TokenClient::new(&e, &escrow.trustline.address);
         let current_balance = token_client.balance(&contract_address);
 
@@ -110,6 +119,7 @@ impl DisputeManager {
             current_balance,
             total,
             &distributions,
+            escrow.vault.is_none(),
         )?;
 
         dispute_resolver.require_auth();

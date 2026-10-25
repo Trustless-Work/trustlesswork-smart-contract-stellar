@@ -16,6 +16,13 @@ pub struct StandardFeeResult {
     pub receiver_amount: i128,
 }
 
+impl StandardFeeResult {
+    /// The amount the fees were taken from.
+    pub fn gross_amount(&self) -> i128 {
+        self.trustless_work_fee + self.platform_fee + self.receiver_amount
+    }
+}
+
 pub trait FeeCalculatorTrait {
     fn calculate_standard_fees(
         total_amount: i128,

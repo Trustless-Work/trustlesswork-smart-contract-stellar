@@ -241,6 +241,7 @@ pub fn validate_escrow_conditions(
                 || existing.platform_fee != new_escrow.platform_fee
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
+                || existing.vault != new_escrow.vault
             {
                 return Err(EscrowError::EscrowPropertiesMismatch);
             }

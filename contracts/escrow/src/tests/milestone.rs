@@ -83,6 +83,7 @@ fn test_append_milestones_with_funds() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -217,6 +218,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -369,6 +371,7 @@ fn test_change_milestone_status_and_approved() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -524,6 +527,7 @@ fn test_change_milestone_status_batch() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -647,6 +651,7 @@ fn test_batch_milestone_status_reverts_on_invalid_index() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -740,6 +745,7 @@ fn test_batch_milestone_status_empty_batch_fails() {
         released: false,
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -816,6 +822,7 @@ fn test_target_requires_multiple_approvers() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -953,6 +960,7 @@ fn test_batch_approve_milestones_multiple_indices() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -1061,6 +1069,7 @@ fn test_manage_milestones() {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -1180,6 +1189,7 @@ fn test_manage_milestones() {
         released: escrow_base.released,
         trustline: escrow_base.trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
     client.update_escrow(&escrow_admin, &updated_escrow_props);
 
@@ -1262,6 +1272,7 @@ fn test_manage_milestones_rejects_oversized_strings() {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;
@@ -1375,6 +1386,7 @@ fn test_approve_milestones_unauthorized_fails_fast_before_duplicate_check() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;
@@ -1437,6 +1449,7 @@ fn test_status_change_rejected_when_released_or_resolved_allowed_while_disputed(
             address: Address::generate(&env),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let updates = vec![

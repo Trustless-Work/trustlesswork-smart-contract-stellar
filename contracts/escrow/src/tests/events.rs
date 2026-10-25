@@ -134,6 +134,7 @@ fn setup(engagement: &str) -> Fixture<'static> {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin);
@@ -270,6 +271,7 @@ fn escrow_updated_event_reports_changed_properties() {
             roles: false,
             trustline: false,
             receiver_memo: false,
+            vault: false,
             old_amount: 100_000_000,
             new_amount: 100_000_000,
             old_platform_fee: 300,

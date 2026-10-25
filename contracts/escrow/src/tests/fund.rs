@@ -76,6 +76,7 @@ fn test_fund_escrow_successful_deposit() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -180,6 +181,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -277,6 +279,7 @@ fn test_release_funds_successful_flow() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -406,6 +409,7 @@ fn test_release_funds_milestones_incomplete() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -492,6 +496,7 @@ fn test_release_funds_same_receiver_as_provider() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -607,6 +612,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         released: false,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -724,6 +730,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -844,6 +851,7 @@ fn test_full_flow_init_without_milestones() {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -954,6 +962,7 @@ fn test_approve_and_release_milestones_success() {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -1028,6 +1037,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
             address: token_client.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env, &escrow_admin);
@@ -1103,6 +1113,7 @@ fn test_fund_escrow_accumulation_overflow_is_controlled() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;
@@ -1185,6 +1196,7 @@ fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;
@@ -1293,6 +1305,7 @@ fn released_escrow_fixture(
             address: usdc.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(env, &escrow_admin).client;
@@ -1420,6 +1433,7 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;
@@ -1503,6 +1517,7 @@ fn test_extend_contract_ttl_covers_funded_amount_and_instance() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let client = create_escrow_contract(&env, &escrow_admin).client;

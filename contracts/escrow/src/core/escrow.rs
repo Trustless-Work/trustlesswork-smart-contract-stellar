@@ -9,7 +9,10 @@ use crate::core::validators::escrow::{
 use crate::error::EscrowError;
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait, StandardFeeResult};
 use crate::modules::math::{BasicArithmetic, BasicMath};
-use crate::storage::types::{AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate};
+use crate::modules::vault::VaultManager;
+use crate::storage::types::{
+    AddressBalance, DataKey, Escrow, Milestone, MilestoneUpdate, VaultPosition,
+};
 
 pub struct EscrowManager;
 
@@ -21,6 +24,9 @@ impl EscrowManager {
 
     pub fn initialize_escrow(e: &Env, escrow_properties: Escrow) -> Result<Escrow, EscrowError> {
         validate_initialize_escrow_conditions(e, &escrow_properties)?;
+        if let Some(vault) = &escrow_properties.vault {
+            VaultManager::validate_asset(e, vault, &escrow_properties.trustline)?;
+        }
         let stored_admin: Address = e
             .storage()
             .persistent()
@@ -52,6 +58,13 @@ impl EscrowManager {
         signer.require_auth();
 
         token_client.transfer(signer, &e.current_contract_address(), &amount);
+
+        // Once released or resolved the escrow only pays out, so new funds stay idle.
+        if let Some(vault) = &stored_escrow.vault {
+            if !stored_escrow.released && !stored_escrow.dispute.resolved {
+                VaultManager::deposit(e, vault, &stored_escrow.trustline.address, amount);
+            }
+        }
 
         let current_funded: i128 = e
             .storage()
@@ -104,12 +117,29 @@ impl EscrowManager {
         let contract_address = e.current_contract_address();
         let token_client = TokenClient::new(e, &escrow.trustline.address);
 
-        if token_client.balance(&contract_address) < escrow.amount {
-            return Err(EscrowError::EscrowBalanceNotEnoughToSendEarnings);
-        }
+        // With a vault the receiver gets everything redeemed, yield included.
+        let payout = match &escrow.vault {
+            Some(vault) => {
+                let funded: i128 = e
+                    .storage()
+                    .persistent()
+                    .get(&DataKey::FundedAmount)
+                    .unwrap_or(0);
+                if funded < escrow.amount {
+                    return Err(EscrowError::EscrowBalanceNotEnoughToSendEarnings);
+                }
+                VaultManager::redeem_all(e, vault);
+                token_client.balance(&contract_address)
+            }
+            None => {
+                if token_client.balance(&contract_address) < escrow.amount {
+                    return Err(EscrowError::EscrowBalanceNotEnoughToSendEarnings);
+                }
+                escrow.amount
+            }
+        };
 
-        let fee_result =
-            FeeCalculator::calculate_standard_fees(escrow.amount, escrow.platform_fee)?;
+        let fee_result = FeeCalculator::calculate_standard_fees(payout, escrow.platform_fee)?;
 
         if fee_result.trustless_work_fee > 0 {
             token_client.transfer(
@@ -155,6 +185,10 @@ impl EscrowManager {
         )?;
 
         admin.require_auth();
+
+        if let Some(vault) = &escrow_properties.vault {
+            VaultManager::validate_asset(e, vault, &escrow_properties.trustline)?;
+        }
 
         let mut escrow_to_save = escrow_properties;
         escrow_to_save.milestones = existing_escrow.milestones.clone();
@@ -231,7 +265,11 @@ impl EscrowManager {
                 Self::get_escrow_by_contract_id(e, &address)?
             };
             let token_client = TokenClient::new(e, &escrow.trustline.address);
-            let balance = token_client.balance(&address);
+            let mut balance = token_client.balance(&address);
+            if let Some(vault) = &escrow.vault {
+                let (_, underlying) = VaultManager::position(e, vault, &address);
+                balance = BasicMath::safe_add(balance, underlying)?;
+            }
             balances.push_back(AddressBalance {
                 address: address.clone(),
                 balance,
@@ -239,6 +277,19 @@ impl EscrowManager {
             });
         }
         Ok(balances)
+    }
+
+    pub fn get_vault_position(e: &Env) -> Result<Option<VaultPosition>, EscrowError> {
+        let escrow = Self::get_escrow(e)?;
+        Ok(escrow.vault.map(|vault| {
+            let (shares, underlying) =
+                VaultManager::position(e, &vault, &e.current_contract_address());
+            VaultPosition {
+                vault,
+                shares,
+                underlying,
+            }
+        }))
     }
 
     pub fn get_escrow_by_contract_id(

@@ -6,3 +6,4 @@ mod escrow;
 mod events;
 mod fund;
 mod milestone;
+mod vault;
