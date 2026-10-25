@@ -8,7 +8,7 @@ use crate::events::handler::{
     ChgEsc, DisEsc, DisputeResolved, EscrowDisputed, ExtTtlEvt, FundEsc, InitEsc,
     MilestoneApproved, MilestoneStatusChanged,
 };
-use crate::storage::types::{AddressBalance, DataKey, Escrow};
+use crate::storage::types::{AddressBalance, DataKey, Escrow, VaultPosition};
 
 #[contract]
 pub struct EscrowContract;
@@ -97,6 +97,10 @@ impl EscrowContract {
 
     pub fn get_escrow(e: &Env) -> Result<Escrow, ContractError> {
         EscrowManager::get_escrow(e)
+    }
+
+    pub fn get_vault_position(e: &Env) -> Result<Option<VaultPosition>, ContractError> {
+        EscrowManager::get_vault_position(e)
     }
 
     pub fn get_escrow_by_contract_id(

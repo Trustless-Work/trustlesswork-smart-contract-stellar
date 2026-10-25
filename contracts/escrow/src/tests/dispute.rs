@@ -64,6 +64,7 @@ fn test_dispute_management() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -152,6 +153,7 @@ fn test_dispute_resolution_process() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -305,6 +307,7 @@ fn test_dispute_escrow_authorized_and_unauthorized() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -391,6 +394,7 @@ fn test_resolve_dispute_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);

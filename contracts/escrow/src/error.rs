@@ -50,6 +50,7 @@ pub enum ContractError {
     EscrowNotFullyProcessed = 44,
     TooManyDistributions = 45,
     MilestoneToUpdateDoesNotExist = 46,
+    VaultAssetMismatch = 47,
 }
 
 impl fmt::Display for ContractError {
@@ -193,6 +194,9 @@ impl fmt::Display for ContractError {
             }
             ContractError::MilestoneToUpdateDoesNotExist => {
                 write!(f, "The milestone to update does not exist")
+            }
+            ContractError::VaultAssetMismatch => {
+                write!(f, "The vault must manage only the escrow's trustline asset")
             }
         }
     }

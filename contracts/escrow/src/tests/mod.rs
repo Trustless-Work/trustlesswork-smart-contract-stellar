@@ -5,3 +5,4 @@ mod dispute;
 mod escrow;
 mod fund;
 mod milestone;
+mod vault;

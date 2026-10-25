@@ -13,6 +13,9 @@ pub struct Escrow {
     pub flags: Flags,
     pub trustline: Trustline,
     pub receiver_memo: u32,
+    /// DeFindex vault that holds the funds while they are in escrow.
+    /// `None` keeps the funds in the escrow itself.
+    pub vault: Option<Address>,
 }
 
 #[contracttype]
@@ -57,9 +60,36 @@ pub struct AddressBalance {
     pub trustline_decimals: u32,
 }
 
+/// The escrow's position in its DeFindex vault.
+#[contracttype]
+#[derive(Clone)]
+pub struct VaultPosition {
+    pub vault: Address,
+    pub shares: i128,
+    pub underlying: i128,
+}
+
+/// Mirrors DeFindex's `Strategy`, to decode `get_assets`.
+#[contracttype]
+#[derive(Clone)]
+pub struct Strategy {
+    pub address: Address,
+    pub name: String,
+    pub paused: bool,
+}
+
+/// Mirrors DeFindex's `AssetStrategySet`, to decode `get_assets`.
+#[contracttype]
+#[derive(Clone)]
+pub struct AssetStrategySet {
+    pub address: Address,
+    pub strategies: Vec<Strategy>,
+}
+
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
     Escrow,
     Admin,
+    FundedAmount,
 }

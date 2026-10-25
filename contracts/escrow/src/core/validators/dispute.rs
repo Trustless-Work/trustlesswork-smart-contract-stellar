@@ -46,6 +46,7 @@ pub fn validate_dispute_resolution_conditions(
     current_balance: i128,
     total: i128,
     distributions: &Map<Address, i128>,
+    require_exact: bool,
 ) -> Result<(), ContractError> {
     if distributions.len() > MAX_DISTRIBUTIONS {
         return Err(ContractError::TooManyDistributions);
@@ -63,7 +64,9 @@ pub fn validate_dispute_resolution_conditions(
         return Err(ContractError::InsufficientFundsForResolution);
     }
 
-    if total != current_balance {
+    // Vault yield moves the balance every ledger, so with a vault the resolver
+    // can't hit it exactly; the rest goes out through withdraw_remaining_funds.
+    if require_exact && total != current_balance {
         return Err(ContractError::DistributionsMustEqualEscrowBalance);
     }
 

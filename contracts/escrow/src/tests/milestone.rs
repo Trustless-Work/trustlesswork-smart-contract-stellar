@@ -70,6 +70,7 @@ fn test_append_milestones_with_funds() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -105,6 +106,7 @@ fn test_append_milestones_with_funds() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     escrow_approver.update_escrow(&platform, &updated_escrow_properties);
@@ -204,6 +206,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -243,6 +246,7 @@ fn test_append_milestones_with_funds_and_existing_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     escrow_client.update_escrow(&platform, &updated_escrow_properties);
@@ -347,6 +351,7 @@ fn test_change_milestone_status_and_approved() {
         flags: flags.clone(),
         trustline: trustline.clone(),
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -449,6 +454,7 @@ fn test_status_change_rejected_when_released_or_resolved_allowed_while_disputed(
             address: Address::generate(&env),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let new_status = String::from_str(&env, "completed");

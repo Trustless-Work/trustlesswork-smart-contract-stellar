@@ -66,6 +66,7 @@ fn test_fund_escrow_successful_deposit() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -164,6 +165,7 @@ fn test_fund_escrow_signer_insufficient_funds_error() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -251,6 +253,7 @@ fn test_release_funds_successful_flow() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -370,6 +373,7 @@ fn test_release_funds_milestones_incomplete() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -450,6 +454,7 @@ fn test_release_funds_same_receiver_as_provider() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -559,6 +564,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         flags,
         trustline,
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);
@@ -668,6 +674,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
             address: usdc_token.0.address.clone(),
         },
         receiver_memo: 0,
+        vault: None,
     };
 
     let test_data = create_escrow_contract(&env);

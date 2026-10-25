@@ -102,6 +102,7 @@ pub fn validate_escrow_conditions(
                 || existing.flags != new_escrow.flags
                 || existing.trustline != new_escrow.trustline
                 || existing.receiver_memo != new_escrow.receiver_memo
+                || existing.vault != new_escrow.vault
             {
                 return Err(ContractError::EscrowPropertiesMismatch);
             }

@@ -33,6 +33,8 @@ mod modules {
 
         pub use calculator::*;
     }
+
+    pub mod vault;
 }
 
 /// This module is currently Work In Progress.
