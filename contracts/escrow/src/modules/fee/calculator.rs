@@ -1,3 +1,5 @@
+use soroban_sdk::{Address, Env};
+
 use crate::{
     error::EscrowError,
     modules::{
@@ -7,6 +9,8 @@ use crate::{
 };
 
 const TRUSTLESS_WORK_FEE_BPS: u32 = 30;
+// Mainnet fee recipient; develop branches receive it as a parameter.
+const TRUSTLESS_WORK_ADDRESS: &str = "GBWWSOATPLIC72ZBOIM7WJCT7VCAHNWW4QUBZ2H4FORMCCIUM5ZVKSZN";
 const BASIS_POINTS_DENOMINATOR: i128 = 10000;
 
 #[derive(Debug, Clone)]
@@ -48,4 +52,8 @@ impl FeeCalculatorTrait for FeeCalculator {
             receiver_amount,
         })
     }
+}
+
+pub fn trustless_work_address(e: &Env) -> Address {
+    Address::from_str(e, TRUSTLESS_WORK_ADDRESS)
 }

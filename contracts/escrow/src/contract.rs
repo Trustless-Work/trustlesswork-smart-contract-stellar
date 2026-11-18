@@ -9,6 +9,7 @@ use crate::events::handler::{
     MilestoneStatusChanged, MilestonesApproved, MilestonesDisputed, MilestonesManaged, ReleaseEsc,
     TtlExtended,
 };
+use crate::modules::fee::trustless_work_address;
 use crate::modules::math::{BasicArithmetic, BasicMath};
 use crate::storage::types::{
     AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow,
@@ -110,9 +111,9 @@ impl EscrowContract {
     pub fn release_funds(
         e: &Env,
         release_signer: Address,
-        trustless_work_address: Address,
         milestone_indices: Vec<u32>,
     ) -> Result<(), ReleaseError> {
+        let trustless_work_address = trustless_work_address(e);
         let engagement_id = EscrowManager::get_escrow(e)
             .map_err(|_| ReleaseError::EscrowNotFound)?
             .engagement_id;
@@ -369,9 +370,9 @@ impl EscrowContract {
     pub fn approve_and_release_milestones(
         e: Env,
         signer: Address,
-        trustless_work_address: Address,
         milestone_indices: Vec<u32>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let escrow = EscrowManager::get_escrow(&e)?;
         if !escrow.roles.approvers.contains(&signer)
             || !escrow.roles.release_signers.contains(&signer)
@@ -412,10 +413,10 @@ impl EscrowContract {
     pub fn resolve_dispute(
         e: Env,
         dispute_resolver: Address,
-        trustless_work_address: Address,
         milestone_indices: Vec<u32>,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let (escrow, fee_result, net_dists) = DisputeManager::resolve_dispute(
             &e,
             dispute_resolver.clone(),
@@ -464,9 +465,9 @@ impl EscrowContract {
     pub fn withdraw_remaining_funds(
         e: Env,
         dispute_resolver: Address,
-        trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let (escrow, fee_result, net_dists) = DisputeManager::withdraw_remaining_funds(
             &e,
             dispute_resolver.clone(),
