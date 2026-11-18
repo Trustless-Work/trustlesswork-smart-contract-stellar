@@ -8,6 +8,7 @@ use crate::events::handler::{
     hash_string, DisputeResolved, EscrowDisputed, EscrowUpdated, FundEsc, FundsWithdrawn, InitEsc,
     MilestoneStatusChanged, MilestonesApproved, MilestonesManaged, ReleaseEsc, TtlExtended,
 };
+use crate::modules::fee::trustless_work_address;
 use crate::storage::types::{
     AddressBalance, CrossChainDestination, DataKey, DistributionEntry, Escrow,
     EscrowPropertyChanges, Milestone, MilestoneAddedEntry, MilestoneStatusEntry,
@@ -102,11 +103,8 @@ impl EscrowContract {
         Ok(())
     }
 
-    pub fn release_funds(
-        e: &Env,
-        release_signer: Address,
-        trustless_work_address: Address,
-    ) -> Result<(), EscrowError> {
+    pub fn release_funds(e: &Env, release_signer: Address) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(e);
         let (escrow, fee_result) =
             EscrowManager::release_funds(e, &release_signer, &trustless_work_address)?;
         ReleaseEsc {
@@ -356,9 +354,9 @@ impl EscrowContract {
     pub fn approve_and_release_milestones(
         e: Env,
         signer: Address,
-        trustless_work_address: Address,
         milestone_indices: Vec<u32>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let escrow = EscrowManager::get_escrow(&e)?;
         if !escrow.roles.approvers.contains(&signer)
             || !escrow.roles.release_signers.contains(&signer)
@@ -399,9 +397,9 @@ impl EscrowContract {
     pub fn resolve_dispute(
         e: Env,
         dispute_resolver: Address,
-        trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let (escrow, fee_result, net_dists) = DisputeManager::resolve_dispute(
             &e,
             dispute_resolver.clone(),
@@ -437,9 +435,9 @@ impl EscrowContract {
     pub fn withdraw_remaining_funds(
         e: Env,
         dispute_resolver: Address,
-        trustless_work_address: Address,
         distributions: Map<Address, i128>,
     ) -> Result<(), EscrowError> {
+        let trustless_work_address = trustless_work_address(&e);
         let (escrow, fee_result, net_dists) = DisputeManager::withdraw_remaining_funds(
             &e,
             dispute_resolver.clone(),
