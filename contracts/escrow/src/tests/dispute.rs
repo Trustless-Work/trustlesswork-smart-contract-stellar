@@ -17,7 +17,6 @@ fn test_dispute_management() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -87,8 +86,7 @@ fn test_dispute_management() {
 
     usdc_token.1.mint(&approver_address, &(amount as i128));
     // Test block on distributing earnings during dispute
-    let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result = escrow_approver.try_release_funds(&release_signer_address);
     assert!(result.is_err());
 
     let _ = escrow_approver.try_dispute_escrow(&approver_address, &String::from_str(&env, "Again"));
@@ -109,7 +107,7 @@ fn test_dispute_resolution_process() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -184,11 +182,7 @@ fn test_dispute_resolution_process() {
     let mut wrong_dist = Map::new(&env);
     wrong_dist.set(approver_address.clone(), 50_000_000);
     wrong_dist.set(service_provider_address.clone(), 50_000_000);
-    let result = escrow_approver.try_resolve_dispute(
-        &approver_address,
-        &trustless_work_address,
-        &wrong_dist,
-    );
+    let result = escrow_approver.try_resolve_dispute(&approver_address, &wrong_dist);
     assert!(result.is_err());
 
     let approver_funds: i128 = 50_000_000;
@@ -200,20 +194,14 @@ fn test_dispute_resolution_process() {
         service_provider_address.clone(),
         insufficient_receiver_funds,
     );
-    let incorrect_dispute_resolution_result = escrow_approver.try_resolve_dispute(
-        &dispute_resolver_address,
-        &trustless_work_address,
-        &incorrect_dist,
-    );
+    let incorrect_dispute_resolution_result =
+        escrow_approver.try_resolve_dispute(&dispute_resolver_address, &incorrect_dist);
 
     assert!(incorrect_dispute_resolution_result.is_err());
 
     let empty_dist = Map::new(&env);
-    let dispute_resolution_with_incorrect_funds = escrow_approver.try_resolve_dispute(
-        &dispute_resolver_address,
-        &trustless_work_address,
-        &empty_dist,
-    );
+    let dispute_resolution_with_incorrect_funds =
+        escrow_approver.try_resolve_dispute(&dispute_resolver_address, &empty_dist);
 
     assert!(dispute_resolution_with_incorrect_funds.is_err());
 
@@ -223,7 +211,7 @@ fn test_dispute_resolution_process() {
     let mut ok_dist = Map::new(&env);
     ok_dist.set(approver_address.clone(), approver_funds);
     ok_dist.set(service_provider_address.clone(), receiver_funds);
-    escrow_approver.resolve_dispute(&dispute_resolver_address, &trustless_work_address, &ok_dist);
+    escrow_approver.resolve_dispute(&dispute_resolver_address, &ok_dist);
 
     // Verify dispute was resolved
     let escrow_after_resolution = escrow_approver.get_escrow();
@@ -364,7 +352,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -439,8 +427,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     distributions.set(service_provider.clone(), 50_002);
 
     // This must NOT revert (old code would fail here due to insufficient balance)
-    let result =
-        client.try_resolve_dispute(&dispute_resolver, &trustless_work_address, &distributions);
+    let result = client.try_resolve_dispute(&dispute_resolver, &distributions);
     assert!(
         result.is_ok(),
         "resolve_dispute should handle fee rounding correctly"
@@ -554,7 +541,6 @@ fn test_resolve_dispute_reentrancy_guard() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -614,7 +600,7 @@ fn test_resolve_dispute_reentrancy_guard() {
 
     let mut distributions = Map::new(&env);
     distributions.set(service_provider.clone(), 100_000_000i128);
-    let result = client.try_resolve_dispute(&dispute_resolver, &trustless_work, &distributions);
+    let result = client.try_resolve_dispute(&dispute_resolver, &distributions);
     assert_eq!(
         result.err(),
         Some(Ok(crate::error::EscrowError::Reentrancy))

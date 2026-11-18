@@ -212,7 +212,7 @@ fn test_release_funds_successful_flow() {
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -290,7 +290,7 @@ fn test_release_funds_successful_flow() {
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     escrow_approver.approve_milestones(&vec![&env, 1u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -343,7 +343,6 @@ fn test_release_funds_milestones_incomplete() {
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
     let _receiver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -418,8 +417,7 @@ fn test_release_funds_milestones_incomplete() {
         .mint(&escrow_approver.address, &(amount as i128));
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
     // Try to distribute earnings with incomplete milestones (should fail)
-    let result =
-        escrow_approver.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result = escrow_approver.try_release_funds(&release_signer_address);
     assert!(result.is_err());
 }
 
@@ -437,7 +435,7 @@ fn test_release_funds_same_receiver_as_provider() {
     let dispute_resolver_address = Address::generate(&env);
     // Use service_provider_address as receiver to test same-address case
     let _receiver_address = service_provider_address.clone();
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -504,7 +502,7 @@ fn test_release_funds_same_receiver_as_provider() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -549,7 +547,7 @@ fn test_release_funds_invalid_receiver_fallback() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
 
     // Create a valid but separate receiver address
     let _receiver_address = Address::generate(&env);
@@ -619,7 +617,7 @@ fn test_release_funds_invalid_receiver_fallback() {
         .mint(&escrow_approver.address, &(amount as i128));
 
     escrow_approver.approve_milestones(&vec![&env, 0u32], &approver_address);
-    escrow_approver.release_funds(&release_signer_address, &trustless_work_address);
+    escrow_approver.release_funds(&release_signer_address);
 
     let total_amount = amount as i128;
     let trustless_work_commission = ((total_amount * 30) / 10000) as i128;
@@ -672,7 +670,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
     let recipient_a = Address::generate(&env);
     let recipient_b = Address::generate(&env);
 
@@ -744,11 +742,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     // Resolve the dispute (sends all funds out), then mint remaining funds for the test
     let mut resolve_distributions = Map::new(&env);
     resolve_distributions.set(service_provider.clone(), escrow_amount);
-    client.resolve_dispute(
-        &dispute_resolver,
-        &trustless_work_address,
-        &resolve_distributions,
-    );
+    client.resolve_dispute(&dispute_resolver, &resolve_distributions);
 
     // Simulate remaining funds (e.g. from overfunding or rounding leftovers)
     let remaining: i128 = 100_003;
@@ -767,11 +761,7 @@ fn test_withdraw_remaining_funds_rounding_edge_case() {
     distributions.set(recipient_a.clone(), 50_001);
     distributions.set(recipient_b.clone(), 50_002);
 
-    let result = client.try_withdraw_remaining_funds(
-        &dispute_resolver,
-        &trustless_work_address,
-        &distributions,
-    );
+    let result = client.try_withdraw_remaining_funds(&dispute_resolver, &distributions);
     assert!(
         result.is_ok(),
         "withdraw_remaining_funds should handle fee rounding correctly"
@@ -808,7 +798,7 @@ fn test_full_flow_init_without_milestones() {
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
+    let trustless_work = crate::modules::fee::trustless_work_address(&env);
     let amount: i128 = 100_000_000;
 
     let (token_client, token_admin) = create_usdc_token(&env, &admin);
@@ -886,7 +876,7 @@ fn test_full_flow_init_without_milestones() {
     assert!(milestone.approvals.approval_count >= milestone.approvals.target);
 
     // 6. Release funds
-    client.release_funds(&release_signer, &trustless_work);
+    client.release_funds(&release_signer);
 
     assert!(client.get_escrow().released);
     assert_eq!(token_client.balance(&client.address), 0);
@@ -908,7 +898,6 @@ fn test_approve_and_release_milestones_success() {
     let service_provider = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
     let amount: i128 = 100_000_000;
 
     let (token_client, token_admin) = create_usdc_token(&env, &admin);
@@ -961,7 +950,7 @@ fn test_approve_and_release_milestones_success() {
     client.initialize_escrow(&escrow_properties);
     client.fund_escrow(&dual_signer, &escrow_properties, &amount);
 
-    client.approve_and_release_milestones(&dual_signer, &trustless_work, &vec![&env, 0u32]);
+    client.approve_and_release_milestones(&dual_signer, &vec![&env, 0u32]);
 
     assert!(client.get_escrow().released);
     assert_eq!(token_client.balance(&client.address), 0);
@@ -982,7 +971,6 @@ fn test_approve_and_release_milestones_only_approver_fails() {
     let service_provider = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
     let amount: i128 = 100_000_000;
 
     let (token_client, token_admin) = create_usdc_token(&env, &admin);
@@ -1036,8 +1024,7 @@ fn test_approve_and_release_milestones_only_approver_fails() {
     client.fund_escrow(&approver, &escrow_properties, &amount);
 
     // approver no es release_signer → debe fallar
-    let result =
-        client.try_approve_and_release_milestones(&approver, &trustless_work, &vec![&env, 0u32]);
+    let result = client.try_approve_and_release_milestones(&approver, &vec![&env, 0u32]);
     assert!(result.is_err());
 }
 
@@ -1134,7 +1121,6 @@ fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
     let recipient = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -1197,11 +1183,7 @@ fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
 
     let mut resolve_distributions = Map::new(&env);
     resolve_distributions.set(service_provider.clone(), escrow_amount);
-    client.resolve_dispute(
-        &dispute_resolver,
-        &trustless_work_address,
-        &resolve_distributions,
-    );
+    client.resolve_dispute(&dispute_resolver, &resolve_distributions);
 
     // Leftover balance available to withdraw.
     let remaining: i128 = 100_000;
@@ -1211,15 +1193,14 @@ fn test_withdraw_remaining_funds_rejects_partial_withdrawal() {
     // fees can't be floored away across many small calls.
     let mut partial = Map::new(&env);
     partial.set(recipient.clone(), remaining / 2);
-    let result =
-        client.try_withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &partial);
+    let result = client.try_withdraw_remaining_funds(&dispute_resolver, &partial);
     assert!(result.is_err());
     assert_eq!(usdc_token.0.balance(&client.address), remaining);
 
     // A full-balance withdrawal still succeeds.
     let mut full = Map::new(&env);
     full.set(recipient.clone(), remaining);
-    client.withdraw_remaining_funds(&dispute_resolver, &trustless_work_address, &full);
+    client.withdraw_remaining_funds(&dispute_resolver, &full);
     assert_eq!(usdc_token.0.balance(&client.address), 0);
 }
 
@@ -1247,7 +1228,7 @@ fn released_escrow_fixture(
     let release_signer = Address::generate(env);
     let dispute_resolver = Address::generate(env);
     let receiver = Address::generate(env);
-    let trustless_work = Address::generate(env);
+    let trustless_work = crate::modules::fee::trustless_work_address(env);
 
     let usdc = create_usdc_token(env, &admin);
     let amount: i128 = 100_000_000;
@@ -1301,7 +1282,7 @@ fn released_escrow_fixture(
     usdc.1.mint(&approver, &amount);
     client.fund_escrow(&approver, &escrow_properties, &amount);
     client.approve_milestones(&vec![env, 0u32], &approver);
-    client.release_funds(&release_signer, &trustless_work);
+    client.release_funds(&release_signer);
 
     (
         client,
@@ -1330,7 +1311,7 @@ fn test_dispute_escrow_after_release_is_rejected() {
 #[test]
 fn test_dispute_resolver_can_sweep_surplus_after_release() {
     let env = Env::default();
-    let (client, usdc, _approver, _rs, dispute_resolver, trustless_work, _amount) =
+    let (client, usdc, _approver, _rs, dispute_resolver, _trustless_work, _amount) =
         released_escrow_fixture(&env);
 
     // Contract holds nothing after a clean release.
@@ -1345,7 +1326,7 @@ fn test_dispute_resolver_can_sweep_surplus_after_release() {
     let recipient = Address::generate(&env);
     let mut distributions = soroban_sdk::Map::new(&env);
     distributions.set(recipient.clone(), surplus);
-    client.withdraw_remaining_funds(&dispute_resolver, &trustless_work, &distributions);
+    client.withdraw_remaining_funds(&dispute_resolver, &distributions);
 
     // Surplus fully swept; nothing stranded.
     assert_eq!(usdc.0.balance(&client.address), 0);
@@ -1367,7 +1348,7 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
+    let trustless_work = crate::modules::fee::trustless_work_address(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -1432,7 +1413,7 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
     let mut distributions = Map::new(&env);
     distributions.set(receiver.clone(), amount);
 
-    client.resolve_dispute(&dispute_resolver, &trustless_work, &distributions);
+    client.resolve_dispute(&dispute_resolver, &distributions);
 
     assert!(client.get_escrow().dispute.resolved);
     assert_eq!(usdc_token.0.balance(&client.address), 0);

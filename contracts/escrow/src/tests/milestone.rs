@@ -768,7 +768,6 @@ fn test_target_requires_multiple_approvers() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
     let amount: i128 = 100_000_000;
     let platform_fee = 3 * 100;
@@ -836,7 +835,7 @@ fn test_target_requires_multiple_approvers() {
     );
 
     // Release must fail — target not yet reached
-    let result = escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result = escrow_client.try_release_funds(&release_signer_address);
     assert!(
         result.is_err(),
         "Release must fail when target is not reached"
@@ -866,7 +865,7 @@ fn test_target_requires_multiple_approvers() {
     );
 
     // Release must now succeed
-    let result = escrow_client.try_release_funds(&release_signer_address, &trustless_work_address);
+    let result = escrow_client.try_release_funds(&release_signer_address);
     assert!(
         result.is_ok(),
         "Release must succeed after target is reached"
