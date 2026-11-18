@@ -282,6 +282,14 @@ impl EscrowContract {
             );
         }
 
+        if e.storage().persistent().has(&DataKey::CrossChainDestination) {
+            e.storage().persistent().extend_ttl(
+                &DataKey::CrossChainDestination,
+                min_ledgers,
+                ledgers_to_extend,
+            );
+        }
+
         e.storage()
             .instance()
             .extend_ttl(min_ledgers, ledgers_to_extend);

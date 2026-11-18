@@ -475,3 +475,34 @@ fn update_clears_destination_when_amount_changes() {
         Err(Ok(CctpError::DestinationNotSet))
     ));
 }
+
+#[test]
+fn extend_contract_ttl_covers_the_destination() {
+    use crate::storage::types::DataKey;
+    use soroban_sdk::testutils::storage::Persistent;
+    use soroban_sdk::testutils::Ledger;
+
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    // Drop the remaining TTL below the extend threshold so extend_ttl acts.
+    env.ledger().with_mut(|li| li.sequence_number += 6_300_000);
+    let ttl = || {
+        env.as_contract(&client.address, || {
+            env.storage().persistent().get_ttl(&DataKey::CrossChainDestination)
+        })
+    };
+    let before = ttl();
+    client.extend_contract_ttl(&f.admin, &1_000_000u32);
+    let after = ttl();
+
+    assert!(after > before, "destination TTL must be extended ({before} -> {after})");
+}
