@@ -60,12 +60,13 @@ pub enum CctpError {
     InvalidRecipient = 2,
     OnlyReceiverCanSetDestination = 3,
     DestinationNotSet = 4,
+    // 5 is MilestoneNotFound in multi-release; left free so both variants share codes.
     /// `max_fee` must be non-negative and can't exceed a sane share of the
     /// route's amount — defense-in-depth against a bogus/compromised max_fee
     /// (the API computes this from a live Circle quote, but the contract
     /// itself doesn't trust that; anyone with the receiver's key can call
     /// this entrypoint directly, bypassing the API).
-    MaxFeeExceedsCap = 5,
+    MaxFeeExceedsCap = 6,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
