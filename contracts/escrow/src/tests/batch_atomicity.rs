@@ -57,7 +57,7 @@ fn build_escrow<'a>(env: &'a Env, amounts: &[i128], target: u32, platform_fee: u
     let release_signer = Address::generate(env);
     let dispute_resolver = Address::generate(env);
     let platform = Address::generate(env);
-    let trustless_work = Address::generate(env);
+    let trustless_work = crate::modules::fee::trustless_work_address(env);
     let funder = Address::generate(env);
 
     let (token, token_admin) = create_usdc_token(env, &token_issuer);
@@ -188,11 +188,9 @@ fn scenario_b_release_with_unapproved_milestone_is_atomic() {
     let r1 = receiver(&s, 1);
     let r2 = receiver(&s, 2);
 
-    let result = s.client.try_release_funds(
-        &s.release_signer,
-        &s.trustless_work,
-        &vec![&env, 0u32, 1u32, 2u32],
-    );
+    let result = s
+        .client
+        .try_release_funds(&s.release_signer, &vec![&env, 0u32, 1u32, 2u32]);
 
     // Entire batch fails because M1 is not approved.
     assert_eq!(result, Err(Ok(ReleaseError::EscrowNotCompleted)));
@@ -230,8 +228,7 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
     // Approve all, then release M0 on its own.
     s.client
         .approve_milestones(&vec![&env, 0u32, 1u32, 2u32], &s.approver);
-    s.client
-        .release_funds(&s.release_signer, &s.trustless_work, &vec![&env, 0u32]);
+    s.client.release_funds(&s.release_signer, &vec![&env, 0u32]);
 
     let r0 = receiver(&s, 0);
     let r1 = receiver(&s, 1);
@@ -246,11 +243,9 @@ fn scenario_c_release_with_already_released_milestone_is_atomic() {
     assert_eq!(s.token.balance(&r2), 0);
 
     // Attempt to batch-release including the already-released M0.
-    let result = s.client.try_release_funds(
-        &s.release_signer,
-        &s.trustless_work,
-        &vec![&env, 0u32, 1u32, 2u32],
-    );
+    let result = s
+        .client
+        .try_release_funds(&s.release_signer, &vec![&env, 0u32, 1u32, 2u32]);
 
     // The error on M0 aborts the whole batch.
     assert_eq!(result, Err(Ok(ReleaseError::MilestoneAlreadyReleased)));
@@ -300,11 +295,8 @@ fn scenario_d_release_all_milestones_distributes_correctly() {
 
     s.client
         .approve_milestones(&vec![&env, 0u32, 1u32, 2u32, 3u32, 4u32], &s.approver);
-    s.client.release_funds(
-        &s.release_signer,
-        &s.trustless_work,
-        &vec![&env, 0u32, 1u32, 2u32, 3u32, 4u32],
-    );
+    s.client
+        .release_funds(&s.release_signer, &vec![&env, 0u32, 1u32, 2u32, 3u32, 4u32]);
 
     // Fees are computed per milestone; amounts are multiples of 10_000 so the
     // integer division is exact (no rounding ambiguity).
@@ -367,9 +359,7 @@ fn scenario_e_empty_batches_return_descriptive_errors() {
         Err(Ok(MilestoneError::BatchMilestoneApproveEmpty))
     );
 
-    let release_res = s
-        .client
-        .try_release_funds(&s.release_signer, &s.trustless_work, &empty);
+    let release_res = s.client.try_release_funds(&s.release_signer, &empty);
     assert_eq!(release_res, Err(Ok(ReleaseError::ReleaseMilestonesEmpty)));
 
     let dispute_res =

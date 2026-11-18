@@ -909,7 +909,6 @@ fn test_release_funds_returns_overflow_for_milestone_total() {
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
     let usdc_token = create_usdc_token(&env, &admin);
 
     let escrow = Escrow {
@@ -943,7 +942,7 @@ fn test_release_funds_returns_overflow_for_milestone_total() {
     );
     client.approve_milestones(&vec![&env, 0, 1], &approver);
 
-    let result = client.try_release_funds(&release_signer, &trustless_work, &vec![&env, 0, 1]);
+    let result = client.try_release_funds(&release_signer, &vec![&env, 0, 1]);
 
     assert!(matches!(result, Err(Ok(ReleaseError::Overflow))));
 }

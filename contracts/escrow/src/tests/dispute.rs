@@ -17,7 +17,6 @@ fn test_dispute_management() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -97,7 +96,6 @@ fn test_dispute_management() {
     // Test block on distributing earnings during dispute
     let result = escrow_approver.try_release_funds(
         &release_signer_address,
-        &trustless_work_address,
         &vec![&env, 0u32],
     );
     assert!(result.is_err());
@@ -127,7 +125,7 @@ fn test_dispute_resolution_process() {
     let platform = Address::generate(&env);
     let release_signer_address = Address::generate(&env);
     let dispute_resolver_address = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -214,7 +212,6 @@ fn test_dispute_resolution_process() {
     wrong_dist.set(service_provider_address.clone(), 50_000_000);
     let result = escrow_approver.try_resolve_dispute(
         &approver_address,
-        &trustless_work_address,
         &milestone_indices,
         &wrong_dist,
     );
@@ -229,7 +226,6 @@ fn test_dispute_resolution_process() {
     incorrect_dist.set(service_provider_address.clone(), over_milestone_funds);
     let incorrect_dispute_resolution_result = escrow_approver.try_resolve_dispute(
         &dispute_resolver_address,
-        &trustless_work_address,
         &milestone_indices,
         &incorrect_dist,
     );
@@ -239,7 +235,6 @@ fn test_dispute_resolution_process() {
     let empty_dist = Map::new(&env);
     let dispute_resolution_with_incorrect_funds = escrow_approver.try_resolve_dispute(
         &dispute_resolver_address,
-        &trustless_work_address,
         &milestone_indices,
         &empty_dist,
     );
@@ -254,7 +249,6 @@ fn test_dispute_resolution_process() {
     ok_dist.set(service_provider_address.clone(), receiver_funds);
     escrow_approver.resolve_dispute(
         &dispute_resolver_address,
-        &trustless_work_address,
         &milestone_indices,
         &ok_dist,
     );
@@ -471,7 +465,7 @@ fn test_resolve_dispute_rounding_edge_case() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work_address = Address::generate(&env);
+    let trustless_work_address = crate::modules::fee::trustless_work_address(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -553,7 +547,6 @@ fn test_resolve_dispute_rounding_edge_case() {
     // This must NOT revert (old code would fail here due to insufficient balance)
     let result = client.try_resolve_dispute(
         &dispute_resolver,
-        &trustless_work_address,
         &vec![&env, 0u32],
         &distributions,
     );
@@ -1115,7 +1108,6 @@ fn test_resolve_dispute_reentrancy_guard() {
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -1177,7 +1169,6 @@ fn test_resolve_dispute_reentrancy_guard() {
     distributions.set(service_provider.clone(), 100_000_000i128);
     let result = client.try_resolve_dispute(
         &dispute_resolver,
-        &trustless_work,
         &vec![&env, 0u32],
         &distributions,
     );
@@ -1200,7 +1191,6 @@ fn test_withdraw_remaining_funds_reentrancy_guard() {
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
     let receiver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
 
@@ -1261,7 +1251,7 @@ fn test_withdraw_remaining_funds_reentrancy_guard() {
     let mut distributions = Map::new(&env);
     distributions.set(service_provider.clone(), 100_000_000i128);
     let result =
-        client.try_withdraw_remaining_funds(&dispute_resolver, &trustless_work, &distributions);
+        client.try_withdraw_remaining_funds(&dispute_resolver, &distributions);
     assert_eq!(
         result.err(),
         Some(Ok(crate::error::EscrowError::Reentrancy))
@@ -1280,7 +1270,6 @@ fn test_resolve_dispute_rejects_partial_settlement() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -1341,7 +1330,6 @@ fn test_resolve_dispute_rejects_partial_settlement() {
     partial.set(receiver.clone(), amount / 2);
     let result = client.try_resolve_dispute(
         &dispute_resolver,
-        &trustless_work,
         &vec![&env, 0u32],
         &partial,
     );
@@ -1351,7 +1339,7 @@ fn test_resolve_dispute_rejects_partial_settlement() {
     // Full settlement (total == milestone_amount_total) succeeds.
     let mut full = Map::new(&env);
     full.set(receiver.clone(), amount);
-    client.resolve_dispute(&dispute_resolver, &trustless_work, &vec![&env, 0u32], &full);
+    client.resolve_dispute(&dispute_resolver, &vec![&env, 0u32], &full);
     assert!(client.get_escrow().milestones.get(0).unwrap().dispute.resolved);
 }
 
@@ -1370,7 +1358,7 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
     let platform = Address::generate(&env);
     let release_signer = Address::generate(&env);
     let dispute_resolver = Address::generate(&env);
-    let trustless_work = Address::generate(&env);
+    let trustless_work = crate::modules::fee::trustless_work_address(&env);
     let receiver = Address::generate(&env);
 
     let usdc_token = create_usdc_token(&env, &admin);
@@ -1440,7 +1428,6 @@ fn test_resolve_dispute_with_18_decimal_scale_amounts() {
 
     client.resolve_dispute(
         &dispute_resolver,
-        &trustless_work,
         &vec![&env, 0u32],
         &distributions,
     );
