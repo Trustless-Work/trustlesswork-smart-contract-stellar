@@ -409,3 +409,69 @@ fn forwarding_helper_sends_seventh_decimal_remainder_to_stellar() {
     assert_eq!(usdc.0.balance(&stellar_receiver), 3);
     assert_eq!(usdc.0.balance(&escrow_contract), 0);
 }
+
+#[test]
+fn update_keeps_destination_when_receiver_and_amount_are_unchanged() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    let mut updated = f.escrow.clone();
+    updated.title = String::from_str(&env, "Renamed");
+    client.update_escrow(&f.admin, &updated);
+
+    assert!(client.try_get_cross_chain_destination().is_ok());
+}
+
+#[test]
+fn update_clears_destination_when_receiver_changes() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    let mut updated = f.escrow.clone();
+    updated.roles.receiver = Address::generate(&env);
+    client.update_escrow(&f.admin, &updated);
+
+    assert!(matches!(
+        client.try_get_cross_chain_destination(),
+        Err(Ok(CctpError::DestinationNotSet))
+    ));
+}
+
+#[test]
+fn update_clears_destination_when_amount_changes() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    let mut updated = f.escrow.clone();
+    updated.amount = 1_000_000;
+    client.update_escrow(&f.admin, &updated);
+
+    assert!(matches!(
+        client.try_get_cross_chain_destination(),
+        Err(Ok(CctpError::DestinationNotSet))
+    ));
+}

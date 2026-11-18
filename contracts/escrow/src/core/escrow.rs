@@ -249,6 +249,16 @@ impl EscrowManager {
         escrow_to_save.dispute = existing_escrow.dispute.clone();
         escrow_to_save.released = existing_escrow.released;
 
+        // The destination belongs to the receiver that registered it, and its
+        // max_fee was capped against the old amount.
+        if escrow_to_save.roles.receiver != existing_escrow.roles.receiver
+            || escrow_to_save.amount != existing_escrow.amount
+        {
+            e.storage()
+                .persistent()
+                .remove(&DataKey::CrossChainDestination);
+        }
+
         e.storage()
             .persistent()
             .set(&DataKey::Escrow, &escrow_to_save);
