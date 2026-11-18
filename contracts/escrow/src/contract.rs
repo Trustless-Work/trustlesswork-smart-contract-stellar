@@ -294,6 +294,15 @@ impl EscrowContract {
             );
         }
 
+        for index in 0..escrow.milestones.len() {
+            let key = DataKey::CrossChainDestination(index);
+            if e.storage().persistent().has(&key) {
+                e.storage()
+                    .persistent()
+                    .extend_ttl(&key, min_ledgers, ledgers_to_extend);
+            }
+        }
+
         e.storage()
             .instance()
             .extend_ttl(min_ledgers, ledgers_to_extend);

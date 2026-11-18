@@ -502,3 +502,34 @@ fn forwarding_helper_sends_seventh_decimal_remainder_to_stellar() {
     assert_eq!(usdc.0.balance(&stellar_receiver), 3);
     assert_eq!(usdc.0.balance(&escrow_contract), 0);
 }
+
+#[test]
+fn extend_contract_ttl_covers_milestone_destinations() {
+    use crate::storage::types::DataKey;
+    use soroban_sdk::testutils::storage::Persistent;
+    use soroban_sdk::testutils::Ledger;
+
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver0, &0u32, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    // Drop the remaining TTL below the extend threshold so extend_ttl acts.
+    env.ledger().with_mut(|li| li.sequence_number += 6_300_000);
+    let ttl = || {
+        env.as_contract(&client.address, || {
+            env.storage().persistent().get_ttl(&DataKey::CrossChainDestination(0))
+        })
+    };
+    let before = ttl();
+    client.extend_contract_ttl(&f.admin, &1_000_000u32);
+    let after = ttl();
+
+    assert!(after > before, "destination TTL must be extended ({before} -> {after})");
+}
