@@ -327,7 +327,6 @@ Transfers tokens from `signer` into the contract. The `expected_escrow` paramete
 pub fn release_funds(
     e: &Env,
     release_signer: Address,
-    trustless_work_address: Address,
     milestone_indices: Vec<u32>,
 ) -> Result<(), ReleaseError>
 ```
@@ -337,7 +336,7 @@ Releases funds for specific milestones. Each milestone in `milestone_indices` mu
 - Each milestone must: be approved (`approval_count >= target`), not be disputed, not already released, not already dispute-resolved
 - No duplicate indices allowed
 - Marks milestones as `released = true` **before** transferring tokens (effects-before-interactions pattern)
-- For each milestone: transfers `trustless_work_fee` → `trustless_work_address`, `platform_fee` → `platform`, `net_amount` → `milestone.receiver`
+- For each milestone: transfers `trustless_work_fee` → the hardcoded Trustless Work address (`GBWWSOATPLIC72ZBOIM7WJCT7VCAHNWW4QUBZ2H4FORMCCIUM5ZVKSZN`), `platform_fee` → `platform`, `net_amount` → `milestone.receiver`
 - Emits `ReleaseEsc` event with full `payouts: Vec<MilestonePayout>`
 
 ### 5.6 `update_escrow`
@@ -418,7 +417,6 @@ Records an approver's vote for a set of milestones.
 pub fn approve_and_release_milestones(
     e: Env,
     signer: Address,
-    trustless_work_address: Address,
     milestone_indices: Vec<u32>,
 ) -> Result<(), EscrowError>
 ```
@@ -452,7 +450,6 @@ Opens a dispute on specific milestones.
 pub fn resolve_dispute(
     e: Env,
     dispute_resolver: Address,
-    trustless_work_address: Address,
     milestone_indices: Vec<u32>,
     distributions: Map<Address, i128>,
 ) -> Result<(), EscrowError>
@@ -474,7 +471,6 @@ Resolves a dispute for specific milestones by distributing funds proportionally.
 pub fn withdraw_remaining_funds(
     e: Env,
     dispute_resolver: Address,
-    trustless_work_address: Address,
     distributions: Map<Address, i128>,
 ) -> Result<(), EscrowError>
 ```
