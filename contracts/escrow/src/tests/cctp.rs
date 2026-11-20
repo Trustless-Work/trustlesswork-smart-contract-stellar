@@ -46,11 +46,28 @@ impl MockTokenMessenger {
         TokenClient::new(&e, &burn_token).transfer_from(&self_addr, &caller, &self_addr, &amount);
     }
 
+    /// Marks `token` as burnable, like Circle's per-token burn limit.
+    pub fn support_token(e: Env, token: Address) {
+        e.storage().instance().set(&token, &1_000_000_000_000_000i128);
+    }
+
+    pub fn get_max_burn_amount_per_message(e: Env, local_token: Address) -> Option<i128> {
+        e.storage().instance().get(&local_token)
+    }
+
     /// Fixed protocol fee for tests — real value comes from Circle's live
     /// `TokenMessengerMinter` config, irrelevant to what this mock verifies.
     pub fn get_min_fee_amount(_e: Env, _burn_token: Address, _amount: i128) -> i128 {
         0
     }
+}
+
+/// Registers the mock at Circle's hardcoded address with `token` burnable.
+fn register_messenger(env: &Env, token: &Address) -> Address {
+    let messenger = Address::from_str(env, CCTP_TOKEN_MESSENGER_STRKEY);
+    env.register_at(&messenger, MockTokenMessenger, ());
+    MockTokenMessengerClient::new(env, &messenger).support_token(token);
+    messenger
 }
 
 fn evm_recipient(e: &Env, byte: u8) -> BytesN<32> {
@@ -136,8 +153,7 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
 
-    let messenger = Address::from_str(&env, CCTP_TOKEN_MESSENGER_STRKEY);
-    env.register_at(&messenger, MockTokenMessenger, ());
+    let messenger = register_messenger(&env, &usdc.0.address);
 
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
@@ -264,6 +280,7 @@ fn set_destination_rejects_max_fee_exceeding_cap() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
 
     // amount = 100_000_000 -> cap is amount / 10 = 10_000_000.
     let amount: i128 = 100_000_000;
@@ -301,6 +318,7 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
 
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
@@ -365,6 +383,7 @@ fn update_keeps_destination_when_receiver_and_amount_are_unchanged() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
     let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
 
     let client = create_escrow_contract(&env, &f.admin).client;
@@ -385,6 +404,7 @@ fn update_clears_destination_when_receiver_changes() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
     let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
 
     let client = create_escrow_contract(&env, &f.admin).client;
@@ -408,6 +428,7 @@ fn update_clears_destination_when_amount_changes() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
     let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
 
     let client = create_escrow_contract(&env, &f.admin).client;
@@ -435,6 +456,7 @@ fn extend_contract_ttl_covers_the_destination() {
 
     let admin = Address::generate(&env);
     let usdc = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
     let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
 
     let client = create_escrow_contract(&env, &f.admin).client;
@@ -453,4 +475,54 @@ fn extend_contract_ttl_covers_the_destination() {
     let after = ttl();
 
     assert!(after > before, "destination TTL must be extended ({before} -> {after})");
+}
+
+#[test]
+fn set_destination_rejects_token_circle_cannot_burn() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let other = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
+    let f = base_escrow(&env, &other.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+
+    let res = client.try_set_cross_chain_destination(
+        &f.receiver,
+        &6,
+        &evm_recipient(&env, 0xAB),
+        &200_000i128,
+    );
+    assert_eq!(res, Err(Ok(CctpError::UnsupportedBurnToken)));
+}
+
+#[test]
+fn update_clears_destination_when_trustline_changes() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let usdc = create_usdc_token(&env, &admin);
+    let other = create_usdc_token(&env, &admin);
+    register_messenger(&env, &usdc.0.address);
+    let f = base_escrow(&env, &usdc.0.address, 100_000_000, 500);
+
+    let client = create_escrow_contract(&env, &f.admin).client;
+    client.initialize_escrow(&f.escrow);
+    client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
+
+    let mut updated = f.escrow.clone();
+    updated.trustline = Trustline {
+        address: other.0.address.clone(),
+    };
+    client.update_escrow(&f.admin, &updated);
+
+    assert!(matches!(
+        client.try_get_cross_chain_destination(),
+        Err(Ok(CctpError::DestinationNotSet))
+    ));
 }

@@ -39,6 +39,16 @@ pub fn validate_destination(
     Ok(())
 }
 
+/// Only tokens Circle has a burn limit for can be bridged. Asked to the
+/// TokenMessenger itself, so it holds on any network without a token list.
+pub fn validate_burn_token(e: &Env, token: &Address) -> Result<(), CctpError> {
+    let messenger = TokenMessengerMinterClient::new(e, &cctp_token_messenger_address(e));
+    match messenger.get_max_burn_amount_per_message(token) {
+        Some(limit) if limit > 0 => Ok(()),
+        _ => Err(CctpError::UnsupportedBurnToken),
+    }
+}
+
 /// Burns the receiver's share via CCTP with Circle's Forwarding Service:
 /// the destination-chain mint completes automatically (no second, EVM-side signature from the receiver). Circle
 /// deducts `max_fee` (protocol fee, queried live via `get_min_fee_amount`,
