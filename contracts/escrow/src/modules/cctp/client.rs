@@ -26,4 +26,7 @@ pub trait TokenMessengerMinter {
     /// `burn_token`, per Circle's own `min_fee`/`min_fee_amount` config for
     /// that token. Used to size `max_fee` precisely instead of guessing.
     fn get_min_fee_amount(e: &Env, burn_token: Address, amount: i128) -> i128;
+
+    /// `None` when Circle can't burn `local_token` (e.g. EURC today).
+    fn get_max_burn_amount_per_message(e: &Env, local_token: Address) -> Option<i128>;
 }

@@ -70,6 +70,8 @@ pub enum CctpError {
     /// contract itself doesn't trust that; anyone with the receiver's key
     /// can call this entrypoint directly, bypassing the API).
     MaxFeeExceedsCap = 6,
+    /// Circle's TokenMessenger has no burn limit for the escrow's token.
+    UnsupportedBurnToken = 7,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

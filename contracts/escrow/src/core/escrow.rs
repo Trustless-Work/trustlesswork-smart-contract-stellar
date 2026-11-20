@@ -8,7 +8,7 @@ use crate::core::validators::escrow::{
 };
 use crate::error::{CctpError, EscrowError, ReleaseError};
 use crate::modules::cctp::release::{
-    release_receiver_amount_via_cctp_forwarding, validate_destination,
+    release_receiver_amount_via_cctp_forwarding, validate_burn_token, validate_destination,
 };
 use crate::modules::fee::{FeeCalculator, FeeCalculatorTrait};
 use crate::modules::math::{BasicArithmetic, BasicMath};
@@ -210,9 +210,11 @@ impl EscrowManager {
         mint_recipient: &BytesN<32>,
         max_fee: i128,
     ) -> Result<(), CctpError> {
-        let milestone_amount = Self::assert_milestone_receiver(e, receiver, milestone_index)?;
+        let (milestone_amount, token) =
+            Self::assert_milestone_receiver(e, receiver, milestone_index)?;
         receiver.require_auth();
         validate_destination(destination_domain, mint_recipient, max_fee, milestone_amount)?;
+        validate_burn_token(e, &token)?;
 
         let destination = CrossChainDestination {
             destination_domain,
@@ -247,13 +249,13 @@ impl EscrowManager {
             .ok_or(CctpError::DestinationNotSet)
     }
 
-    /// Returns the milestone's amount on success — the caller needs it to
-    /// bound `max_fee`.
+    /// Returns the milestone's amount (to bound `max_fee`) and the escrow's
+    /// token (to check it's burnable).
     fn assert_milestone_receiver(
         e: &Env,
         receiver: &Address,
         milestone_index: u32,
-    ) -> Result<i128, CctpError> {
+    ) -> Result<(i128, Address), CctpError> {
         let escrow = Self::get_escrow(e).map_err(|_| CctpError::MilestoneNotFound)?;
         let milestone = escrow
             .milestones
@@ -262,7 +264,7 @@ impl EscrowManager {
         if *receiver != milestone.receiver {
             return Err(CctpError::OnlyReceiverCanSetDestination);
         }
-        Ok(milestone.amount)
+        Ok((milestone.amount, escrow.trustline.address))
     }
 
     #[inline]
@@ -298,6 +300,15 @@ impl EscrowManager {
 
         let mut escrow_to_save = escrow_properties;
         escrow_to_save.milestones = existing_escrow.milestones.clone();
+
+        // Destinations were only accepted for a token Circle can burn.
+        if escrow_to_save.trustline != existing_escrow.trustline {
+            for index in 0..existing_escrow.milestones.len() {
+                e.storage()
+                    .persistent()
+                    .remove(&DataKey::CrossChainDestination(index));
+            }
+        }
 
         e.storage()
             .persistent()
