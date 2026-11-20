@@ -2,7 +2,6 @@ use soroban_sdk::{Address, Bytes, Env};
 
 pub const STELLAR_CCTP_DOMAIN: u32 = 27;
 pub const CCTP_MIN_FINALITY_THRESHOLD_STANDARD: u32 = 2000;
-pub const CCTP_DEFAULT_MAX_FEE: i128 = 0;
 pub const STELLAR_TO_CCTP_DECIMAL_FACTOR: i128 = 10;
 
 /// Reserved hook data that opts a burn into Circle's Forwarding Service:
