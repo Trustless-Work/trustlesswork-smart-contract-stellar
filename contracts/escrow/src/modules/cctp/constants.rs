@@ -5,14 +5,8 @@ pub const CCTP_MIN_FINALITY_THRESHOLD_STANDARD: u32 = 2000;
 pub const STELLAR_TO_CCTP_DECIMAL_FACTOR: i128 = 10;
 
 /// Reserved hook data that opts a burn into Circle's Forwarding Service:
-/// 24 bytes of the ASCII magic `cctp-forward` (zero-padded to 24), a `u32`
-/// version (`0`), and a `u32` length of any trailing custom payload (`0`,
-/// none here). 32 bytes total. Verified against Circle's forwarding-service
-/// docs and a third-party Stellar-source CCTP forwarding experiment
-/// (`ElliotFriend/stunning-octo-carnival`, branch
-/// `experiment/forwarder-stellar-source`) — get a single byte wrong here and
-/// the burned funds are unrecoverable, so any change to this must be
-/// re-verified against a real testnet burn before use.
+/// `cctp-forward` zero-padded to 24 bytes, version `0` and payload length `0`
+/// (both u32), 32 bytes total. A wrong byte means Circle won't forward the mint.
 #[inline]
 pub fn cctp_forward_hook_data(e: &Env) -> Bytes {
     let mut bytes = [0u8; 32];
@@ -36,4 +30,24 @@ pub fn cctp_token_messenger_address(e: &Env) -> Address {
 #[inline]
 pub fn is_valid_cctp_destination_domain(domain: u32) -> bool {
     domain != STELLAR_CCTP_DOMAIN && VALID_CCTP_DESTINATION_DOMAINS.contains(&domain)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Circle's documented forward-only hook (v0): 0x636374702d666f7277617264 + 20 zero bytes.
+    const CIRCLE_FORWARD_HOOK_V0: [u8; 32] = [
+        0x63, 0x63, 0x74, 0x70, 0x2d, 0x66, 0x6f, 0x72, 0x77, 0x61, 0x72, 0x64, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+
+    #[test]
+    fn forward_hook_matches_circle_documented_bytes() {
+        let e = Env::default();
+        assert_eq!(
+            cctp_forward_hook_data(&e),
+            Bytes::from_array(&e, &CIRCLE_FORWARD_HOOK_V0)
+        );
+    }
 }
