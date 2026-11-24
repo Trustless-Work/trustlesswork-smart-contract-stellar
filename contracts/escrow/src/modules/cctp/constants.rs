@@ -17,8 +17,9 @@ pub fn cctp_forward_hook_data(e: &Env) -> Bytes {
     Bytes::from_array(e, &bytes)
 }
 
+/// Circle's TokenMessengerMinter on mainnet.
 pub const CCTP_TOKEN_MESSENGER_STRKEY: &str =
-    "CDNG7HXAPBWICI2E3AUBP3YZWZELJLYSB6F5CC7WLDTLTHVM74SLRTHP";
+    "CAE2G5Z77UP7GYPYGFOWFGW7C7J6I4YP2AFGSADRKQY62SYUFLPNFTXL";
 
 pub const VALID_CCTP_DESTINATION_DOMAINS: &[u32] = &[0, 1, 2, 3, 5, 6, 7];
 
