@@ -173,7 +173,6 @@ fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -184,7 +183,7 @@ fn release_routes_milestone_to_cctp_when_its_receiver_registered() {
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
     client.approve_milestones(&vec![&env, 1u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32, 1u32]);
+    client.release_funds(&f.release_signer, &vec![&env, 0u32, 1u32]);
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
 
@@ -206,14 +205,13 @@ fn release_stays_on_stellar_without_registered_destination() {
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &(each * 2));
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+    client.release_funds(&f.release_signer, &vec![&env, 0u32]);
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
     assert_eq!(usdc.0.balance(&f.receiver0), net);
@@ -347,7 +345,6 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -357,7 +354,7 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     client.clear_cross_chain_destination(&f.receiver0, &0u32);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+    client.release_funds(&f.release_signer, &vec![&env, 0u32]);
 
     let (_tw, _plat, net) = net_of(each, platform_fee);
     assert_eq!(usdc.0.balance(&f.receiver0), net);
@@ -380,7 +377,6 @@ fn reducing_milestone_amount_clears_cross_chain_destination() {
     let each: i128 = 50_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, each, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -422,7 +418,7 @@ fn reducing_milestone_amount_clears_cross_chain_destination() {
     // instead of burning via the messenger.
     usdc.1.mint(&client.address, &reduced);
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address, &vec![&env, 0u32]);
+    client.release_funds(&f.release_signer, &vec![&env, 0u32]);
 
     let (_tw, _plat, net) = net_of(reduced, platform_fee);
     assert_eq!(usdc.0.balance(&f.receiver0), net);
