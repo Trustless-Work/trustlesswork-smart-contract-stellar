@@ -158,7 +158,7 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-    let tw_address = Address::generate(&env);
+    let tw_address = crate::modules::fee::trustless_work_address(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -167,7 +167,7 @@ fn release_routes_to_cctp_when_receiver_registered_destination() {
     client.set_cross_chain_destination(&f.receiver, &6, &evm_recipient(&env, 0xAB), &200_000i128);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
+    client.release_funds(&f.release_signer);
 
     let tw_fee = amount * 30 / 10_000;
     let platform_commission = amount * platform_fee as i128 / 10_000;
@@ -191,14 +191,13 @@ fn release_stays_on_stellar_without_registered_destination() {
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
     usdc.1.mint(&client.address, &amount);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
+    client.release_funds(&f.release_signer);
 
     let receiver_amount =
         amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
@@ -323,7 +322,6 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     let amount: i128 = 100_000_000;
     let platform_fee: u32 = 500;
     let f = base_escrow(&env, &usdc.0.address, amount, platform_fee);
-    let tw_address = Address::generate(&env);
 
     let client = create_escrow_contract(&env, &f.admin).client;
     client.initialize_escrow(&f.escrow);
@@ -333,7 +331,7 @@ fn receiver_can_clear_destination_to_revert_to_stellar() {
     client.clear_cross_chain_destination(&f.receiver);
 
     client.approve_milestones(&vec![&env, 0u32], &f.approver);
-    client.release_funds(&f.release_signer, &tw_address);
+    client.release_funds(&f.release_signer);
 
     let receiver_amount =
         amount - (amount * 30 / 10_000) - (amount * platform_fee as i128 / 10_000);
